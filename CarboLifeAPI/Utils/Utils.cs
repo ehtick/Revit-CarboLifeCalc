@@ -178,6 +178,12 @@ namespace CarboLifeAPI
 
             try
             {
+                if (string.IsNullOrWhiteSpace(value))
+                    return 0;
+
+                // Convert comma decimal → dot decimal
+                value = value.Replace(',', '.');
+
                 //result = Convert.ToDouble(value);
                 bool ok = double.TryParse(
                     value,NumberStyles.Any,CultureInfo.InvariantCulture,
