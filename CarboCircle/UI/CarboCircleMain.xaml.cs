@@ -6,6 +6,7 @@ using CarboLifeAPI.Data;
 using CarboLifeUI.UI;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime;
@@ -295,7 +296,7 @@ namespace CarboCircle.UI
         private void btn_Go_Click(object sender, RoutedEventArgs e)
         {
             // Get active settings:
-            if (double.TryParse(txt_SteelBeamDepthTolerance.Text, out double tolerance))
+            if (double.TryParse(txt_SteelBeamDepthTolerance.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out double tolerance))
             {
                 activeProject.settings.strengthRange = tolerance;
                 activeProject.settings.depthRange = tolerance;

@@ -4,6 +4,7 @@ using CarboLifeAPI.Data;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -14,6 +15,7 @@ using System.Windows.Controls.Ribbon;
 using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Input;
+using System.Windows.Markup;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
@@ -44,6 +46,7 @@ namespace CarboLifeUI.UI
         {
             try
             {
+
                 DependencyObject parent = VisualTreeHelper.GetParent(this);
                 Window parentWindow = Window.GetWindow(parent);
                 CarboLifeMainWindow mainViewer = parentWindow as CarboLifeMainWindow;
@@ -677,8 +680,8 @@ namespace CarboLifeUI.UI
             if (tb.Text != null)
             {
                 double value = Utils.ConvertMeToDouble(tb.Text);
-
-                tb.Text = Math.Round(value, 3).ToString();
+                string textValue = Math.Round(value, 3).ToString(CultureInfo.InvariantCulture);
+                tb.Text = textValue;
             }
         }
 

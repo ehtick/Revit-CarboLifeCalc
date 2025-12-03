@@ -9,6 +9,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -20,6 +21,7 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Input;
+using System.Windows.Markup;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
@@ -96,6 +98,17 @@ namespace CarboLifeUI.UI
 
         public CarboLifeMainWindow(CarboProject myProject, bool fromRevit = false)
         {
+            
+            /*
+            FrameworkElement.LanguageProperty.OverrideMetadata(
+    typeof(FrameworkElement),
+    new FrameworkPropertyMetadata(
+        XmlLanguage.GetLanguage(CultureInfo.InvariantCulture.IetfLanguageTag)));
+            */
+           // CultureInfo ci = new CultureInfo("nb-NO");
+           // CultureInfo.DefaultThreadCurrentCulture = ci;
+          //  CultureInfo.DefaultThreadCurrentUICulture = ci;
+
             //UserPaths
             PathUtils.CheckFileLocationsNew();
 

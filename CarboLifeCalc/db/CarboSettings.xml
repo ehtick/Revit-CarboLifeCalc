@@ -159,7 +159,7 @@
   <showPlanes>true</showPlanes>
   <showTrees>true</showTrees>
   <showSCC>true</showSCC>
-  <showDeaths>true</showDeaths>
+  <showDeaths>false</showDeaths>
   <colourPresets>
     <CarboColourPreset>
       <name>Preset 1</name>

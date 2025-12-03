@@ -127,5 +127,10 @@ namespace CarboLifeUI.UI
                 System.Windows.Clipboard.SetText(secretEnCrypted);
             }
         }
+
+        private void btn_BrowseMap_Click(object sender, RoutedEventArgs e)
+        {
+
+        }
     }
 }

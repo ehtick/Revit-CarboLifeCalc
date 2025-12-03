@@ -35,6 +35,7 @@ namespace CarboLifeCalc
         public MainWindow()
         {
             InitializeComponent();
+
         }
 
         private void btn_Launch_Click(object sender, RoutedEventArgs e)

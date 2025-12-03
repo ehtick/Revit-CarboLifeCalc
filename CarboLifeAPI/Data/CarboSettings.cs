@@ -16,6 +16,8 @@ namespace CarboLifeAPI.Data
     public class CarboSettings
     {
         public string templatePath { get; set; }
+        public string mappingPath { get; set; }
+
         public bool useLocal { get; set; }
         public bool firstLaunch { get; set; }
         public int defaultDesignLife { get; set; }
@@ -37,6 +39,7 @@ namespace CarboLifeAPI.Data
         public CarboSettings()
         {
             templatePath = "Local";
+            mappingPath = "";
             useLocal = true;
             firstLaunch = true;
             defaultDesignLife = 60;
