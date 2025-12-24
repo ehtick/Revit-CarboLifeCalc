@@ -236,7 +236,7 @@ namespace CarboCircle.data
         internal static string getCircleDatabasePath()
         {
             //string fileName = "db\\CarboSettings.xml";
-            string myLocalPath = Utils.getAssemblyPath() + "\\db\\" + "carboCircleMaterials.cxml";
+            string myLocalPath = Utils.getAssemblyPath() + "\\circledb\\" + "carboCircleMaterials.cxml";
             try
             {
                 if (File.Exists(myLocalPath))
