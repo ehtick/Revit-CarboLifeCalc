@@ -67,7 +67,7 @@ namespace CarboLifeCalc
             }
             catch
             {
-
+                //silent fail, the app will crash later if these are not loaded, but this is a workaround for some users having issues with loading these dlls on launch
             }
 
             CarboLifeUI.UI.CarboLifeMainWindow CarboApp = new CarboLifeMainWindow(project);
@@ -173,10 +173,10 @@ namespace CarboLifeCalc
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            CarboLifeAPI.PathUtils.CheckFileLocationsNew();
+            CarboLifeAPI.PathUtils.CheckFileLocations();
             //Assembly.GetExecutingAssembly().GetName().Version.ToString();
-            lbl_Version.Content = "Version: " + Assembly.GetExecutingAssembly().GetName().Version.ToString();
-            string a = lbl_Version.Content.ToString();
+            lbl_Version.Text = "Version: " + Assembly.GetExecutingAssembly().GetName().Version.ToString();
+            string a = lbl_Version.Text.ToString();
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)

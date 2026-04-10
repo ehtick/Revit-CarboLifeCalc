@@ -181,7 +181,7 @@ namespace CarboLifeAPI.Data
         public CarboProject()
         {
             //UserPaths
-            PathUtils.CheckFileLocationsNew();
+            PathUtils.CheckFileLocations();
 
             CarboSettings settings = new CarboSettings();
             settings = settings.Load();
@@ -248,7 +248,7 @@ namespace CarboLifeAPI.Data
         public CarboProject(string selectedTemplateFile = "")
         {
             //UserPaths
-            PathUtils.CheckFileLocationsNew();
+            PathUtils.CheckFileLocations();
 
             CarboSettings settings = new CarboSettings();
             settings = settings.Load();
@@ -1283,12 +1283,16 @@ namespace CarboLifeAPI.Data
 
             double totalsEmb = getEmbodiedTotals();
             double perAreaEmb = totalsEmb / Area;
+            double area = Math.Round(Area,0);
 
             generalText += "The calulated values are based on a uncertainty factor of: " + Math.Round((UncertFact * 100), 0).ToString("N") + " %" + Environment.NewLine;
+            generalText += "and a GIA of: " + Math.Round((area), 0).ToString("N") + " m2." + Environment.NewLine;
 
+            generalText += Environment.NewLine;
 
             generalText += "The Upfront Carbon Footprint (A0-A5) is: " + Math.Round((totalsUpf / 1000), 0).ToString("N") + " tCO₂e" + Environment.NewLine;
             generalText += "The Embodied Carbon Footprint (A0-C & Seq) is: " + Math.Round((totalsEmb / 1000), 0).ToString("N") + " tCO₂e" + Environment.NewLine;
+
             generalText += "The Upfront Carbon Intensity (A0-A5): " + Math.Round(perAreaUpf, 0).ToString("N") + " kgCO₂e/m²" + Environment.NewLine;
             generalText += "The Embodied Carbon Intensity (A0-C): " + Math.Round(perAreaEmb, 0).ToString("N") + " kgCO₂e/m²" + Environment.NewLine;
 
@@ -1317,7 +1321,6 @@ namespace CarboLifeAPI.Data
             if (showDeaths == true)
             {
                 generalText += "Between now and 2100 this will likely cause the death of: " + Math.Round(carbonDeathCost, 0) + " " + peopleUnits + Environment.NewLine;
-                generalText += "without a regenerative design plan." + Environment.NewLine;
             }
 
             result = generalText;

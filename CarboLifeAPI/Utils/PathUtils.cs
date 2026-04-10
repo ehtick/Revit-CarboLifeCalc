@@ -26,89 +26,114 @@ namespace CarboLifeAPI
 
         /// <summary>
         /// Sets and prepares the usermaterials and settings File
+        /// Check Settings file
+        /// Check Template file
+        /// Check Mapping File
         /// </summary>
-        public static void CheckFileLocationsNew()
+        public static void CheckFileLocations()
         {
-            bool okSettingFile = false;
-            bool okTemplate = false;
-            bool okRevitSettingFile = false;
-            bool firstLaunch = false;
-
             string log = "";
-
-            string pathDatabase = Utils.getAssemblyPath() + "\\db\\";
-
-            string bufferPath = pathDatabase + "MaterialBuffer.cxml";
-
-
-            //All the following three files bust be present:
-            string TemplateFile = pathDatabase + "UserMaterials.cxml";
-            string SettingsFile = pathDatabase + "CarboSettings.xml";
-            string RevitSettingsFile = pathDatabase  + "RevitImportSettings.xml";
-            //string GroupSettingsFile = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "\\CarboLifeCalc\\GroupSettings.xml";
-
+            bool errorTemplate = false;
+            bool errorMapping = false;
 
             try
             {
-                //This bit will prevent the user files to be ever overwritten
-                if (!(File.Exists(TemplateFile)))
-                {
-                    //If we dont have a template, create one:
-                    if (File.Exists(bufferPath))
-                    {
-                        File.Copy(bufferPath, TemplateFile);
-                        okTemplate = true;
-                        firstLaunch = true;
-                    }
-                }
+                //Essential Locations:
+                string assemblyPath = Utils.getAssemblyPath();
+                string dataPath = Path.Combine(assemblyPath, "data");
+                string dbPath = Path.Combine(assemblyPath, "db");
 
-                //SettingsFile
-                if (File.Exists(SettingsFile))
+                string bufferFilePath = Path.Combine(dataPath, "MaterialBuffer.cxml");
+                string mappingBufferFilePath = Path.Combine(dataPath, "defaultmappingfile.xml");
+
+                //all error handeling and new setting file creation is done in the Load function.
+                string expectedSettingsPath = getSettingsFilePath();
+
+                string defaultTemplatePath = Path.Combine(dbPath, "materials", "UserMaterials.cxml");
+                string defaultMappingPath = Path.Combine(dbPath, "settings", "defaultmappingfile.xml");
+
+
+                if (File.Exists(bufferFilePath)) 
+                    log += "Material Buffer file found at: " + bufferFilePath + Environment.NewLine;
+
+                if(File.Exists(mappingBufferFilePath))
+                    log += "Material Mapping Buffer file found at: " + mappingBufferFilePath + Environment.NewLine;
+
+                if(File.Exists(expectedSettingsPath))
+                    log += "Settings file found at: " + expectedSettingsPath + Environment.NewLine;
+
+                if (File.Exists(defaultTemplatePath))
+                    log += "Default Template file found at: " + defaultTemplatePath + Environment.NewLine;
+                if(File.Exists(defaultMappingPath))
+                    log += "Default Mapping file found at: " + defaultMappingPath + Environment.NewLine;
+
+                CarboSettings settings = new CarboSettings().Load();
+
+                string expectedTemplatePath = settings.templatePath;
+                string expectedMappingPath = settings.mappingPath;
+
+                if (!(File.Exists(expectedTemplatePath)))
                 {
-                    okSettingFile = true;
-                    CarboSettings settings = new CarboSettings().Load();
-                    if (settings.firstLaunch == true)
+                    //The selected tenplate file could not be found, refert back to default:
+
+                    if (File.Exists(defaultTemplatePath))
+                        //revert back to default
+                        settings.templatePath = defaultTemplatePath;
+                    else
                     {
-                        firstLaunch = true;
+                        //If we dont have a template, create one:
+                        if (File.Exists(bufferFilePath))
+                        {
+                            File.Copy(bufferFilePath, defaultTemplatePath);
+                        }
+                        else
+                        {
+                            log += "Error: Could not find or create a template file, please re-install the software." + Environment.NewLine;
+                            errorTemplate = true;
+                        }
                     }
                 }
                 else
                 {
-                    log += SettingsFile + " Not Found" + Environment.NewLine;
+                    log += "User Template file found at: " + expectedTemplatePath + Environment.NewLine;
                 }
 
-                //Revit Import Settings
-                if (File.Exists(RevitSettingsFile))
+                if (!(File.Exists(expectedMappingPath)))
                 {
-                    okRevitSettingFile = true;
+                    if (File.Exists(defaultMappingPath))
+                        //revert back to default
+                        settings.mappingPath = defaultMappingPath;
+                    else
+                    {
+                        //If we dont have a template, create one:
+                        if (File.Exists(mappingBufferFilePath))
+                        {
+                            File.Copy(mappingBufferFilePath, defaultMappingPath);
+                        }
+                        else
+                        {
+                            log += "Error: Could not find or create a mapping file, please re-install the software." + Environment.NewLine;
+                            errorMapping = true;
+                        }
+                    }
                 }
                 else
                 {
-                    log += RevitSettingsFile + " Not Found" + Environment.NewLine;
+                    log += "User Mapping file found at: " + expectedMappingPath + Environment.NewLine;
                 }
 
-                //If the app was downloaded from the Autodesk store we need to set the template file as it will always be part of the application:
+                settings.Save();
 
 
                 //Set the path to the template, ONLY when it's the first launch.
-                if (firstLaunch == true)
+                if(errorMapping == true || errorTemplate == true)
                 {
-                    CarboSettings settings = new CarboSettings().Load();
-                    settings.templatePath = TemplateFile;
-                    settings.Save();
-                    log += "Hi, this is most likely the first time you started Carbo Life Calculator. " + Environment.NewLine + " To store all your embodied carbon materials this program needs a template file." + Environment.NewLine + "This has been set to the following file: " + Environment.NewLine
-                        + settings.templatePath + Environment.NewLine 
-                        + "You are all good to go now, good luck!";
+                    string fulllog = "Hi, this is most likely the first time you started Carbo Life Calculator, or a few files could not be found at startup and the app has automatically restored the settings. " + Environment.NewLine +
+                        "Template File set as: " + Environment.NewLine + settings.templatePath + Environment.NewLine +
+                        "Mapping File set as: " + Environment.NewLine + settings.mappingPath + Environment.NewLine;
 
-                    settings.firstLaunch = false;
-                    settings.Save();
+                    MessageBox.Show(fulllog);
                 }
-
-                if (log != "")
-                {
-                    MessageBox.Show(log);
-                }
-
             }
             catch (Exception ex)
             {
@@ -120,72 +145,51 @@ namespace CarboLifeAPI
         }
 
 
-        /// <summary>
-        /// Finds the location of the Revit Import Settings File
-        /// </summary>
-        /// <returns>Revit Import Settings File path</returns>
-        public static string getRevitImportSettingspath(bool local = true)
-        {
-            //Finds and returns the revit import settings in the AppData folder, or in local if not found in Appdata.
-
-            string myPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "\\CarboLifeCalc\\RevitImportSettings.xml";
-            string myLocalPath = getAssemblyPath() + "\\db\\" + "RevitImportSettings.xml";
-
-            if (local == true)
-            {
-                return myLocalPath;
-            }
-            else
-            { 
-                if (File.Exists(myPath))
-                    return myPath;
-                else if (File.Exists(myLocalPath))
-                    return myLocalPath;
-                else
-                {
-                    MessageBox.Show("Could not find a path reference to the RevitImportSettings.xml, you possibly have to re-install the software" + Environment.NewLine +
-                            "Target: " + myPath + Environment.NewLine +
-                            "Target: " + myLocalPath, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                    return "";
-                }
-            }
-        }
 
         /// <summary>
-        /// Finds the location of the Carbo Life Calculator Settings File
+        /// Finds the location of the Carbo Life Calculator Settings File this is always installdir/data/CarboSettings.xml
         /// </summary>
         /// <returns>Settings File path</returns>
-        internal static string getSettingsFilePath(bool local = true)
+        public static string getSettingsFilePath()
         {
             //string fileName = "db\\CarboSettings.xml";
-            string myPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "\\CarboLifeCalc\\CarboSettings.xml";
-            string myLocalPath = getAssemblyPath() + "\\db\\" + "CarboSettings.xml";
+            //string myPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "\\CarboLifeCalc\\CarboSettings.xml";
+            string myLocalPath = Path.Combine(getAssemblyPath(),"data","CarboSettings.xml");
 
-            if (local == true)
-            {
+            //if (File.Exists(myPath))
+            //    return myPath;
+            if (File.Exists(myLocalPath))
                 return myLocalPath;
-            }
             else
             {
-                if (File.Exists(myPath))
-                    return myPath;
-                else if (File.Exists(myLocalPath))
-                    return myLocalPath;
-                else
+                try
                 {
-                    MessageBox.Show("Could not find a path reference to the CarboLifeCalculator Setting File, you possibly have to re-install the software" + Environment.NewLine +
-                            "Target: " + myPath + Environment.NewLine +
+                    MessageBox.Show("Could not find a path reference to the CarboLifeCalculator Setting File, I will try to  you create a new settings file, you possibly have to re-install the software if this error persists" + Environment.NewLine +
+                            // "Target: " + myPath + Environment.NewLine +
                             "Target: " + myLocalPath, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+
+                    CarboGroupSettings settings = new CarboGroupSettings();
+                    bool ok = settings.SerializeXML(myLocalPath);
+
+                    if(ok == true)
+                        return myLocalPath;
+                    else
+                        return "";
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Could not create a new settings file: " + ex.Message);
                     return "";
                 }
             }
+
         }
 
         /// <summary>
         /// Finds the location of the Carbo Life Calculator Template File
         /// </summary>
         /// <returns>Template Path</returns>
-        public static string getTemplateFolder(bool local = true)
+        public static string getTemplateFile(bool local = true)
         {
             try
             {
@@ -193,6 +197,8 @@ namespace CarboLifeAPI
 
                 string templatetarget = settings.templatePath;
                 string myLocalPath = getAssemblyPath() + "\\db\\" + "UserMaterials.cxml";
+                //option 1 - user specified path
+                //option 2 - local path, n case not found.
 
                 if (File.Exists(templatetarget))
                     return templatetarget;
@@ -228,69 +234,42 @@ namespace CarboLifeAPI
         /// <returns>Template Path</returns>
         public static IDictionary<string, string> getTemplateFiles()
         {
-            IDictionary<string, string> result = new Dictionary<string, string>();
+            var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
             try
             {
-                //get DefaultTemplate:
-                string defaultTemplatePath = PathUtils.getTemplateFolder();
-                string defaultfimeName = System.IO.Path.GetFileName(defaultTemplatePath);
+                string defaultTemplatePath = getTemplateFile();
 
-                result.Add(defaultfimeName, defaultTemplatePath);
+                if (string.IsNullOrEmpty(defaultTemplatePath)) return result;
 
-                //get the other files in the local database
-                string myLocalPath = PathUtils.getAssemblyPath() + "\\db\\";
-                string[] files = System.IO.Directory.GetFiles(myLocalPath, "*.cxml");
-                string[] filescvs = System.IO.Directory.GetFiles(myLocalPath, "*.csv");
+                string defaultFileName = Path.GetFileName(defaultTemplatePath);
+                result.Add(defaultFileName, defaultTemplatePath);
 
-                if (files.Length > 0)
+                // Get the directory containing the default template
+                string templateDirectory = Path.GetDirectoryName(defaultTemplatePath);
+                if (string.IsNullOrEmpty(templateDirectory) || !Directory.Exists(templateDirectory)) return result;
+
+                // Define extensions to search for
+                string[] extensions = { "*.cxml", "*.csv" };
+
+                foreach (var ext in extensions)
                 {
+                    string[] files = Directory.GetFiles(templateDirectory, ext);
                     foreach (string file in files)
                     {
-                        string fileName = System.IO.Path.GetFileName(file);
+                        string fileName = Path.GetFileName(file);
 
-                        if (System.IO.File.Exists(file))
+                        // Skip if already added (the default template)
+                        if (!result.ContainsKey(fileName))
                         {
-                            //add if not default of the buffer
-                            bool exclude = false;
-                            if (fileName.Contains("Buffer", StringComparison.OrdinalIgnoreCase))
-                                exclude = true;
-                            if (fileName.Contains("CarboCircle", StringComparison.OrdinalIgnoreCase))
-                                exclude = true;
-                            if (defaultfimeName == fileName)
-                                exclude = true;
-
-                            if (exclude == false)
-                            {
-                                result.Add(fileName, file);
-                            }
+                            result.Add(fileName, file);
                         }
                     }
-
-                    foreach (string file in filescvs)
-                    {
-                        string fileName = System.IO.Path.GetFileName(file);
-
-                        if (System.IO.File.Exists(file))
-                        {
-                            bool exclude = false;
-
-                            if (fileName.Contains("CarboCircle", StringComparison.OrdinalIgnoreCase))
-                                exclude = true;
-
-                            if (exclude == false)
-                            {
-                                result.Add(fileName, file);
-                            }
-                        }
-                    }
-
-
                 }
             }
-            catch (Exception ex)
+            catch
             {
-                return null;
-
+                // Silently fail or log as needed for your implementation
             }
 
             return result;
@@ -350,6 +329,41 @@ namespace CarboLifeAPI
             catch (Exception ex)
             {
                 MessageBox.Show("While trying to delete downloaded files I ran into an error: " + Environment.NewLine + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Copies a new file over the existing settings file path.
+        /// </summary>
+        /// <param name="newFilePath">The path selected by the user.</param>
+        /// <param name="targetSettingsPath">The internal Revit settings path.</param>
+        public static void OverrideSettingsFile(string newFilePath, string targetSettingsPath)
+        {
+            if (string.IsNullOrEmpty(newFilePath) || !File.Exists(newFilePath)) return;
+
+            try
+            {
+                // Ensure the directory for the target exists
+                string directory = Path.GetDirectoryName(targetSettingsPath);
+                if (!Directory.Exists(directory))
+                {
+                    Directory.CreateDirectory(directory);
+                }
+
+                // Copy the new file over the old one (true = overwrite)
+                File.Copy(newFilePath, targetSettingsPath, true);
+
+                MessageBox.Show("Settings imported and updated successfully.",
+                                "Import Complete",
+                                MessageBoxButton.OK,
+                                MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to override settings: {ex.Message}",
+                                "Import Error",
+                                MessageBoxButton.OK,
+                                MessageBoxImage.Error);
             }
         }
     }

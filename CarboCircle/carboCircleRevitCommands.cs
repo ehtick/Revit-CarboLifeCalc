@@ -376,7 +376,7 @@ namespace CarboCircle
             else
             {
                 string assemblyath = Utils.getAssemblyPath();
-                dbpath = assemblyath + "\\db\\" + "CarboCircleMasterSections.csv";
+                dbpath = assemblyath + "\\circledb\\" + "CarboCircleMasterSections.csv";
             }
 
             if (File.Exists(dbpath))

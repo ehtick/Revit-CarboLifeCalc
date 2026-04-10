@@ -96,6 +96,7 @@ namespace CarboLifeUI.UI
                     cbb_GraphType.Items.Add("Material");
                     cbb_GraphType.Items.Add("Category");
                     cbb_GraphType.Items.Add("Category Merged");
+                    cbb_GraphType.Items.Add("Category Merged +");
                     cbb_GraphType.Items.Add("Super - SubStructure");
                     cbb_GraphType.Items.Add("By Level, Material");
                     cbb_GraphType.Items.Add("By Level, Category");
@@ -165,6 +166,14 @@ namespace CarboLifeUI.UI
                         List<CarboElement> projectElements = CarboLifeProject.getElementsFromGroups().ToList();
                         if (projectElements != null)
                             pieSeries = GraphBuilder.GetPieChart(currentProjectResult, "Category Merged", projectElements);
+
+                    }
+                    else if (cbb_GraphType.SelectedValue.ToString() == "Category Merged +")
+                    {
+                        DataTable currentProjectResult = null;
+                        List<CarboElement> projectElements = CarboLifeProject.getElementsFromGroups().ToList();
+                        if (projectElements != null)
+                            pieSeries = GraphBuilder.GetPieChart(currentProjectResult, "Category Merged +", projectElements);
 
                     }
                     else if (cbb_GraphType.SelectedValue.ToString() == "Super - SubStructure")

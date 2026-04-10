@@ -163,8 +163,8 @@ namespace CarboLifeRevit
             //this is just to confirm the window loaded
             if (carboProject != null)
             {
-                lbl_name.Content = carboProject.Name;
-                lbl_total.Content = carboProject.getTotalEC().ToString("N") + " tCO2";
+                lbl_name.Text = carboProject.Name;
+                lbl_total.Text = carboProject.getTotalEC().ToString("N") + " tCO2";
             }
 
             //load current Settings;
@@ -231,8 +231,8 @@ namespace CarboLifeRevit
                     }
 
                     //Show the data
-                    lbl_name.Content = carboProject.Name;
-                    lbl_total.Content = carboProject.getTotalEC().ToString("N") + " tCO2";
+                    lbl_name.Text = carboProject.Name;
+                    lbl_total.Text = carboProject.getTotalEC().ToString("N") + " tCO2";
 
                 }
                 //Get all the visible elements (all project)
@@ -275,8 +275,8 @@ namespace CarboLifeRevit
             }
 
             //Show the data
-            lbl_name.Content = carboProject.Name;
-            lbl_total.Content = carboProject.getTotalEC().ToString("N") + " tCO2";
+            lbl_name.Text = carboProject.Name;
+            lbl_total.Text = carboProject.getTotalEC().ToString("N") + " tCO2";
 
 
             //Get all the visible elements (all project)
@@ -443,7 +443,7 @@ namespace CarboLifeRevit
                     }
                 }
                 if (!Utils.IsEmpty(visibleElements))
-                    lbl_debug.Content = string.Format("Elements in projects {0}, selected: {1} " + Environment.NewLine + ", valid/filtered: {2} elements in selection/view: {3}",
+                    lbl_debug.Text = string.Format("Elements in projects {0}, selected: {1} " + Environment.NewLine + ", valid/filtered: {2} elements in selection/view: {3}",
                         graphData.entireProjectData.Count,
                         graphData.selectedData.Count,
                         graphData.validData.Count,

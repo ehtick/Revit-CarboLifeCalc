@@ -27,7 +27,7 @@ namespace CarboCircle
         private List<carboCircleElement> collectedElements;
         //private List<carboCircleElement> collectedVolumes;
 
-        public UIApplication uiapp { get; }
+       // public UIApplication uiapp { get; }
 
         public CarboCircleHandler(UIApplication uiapp)
         {

@@ -69,8 +69,19 @@
     <Page Remove="screens\**" />
   </ItemGroup>
   <ItemGroup>
+    <None Remove="data\CarboSettings.xml" />
     <None Remove="data\defaultmappingfile.xml" />
-    <None Remove="db\Boverkets.cxml" />
+    <None Remove="data\MaterialBuffer.cxml" />
+    <None Remove="db\materials\Boverkets.cxml" />
+    <None Remove="db\materials\CSVTemplate.csv" />
+    <None Remove="db\materials\EPDs.cxml" />
+    <None Remove="db\materials\IstructE 2.0.cxml" />
+    <None Remove="db\materials\IstructE 3.0.cxml" />
+    <None Remove="db\materials\MaterialBuffer.cxml" />
+    <None Remove="db\materials\Okobaudat.cxml" />
+    <None Remove="db\materials\Simplified.cxml" />
+    <None Remove="db\materials\UserMaterials.cxml" />
+    <None Remove="db\settings\defaultmappingfile.xml" />
     <None Remove="libSkiaSharp.dll" />
     <None Remove="samples\CarboCircleTest R25.rvt" />
     <None Remove="samples\CarboLifeCalc_sample_project_R25.clcx" />
@@ -90,47 +101,50 @@
     <Content Include="data\A1A3Tables\User.csv">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="data\CarboSettings.xml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="data\defaultmappingfile.xml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="db\Boverkets.cxml">
+    <Content Include="data\MaterialBuffer.cxml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="db\matchlog.txt">
+    <Content Include="db\materials\Boverkets.cxml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="db\MaterialBuffer.cxml">
+    <Content Include="db\materials\CSVTemplate.csv">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="db\UserMaterials.cxml">
+    <Content Include="db\materials\EPDs.cxml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="db\materials\IstructE 2.0.cxml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="db\materials\IstructE 3.0.cxml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="db\materials\MaterialBuffer.cxml">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Content>
+    <Content Include="db\materials\Okobaudat.cxml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="db\materials\Simplified.cxml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="db\materials\UserMaterials.cxml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="db\settings\defaultmappingfile.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="data\Letidata.csv">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="db\EPDs.cxml">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
     <Content Include="data\ReinforcementCats.csv">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="db\Simplified.cxml">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="db\CSVTemplate.csv">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="db\IstructE 2.0.cxml">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="db\IstructE 3.0.cxml">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="db\Okobaudat.cxml">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="db\carboCircleMaterials.cxml">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="data\A1A3Tables\ECI3.csv">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
@@ -289,14 +303,6 @@
     </BootstrapperPackage>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="db\CarboSettings.xml">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="db\RevitImportSettings.xml">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-  <ItemGroup>
     <Content Include="CarbonSharedParams.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -304,8 +310,49 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
   </ItemGroup>
+  <ItemGroup>
+    <None Update="db\Boverkets.cxml">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </None>
+    <None Update="db\carboCircleMaterials.cxml">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </None>
+    <None Update="db\CarboSettings.xml">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </None>
+    <None Update="db\CSVTemplate.csv">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </None>
+    <None Update="db\EPDs.cxml">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </None>
+    <None Update="db\IstructE 2.0.cxml">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </None>
+    <None Update="db\IstructE 3.0.cxml">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </None>
+    <None Update="db\matchlog.txt">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </None>
+    <None Update="db\Okobaudat.cxml">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </None>
+    <None Update="db\RevitImportSettings.xml">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </None>
+    <None Update="db\settings\CarboSettings.xml">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </None>
+    <None Update="db\Simplified.cxml">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </None>
+    <None Update="db\UserMaterials.cxml">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
   <PropertyGroup>
-    <FileVersion>1.9.6.0</FileVersion>
+    <FileVersion>1.9.8.0</FileVersion>
     <AssemblyVersion></AssemblyVersion>
   </PropertyGroup>
   <Target Name="RenameLibDllToGha" AfterTargets="Build">

@@ -2,21 +2,22 @@
 using System;
 using System.IO;
 using System.Windows;
-using System.Windows.Markup;
+using System.Windows.Controls;
 using System.Windows.Media;
 
 namespace CarboLifeUI.UI
 {
-    /// <summary>
-    /// Interaction logic for MaterialConstructionPicker.xaml
-    /// </summary>
     public partial class RevitActivator : Window
     {
         internal bool isAccepted;
 
+        private record VersionEntry(
+            string Year,
+            string AddinFolder,
+            CheckBox Checkbox,
+            Label Label);
 
-        bool has2025;
-        bool has2026;
+        private VersionEntry[] _versions;
 
         public RevitActivator()
         {
@@ -25,192 +26,140 @@ namespace CarboLifeUI.UI
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
+            _versions = new[]
+            {
+                new VersionEntry("2025",
+                    @"C:\ProgramData\Autodesk\Revit\Addins\2025",
+                    chx_2025, lbl_2025),
+
+                new VersionEntry("2026",
+                    @"C:\ProgramData\Autodesk\Revit\Addins\2026",
+                    chx_2026, lbl_2026),
+
+                new VersionEntry("2027",
+                    Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                        @"Autodesk\Revit\Addins\2027"),
+                    chx_2027, lbl_2027),
+            };
+
             CheckRevitVersions();
         }
 
         private void CheckRevitVersions()
         {
-            string path = @"C:\ProgramData\Autodesk\Revit\Addins";
+            foreach (var v in _versions)
+                CheckSingleVersion(v);
+        }
 
+        private void CheckSingleVersion(VersionEntry v)
+        {
+            string addinFile = Path.Combine(v.AddinFolder, "CarboLifeCalc.addin");
 
-            has2025 = false;
-            has2026 = false;
-
-
-            if (Directory.Exists(path))
+            if (Directory.Exists(v.AddinFolder))
             {
-                string[] dirlist = Directory.GetDirectories(path);
+                v.Checkbox.IsEnabled = true;
 
-                if (dirlist.Length > 0)
+                if (File.Exists(addinFile))
                 {
-                    //2025
-                    has2025 = false;
-                    foreach (string str in dirlist)
-                    {
-                        string filepath = str + "\\" + "CarboLifeCalc.addin";
-
-                        if (str.Contains("2025"))
-                        {
-                            //Check if user has addin in the folder
-                            if (File.Exists(filepath))
-                            {
-                                //addin is installed
-                                chx_2025.IsChecked = true;
-                                chx_2025.IsEnabled = true;
-                                lbl_2025.Foreground = Brushes.Green;
-                                lbl_2025.Content = "2025 Addin Installed";
-                            }
-                            else
-                            {
-                                //User has revit version but not addin installed
-                                chx_2025.IsChecked = false;
-                                chx_2025.IsEnabled = true;
-                                lbl_2025.Foreground = Brushes.Black;
-                                lbl_2025.Content = "2025 Addin Not Installed";
-                            }
-                            has2025 = true;
-                            break;
-                        }
-                    }
-
-                    if (has2025 == false)
-                    {
-                        //revit version not found
-                        chx_2025.IsEnabled = false;
-                        lbl_2025.Foreground = Brushes.Gray;
-                        lbl_2025.Content = "Revit 2025 Not Found";
-                    }
-                    //End 2025
-                    //2026
-                    has2026 = false;
-                    foreach (string str in dirlist)
-                    {
-                        string filepath = str + "\\" + "CarboLifeCalc.addin";
-
-                        if (str.Contains("2026"))
-                        {
-                            //Check if user has addin in the folder
-                            if (File.Exists(filepath))
-                            {
-                                //addin is installed
-                                chx_2026.IsChecked = true;
-                                chx_2026.IsEnabled = true;
-                                lbl_2026.Foreground = Brushes.Green;
-                                lbl_2026.Content = "2026 Addin Installed";
-                            }
-                            else
-                            {
-                                //User has revit version but not addin installed
-                                chx_2026.IsChecked = false;
-                                chx_2026.IsEnabled = true;
-                                lbl_2026.Foreground = Brushes.Black;
-                                lbl_2026.Content = "2026 Addin Not Installed";
-                            }
-                            has2026 = true;
-                            break;
-                        }
-                    }
-
-                    if (has2026 == false)
-                    {
-                        //revit version not found
-                        chx_2026.IsEnabled = false;
-                        lbl_2026.Foreground = Brushes.Gray;
-                        lbl_2026.Content = "Revit 2026 Not Found";
-                    }
-                    //End 2026
+                    v.Checkbox.IsChecked = true;
+                    v.Label.Foreground = Brushes.Green;
+                    v.Label.Content = $"Revit {v.Year} — addin installed";
                 }
                 else
                 {
-                    MessageBox.Show("The installation folder for the addins cannot be found in: " + path + Environment.NewLine + "Please make sure you have Revit and the required versions installed", "Computer says no", MessageBoxButton.OK);
+                    v.Checkbox.IsChecked = false;
+                    v.Label.Foreground = SystemColors.ControlTextBrush;
+                    v.Label.Content = $"Revit {v.Year} — addin not installed";
                 }
             }
-           
+            else
+            {
+                v.Checkbox.IsChecked = false;
+                v.Checkbox.IsEnabled = false;
+                v.Label.Foreground = Brushes.Gray;
+                v.Label.Content = $"Revit {v.Year} — not found";
+            }
+        }
+
+        private void Btn_Apply(object sender, RoutedEventArgs e)
+        {
+            string dirPath = Utils.getAssemblyPath();
+            string rawAddin = Path.Combine(dirPath, "CarboLifeCalcRaw.addin");
+            string builtAddin = Path.Combine(dirPath, "CarboLifeCalc.addin");
+
+            try
+            {
+                if (!File.Exists(rawAddin))
+                {
+                    MessageBox.Show("Raw addin file not found:\n" + rawAddin,
+                        "Missing file", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                UpdateAddinFile(dirPath);
+
+                if (!File.Exists(builtAddin))
+                {
+                    MessageBox.Show("Failed to create addin file.", "Error",
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                foreach (var v in _versions)
+                {
+                    string target = Path.Combine(v.AddinFolder, "CarboLifeCalc.addin");
+
+                    if (v.Checkbox.IsChecked == true)
+                    {
+                        CopyAddin(builtAddin, target);
+                    }
+                    else if (File.Exists(target))
+                    {
+                        File.Delete(target);
+                    }
+                }
+
+                File.Delete(builtAddin);
+                CheckRevitVersions();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private static void CopyAddin(string sourcePath, string targetPath)
+        {
+            try
+            {
+                string targetDir = Path.GetDirectoryName(targetPath);
+                if (!Directory.Exists(targetDir))
+                    Directory.CreateDirectory(targetDir);
+
+                File.Copy(sourcePath, targetPath, overwrite: true);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Could not copy addin to {targetPath}:\n{ex.Message}",
+                    "Copy failed", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
+        private static void UpdateAddinFile(string dirPath)
+        {
+            string rawPath = Path.Combine(dirPath, "CarboLifeCalcRaw.addin");
+            string outPath = Path.Combine(dirPath, "CarboLifeCalc.addin");
+
+            string text = File.ReadAllText(rawPath);
+            text = text.Replace("[PATH]", dirPath);
+            File.WriteAllText(outPath, text);
         }
 
         private void Btn_Cancel_Click(object sender, RoutedEventArgs e)
         {
             isAccepted = false;
-
-            this.Close();
-        }
-
-        private void Btn_Apply(object sender, RoutedEventArgs e)
-        {
-            //Get the addin file
-            string dirPath = Utils.getAssemblyPath();
-            string filePathRaw = dirPath + "\\" + "CarboLifeCalcRaw.addin";
-            string filePath = dirPath + "\\" + "CarboLifeCalc.addin";
-            try
-            {
-                if (File.Exists(filePathRaw))
-                {
-                    MessageBox.Show("Copying addin files");
-                    //Edit the addin file
-
-                    UpdateAddinfile(dirPath);
-                    if (File.Exists(filePath))
-                    {
-                        //Copy the addin file
-
-                        if (chx_2025.IsChecked == true)
-                            CopyFile(filePath, "2025");
-                        else
-                        {
-                            if (File.Exists(@"C:\ProgramData\Autodesk\Revit\Addins\" + 2025 + "\\CarboLifeCalc.addin"))
-                                File.Delete(@"C:\ProgramData\Autodesk\Revit\Addins\" + 2025 + "\\CarboLifeCalc.addin");
-                        }
-                        if (chx_2026.IsChecked == true)
-                            CopyFile(filePath, "2026");
-                        else
-                        {
-                            if (File.Exists(@"C:\ProgramData\Autodesk\Revit\Addins\" + 2026 + "\\CarboLifeCalc.addin"))
-                                File.Delete(@"C:\ProgramData\Autodesk\Revit\Addins\" + 2026 + "\\CarboLifeCalc.addin");
-                        }
-                        //deletebuffer
-                        File.Delete(filePath);
-
-                    }
-                }
-                CheckRevitVersions();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message);
-            }
-            //Get the target folder
-        }
-
-        private void CopyFile(string filePath, string v)
-        {
-
-            string path = @"C:\ProgramData\Autodesk\Revit\Addins\" + v + "\\CarboLifeCalc.addin";
-            try
-            {
-                File.Copy(filePath, path,true);
-            }
-            catch(Exception ex)
-            {
-                MessageBox.Show(ex.Message);
-            }
-
-        }
-
-        private void UpdateAddinfile(string dirPath)
-        {
-            try
-            {
-                string filePathRaw = dirPath + "\\" + "CarboLifeCalcRaw.addin";
-                string filePath = dirPath + "\\" + "CarboLifeCalc.addin";
-
-                string text = File.ReadAllText(filePathRaw);
-                text = text.Replace("[PATH]", dirPath);
-                File.WriteAllText(filePath, text);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message);
-            }
+            Close();
         }
     }
 }

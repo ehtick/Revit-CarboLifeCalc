@@ -88,13 +88,21 @@ namespace CarboCircle
             if (m_CarboCircleWindow == null || !FormStatusChecker.isWindowOpen)
             {
                 m_CarboCircleWindow = new CarboCircleMain(exEvent, handler);
+
+                // *** THIS IS THE FIX ***
+                m_CarboCircleWindow.Closed += (s, e) =>
+                {
+                    FormStatusChecker.isWindowOpen = false;
+                    m_CarboCircleWindow = null;
+                };
+
                 FormStatusChecker.isWindowOpen = true;
                 m_CarboCircleWindow.Show();
             }
             else
             {
                 m_CarboCircleWindow.Activate();
-                m_CarboCircleWindow.Show(); // ensure it's visible again
+                m_CarboCircleWindow.Show();
             }
         }
     }

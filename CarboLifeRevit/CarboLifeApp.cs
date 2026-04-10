@@ -37,7 +37,7 @@ namespace CarboLifeRevit
             ContextualHelp contextualHelp = new ContextualHelp(ContextualHelpType.Url, HelpURL);
 
             /// New Project
-            PushButton pB_CarboCalc = CarboCalcPanel.AddItem(new PushButtonData("CarboLifeCalc", "Launch", MyAssemblyPath, "CarboLifeRevit.CarboLifeCalc")) as PushButton;
+            PushButton pB_CarboCalc = CarboCalcPanel.AddItem(new PushButtonData("Launch Carbo Life Calculator", "Launch", MyAssemblyPath, "CarboLifeRevit.CarboLifeCalc")) as PushButton;
             //LImage
             Uri img_CarboCalc = new Uri(MyAssemblyDir + @"\img\ico_CarboLife2D32.png");
             BitmapImage limg_CarboCalc = new BitmapImage(img_CarboCalc);
@@ -51,7 +51,7 @@ namespace CarboLifeRevit
             pB_CarboCalc.ToolTip = "Create or update a new Carbo Calc Project using the BIM model";
 
             /// Visual Menu
-            PushButton pB_ShowCarboCalc = CarboCalcPanel.AddItem(new PushButtonData("Show CarboLife Calc", "Heatmap", MyAssemblyPath, "CarboLifeRevit.CarboViewerCommand")) as PushButton;
+            PushButton pB_ShowCarboCalc = CarboCalcPanel.AddItem(new PushButtonData("CarboLife Calc Heatmap", "Heatmap", MyAssemblyPath, "CarboLifeRevit.CarboViewerCommand")) as PushButton;
             //LImage
             Uri pB_ShowCarboCalc2 = new Uri(MyAssemblyDir + @"\img\ico_CarboLife32.png");
             BitmapImage limg_pB_ShowCarboCalc2 = new BitmapImage(pB_ShowCarboCalc2);
@@ -66,6 +66,20 @@ namespace CarboLifeRevit
 
             
             FormStatusChecker.isWindowOpen = false;
+
+            /// Parameters CheckCarbonParams
+            PushButton pB_CarboCalcParams = CarboCalcPanel.AddItem(new PushButtonData("Carbo Life Calc Parameters", "ParamCheck", MyAssemblyPath, "CarboLifeRevit.CheckCarbonParams")) as PushButton;
+            //LImage
+            Uri img_CarboCalcParams = new Uri(MyAssemblyDir + @"\img\ico_CarboLifeSettings32.png");
+            BitmapImage limg_CarboCalcParams = new BitmapImage(img_CarboCalc);
+            //SImahe
+            Uri imgsmll_CarboCalcParams = new Uri(MyAssemblyDir + @"\img\ico_CarboLifeSettings16.png");
+            BitmapImage smllimg_CarboCalcParams = new BitmapImage(imgsmll_CarboCalc);
+
+            pB_CarboCalcParams.LargeImage = limg_CarboCalc;
+            pB_CarboCalcParams.Image = smllimg_CarboCalc;
+            pB_CarboCalcParams.SetContextualHelp(contextualHelp);
+            pB_CarboCalcParams.ToolTip = "Check and Import All required Parameters for CarboLife To work.";
 
 
             try

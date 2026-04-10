@@ -416,7 +416,7 @@ namespace CarboLifeUI.UI
             {
                 // This is the template use build-in path:
                 //sourcePath = Utils.getAssemblyPath() + "\\db\\UserMaterials.cxml";
-                sourcePath = PathUtils.getTemplateFolder();
+                sourcePath = PathUtils.getTemplateFile();
             }
             else
             {

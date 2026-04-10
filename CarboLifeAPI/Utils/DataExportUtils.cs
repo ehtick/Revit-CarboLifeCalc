@@ -511,8 +511,8 @@ namespace CarboLifeAPI
                     { 
                         listToExport.Add(carboLifeProject); 
                     }
-
-                    CreateProjectTotalsCVSFile(listToExport, path, carboLifeProject);
+                    CreateProjectCombinedExportCSV(listToExport, path, carboLifeProject);
+                    //CreateProjectTotalsCVSFile(listToExport, path, carboLifeProject);
                 }
                 catch(Exception ex)
                 {
@@ -688,6 +688,127 @@ namespace CarboLifeAPI
                 CreateProjectDatabaseCVSFile(carboLifeProject, exportpathProject);
 
         }
+
+            // 3. PROCESS ROWS
+private static void CreateProjectCombinedExportCSV(List<CarboProject> projectListToCompareTo, string exportPath, CarboProject baseProject)
+        {
+            if (File.Exists(exportPath) && IsFileLocked(exportPath))
+                return;
+
+            // 1. PRE-SCAN: Identify all unique Categories across all projects
+            SortedSet<string> allCategories = new SortedSet<string>();
+            foreach (CarboProject project in projectListToCompareTo)
+            {
+                List<CarboElement> projectElements = project.getElementsFromGroups().ToList();
+
+                var dataPoints = CarboCalcTextUtils.ConvertResultTableToDataPointsMergedPlus(projectElements);
+                if (dataPoints != null)
+                {
+                    foreach (var dp in dataPoints)
+                        allCategories.Add(dp.Name);
+                }
+            }
+
+            StringBuilder csvBuilder = new StringBuilder();
+
+            // 2. CREATE HEADERS
+            string headers = "Name,Number,Category,Description,SocialCost,Area,AreaNew,A0Global,A5Global,b675Global,C1Global," +
+                             "TotalEC,Total_A1A3,Total_A4,Total_A5,Total_B,Total_C1C4,Total_D,Total_Mix,Total_Seq," +
+                             "Total_A1_A5,Total_A1_C_Seq," + // New Columns
+                             "valueUnit,designLife,story,uncertainty";
+
+            foreach (string cat in allCategories)
+            {
+                headers += "," + CVSFormat(cat);
+            }
+            csvBuilder.AppendLine(headers);
+
+            // 3. PROCESS ROWS
+            foreach (CarboProject carboLifeProject in projectListToCompareTo)
+            {
+                try
+                {
+                    SyncProjectSettings(carboLifeProject, baseProject);
+                    carboLifeProject.CalculateProject();
+
+                    // Calculate Totals
+                    double tA1 = 0, tEC = 0, tA4 = 0, tA5 = 0, tB = 0, tC = 0, tD = 0, tM = 0, tS = 0;
+                    foreach (CarboGroup cbg in carboLifeProject.getGroupList)
+                    {
+                        tEC += cbg.EC;
+                        tA1 += (cbg.Material.ECI_A1A3 * cbg.Mass);
+                        tA4 += (cbg.Material.ECI_A4 * cbg.Mass);
+                        tA5 += (cbg.Material.ECI_A5 * cbg.Mass);
+                        tB += (cbg.Material.ECI_B1B5 * cbg.Mass);
+                        tC += (cbg.Material.ECI_C1C4 * cbg.Mass);
+                        tD += (cbg.Material.ECI_D * cbg.Mass);
+                        tM += (cbg.Material.ECI_Mix * cbg.Mass);
+                        tS += (cbg.Material.ECI_Seq * cbg.Mass);
+                    }
+
+                    // Perform Sums for new columns
+                    // Convert to matching units (dividing by 1000 where appropriate)
+                    double sumA1A3 = tA1 / 1000.0;
+                    double sumA4 = tA4 / 1000.0;
+                    double sumA5 = tA5 / 1000.0;
+                    double sumSeq = tS / 1000.0;
+                    double sumMix = tM / 1000.0;
+
+                    // Total A1-A5: A0Global + A5Global + Total_A1A3 + Total_A4 + Total_A5
+                    double totalA1_A5 = (carboLifeProject.A0GlobalUncert/1000) + carboLifeProject.A5Global + sumA1A3 + sumA4 + sumA5;
+
+                    // Total A1-C+Seq: Total A1-A5 + C1Global + Total_Seq + Total_Mix
+                    double totalA1_C_Seq = totalA1_A5 + carboLifeProject.C1Global + (tC / 1000) + sumSeq + sumMix;
+
+                    // Build Row
+                    string row = $"{CVSFormat(carboLifeProject.Name)}," +
+                                 $"{carboLifeProject.Number}," +
+                                 $"{CVSFormat(carboLifeProject.Category)}," +
+                                 $"{CVSFormat(carboLifeProject.Description)}," +
+                                 $"{carboLifeProject.SocialCost}," +
+                                 $"{carboLifeProject.Area}," +
+                                 $"{carboLifeProject.AreaNew}," +
+                                 $"{Math.Round(carboLifeProject.A0GlobalUncert/1000,3)}," +
+                                 $"{carboLifeProject.A5Global}," +
+                                 $"{carboLifeProject.b675Global}," +
+                                 $"{carboLifeProject.C1Global}," +
+                                 $"{tEC}," +
+                                 $"{Math.Round(sumA1A3, 3)}," +
+                                 $"{Math.Round(sumA4, 3)}," +
+                                 $"{Math.Round(sumA5, 3)}," +
+                                 $"{Math.Round(tB / 1000, 3)}," +
+                                 $"{Math.Round(tC / 1000, 3)}," +
+                                 $"{Math.Round(tD / 1000, 3)}," +
+                                 $"{Math.Round(sumMix, 3)}," +
+                                 $"{Math.Round(sumSeq, 3)}," +
+                                 $"{Math.Round(totalA1_A5, 3)}," +      // New Col 1
+                                 $"{Math.Round(totalA1_C_Seq, 3)}," +   // New Col 2
+                                 $"{carboLifeProject.valueUnit}," +
+                                 $"{carboLifeProject.designLife}," +
+                                 $"{CVSFormat(carboLifeProject.getGeneralText())}," +
+                                 $"{Math.Round((carboLifeProject.UncertFact), 3)}";
+
+                    // Attach Category Columns
+                    List<CarboElement> pElements = carboLifeProject.getElementsFromGroups().ToList();
+
+                    List<CarboDataPoint> catPoints = CarboCalcTextUtils.ConvertResultTableToDataPointsMergedPlus(pElements);
+                    foreach (string catName in allCategories)
+                    {
+                        var match = catPoints?.FirstOrDefault(p => p.Name == catName);
+                        double val = (match != null) ? match.Value : 0.0;
+                        row += "," + Math.Round(val, 3);
+                    }
+
+                    csvBuilder.AppendLine(row);
+                }
+                catch { /* Skip */ }
+            }
+
+            WriteCVSFile(csvBuilder.ToString(), exportPath);
+            MessageBox.Show("Export Complete.");
+        }
+
+
         private static void CreateProjectDatabaseCVSFile(CarboProject carboLifeProject, string exportPath)
         {
             if (File.Exists(exportPath) && IsFileLocked(exportPath) == true)
@@ -885,6 +1006,95 @@ namespace CarboLifeAPI
 
             WriteCVSFile(fileString, exportPath);
             MessageBox.Show("Export File Created at: " + exportPath);
+        }
+
+        private static void CreateProjectCategoryExportCSV(List<CarboProject> projectListToCompareTo, string exportPath, CarboProject baseProject)
+        {
+            if (File.Exists(exportPath) && IsFileLocked(exportPath))
+                return;
+
+            // 1. Identify all unique Categories/Substructures across ALL projects to create headers
+            // We use a SortedSet to keep them in alphabetical order
+            SortedSet<string> allCategories = new SortedSet<string>();
+
+            foreach (CarboProject project in projectListToCompareTo)
+            {
+                List<CarboElement> projectElements = project.getElementsFromGroups().ToList();
+
+                var dataPoints = CarboCalcTextUtils.ConvertResultTableToDataPointsMergedPlus(projectElements);
+                if (dataPoints != null)
+                {
+                    foreach (var dp in dataPoints)
+                    {
+                        allCategories.Add(dp.Name);
+                    }
+                }
+            }
+
+            StringBuilder csvBuilder = new StringBuilder();
+
+            // 2. Create Headers
+            csvBuilder.Append("Number,Name");
+            foreach (string cat in allCategories)
+            {
+                csvBuilder.Append("," + CVSFormat(cat));
+            }
+            csvBuilder.AppendLine();
+
+            // 3. Process each project
+            foreach (CarboProject carboLifeProject in projectListToCompareTo)
+            {
+                try
+                {
+                    // Sync settings and Recalculate (as per your original logic)
+                    SyncProjectSettings(carboLifeProject, baseProject);
+                    carboLifeProject.CalculateProject();
+
+                    // Get the specific data points for this project
+                    List<CarboElement> projectElements = carboLifeProject.getElementsFromGroups().ToList();
+
+                    List<CarboDataPoint> projectPoints = CarboCalcTextUtils.ConvertResultTableToDataPointsMergedPlus(projectElements);
+
+                    // Start the row
+                    string row = $"{CVSFormat(carboLifeProject.Number)},{CVSFormat(carboLifeProject.Name)}";
+
+                    // Map values to the global category list
+                    foreach (string cat in allCategories)
+                    {
+                        var match = projectPoints?.FirstOrDefault(p => p.Name == cat);
+                        double value = (match != null) ? match.Value : 0.0;
+
+                        row += "," + Math.Round(value, 3).ToString();
+                    }
+
+                    csvBuilder.AppendLine(row);
+                }
+                catch (Exception ex)
+                {
+                    // Log error or skip project
+                }
+            }
+
+            // 4. Export
+            WriteCVSFile(csvBuilder.ToString(), exportPath);
+            MessageBox.Show("Category Batch Export Created at: " + exportPath);
+        }
+
+        /// <summary>
+        /// Helper to sync settings from a base project to a target project
+        /// </summary>
+        private static void SyncProjectSettings(CarboProject target, CarboProject baseProject)
+        {
+            target.calculateA0 = baseProject.calculateA0;
+            target.calculateA13 = baseProject.calculateA13;
+            target.calculateA4 = baseProject.calculateA4;
+            target.calculateA5 = baseProject.calculateA5;
+            target.calculateB = baseProject.calculateB;
+            target.calculateC = baseProject.calculateC;
+            target.calculateD = baseProject.calculateD;
+            target.calculateAdd = baseProject.calculateAdd;
+            target.calculateSeq = baseProject.calculateSeq;
+            target.calculateSubStructure = baseProject.calculateSubStructure;
         }
         private static void CreateResultsCVSFile(CarboProject carboLifeProject, string exportPath)
         {
@@ -1551,7 +1761,7 @@ fileString =
             string fileString = "";
 
             //Material	Material Type	Material Specification	Structural Element	Description	Component Lifespan [years]	Aspect of Structure	Significant Temporary Works?	Number of Times Temp Works Used before EOL	Volume [m3] or Mass [kg]?	"Material Quantity
-
+            carboLifeProject.CalculateProject();
 
             //Create Headers;
             fileString =
@@ -1566,12 +1776,15 @@ fileString =
                 "Number of Times Temp Works" + "," + //8
                 "Volume or Mass" + "," + //9
                 "Quantity" + "," + //10
+                "Quantity Clean" + "," + //10
                 Environment.NewLine;
             //Advanced
             foreach (CarboGroup grp in carboLifeProject.getGroupList)
             {
                 try
                 {
+                    grp.CalculateTotals();
+
                     string resultString = "";
                     resultString += CVSFormat(grp.MaterialName) + ","; //0
                     resultString += "" + ","; //1
@@ -1583,7 +1796,8 @@ fileString =
                     resultString += "No" + ","; //8
                     resultString += "" + ","; //9
                     resultString += "Volume [m3]" + ","; //10
-                    resultString += grp.TotalVolume; //11
+                    resultString += grp.TotalVolume + ","; //11
+                    resultString += grp.Volume; //11
 
                     resultString += Environment.NewLine;
 

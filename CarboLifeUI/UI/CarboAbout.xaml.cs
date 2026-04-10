@@ -43,7 +43,7 @@ namespace CarboLifeUI.UI
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            lbl_Version.Content = "Version: " + Assembly.GetExecutingAssembly().GetName().Version.ToString();
+            lbl_Version.Text = "Version: " + Assembly.GetExecutingAssembly().GetName().Version.ToString();
         }
 
         private void Btn_Accept_Click(object sender, RoutedEventArgs e)

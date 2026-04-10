@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<carboCircleSettings xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <MineParameterName />
+  <RequiredParameterName />
+  <extractionMethod>All New in View</extractionMethod>
+  <cutoffbeamLength>600</cutoffbeamLength>
+  <VolumeLoss>25</VolumeLoss>
+  <MasonryLoss>25</MasonryLoss>
+  <ConsiderWalls>false</ConsiderWalls>
+  <ConsiderSlabs>false</ConsiderSlabs>
+  <ConsiderColumnBeams>true</ConsiderColumnBeams>
+  <dataBasePath />
+  <depthRange>50</depthRange>
+  <strengthRange>10</strengthRange>
+  <colour_ReusedMinedData>
+    <a>255</a>
+    <r>25</r>
+    <g>160</g>
+    <b>235</b>
+  </colour_ReusedMinedData>
+  <colour_NotReused>
+    <a>255</a>
+    <r>235</r>
+    <g>235</g>
+    <b>235</b>
+  </colour_NotReused>
+  <colour_FromReusedData>
+    <a>255</a>
+    <r>80</r>
+    <g>220</g>
+    <b>80</b>
+  </colour_FromReusedData>
+  <colour_NotFromReused>
+    <a>255</a>
+    <r>235</r>
+    <g>235</g>
+    <b>235</b>
+  </colour_NotFromReused>
+  <colour_ReusedMinedVolumes>
+    <a>255</a>
+    <r>50</r>
+    <g>50</g>
+    <b>255</b>
+  </colour_ReusedMinedVolumes>
+  <colour_FromReusedVolumes>
+    <a>255</a>
+    <r>255</r>
+    <g>50</g>
+    <b>255</b>
+  </colour_FromReusedVolumes>
+</carboCircleSettings>

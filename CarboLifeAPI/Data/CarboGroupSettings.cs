@@ -1,5 +1,6 @@
 ﻿using CarboLifeAPI;
 using CarboLifeAPI.Data.Superseded;
+using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -98,7 +99,8 @@ namespace CarboLifeAPI.Data
 
         public CarboGroupSettings DeSerializeXML()
         {
-            string importSettingsPath  = PathUtils.getRevitImportSettingspath();
+            //All error handeling exists within getSettingsFilePath:
+            string importSettingsPath  = PathUtils.getSettingsFilePath();
 
             if (File.Exists(importSettingsPath))
             {
@@ -111,22 +113,17 @@ namespace CarboLifeAPI.Data
                     {
                         bufferproject = ser.Deserialize(fs) as CarboGroupSettings;
                     }
-
-
-
                     return bufferproject;
                 }
                 catch (Exception ex)
                 {
                     System.Windows.MessageBox.Show(ex.Message);
-                    return null;
+                    return new CarboGroupSettings();
                 }
             }
             else
             {
-                CarboGroupSettings newsettings = new CarboGroupSettings();
-                newsettings.SerializeXML();
-                return newsettings;
+                return new CarboGroupSettings();
             }
         }
 
@@ -163,9 +160,18 @@ namespace CarboLifeAPI.Data
 
         }
 
-        public bool SerializeXML()
+        public bool SerializeXML(string path = "")
         {
-            string importSettingsPath = PathUtils.getRevitImportSettingspath();
+            string importSettingsPath = path;
+
+            if (path == "")
+            {
+                importSettingsPath = PathUtils.getSettingsFilePath();
+            }
+            else
+            {                 
+                importSettingsPath = path;
+            }
 
             bool result = false;
             try
@@ -190,5 +196,90 @@ namespace CarboLifeAPI.Data
         {
             rcQuantityMap = getCurrentRCMap();
         }
+
+        /// <summary>
+        /// Opens a SaveFileDialog to let the user choose a destination, 
+        /// then copies the source file to that location.
+        /// </summary>
+        /// <param name="sourceFilePath">The full path to the existing XML file.</param>
+        public void ExportSettingsFile(string sourceFilePath)
+        {
+            // 1. Verify source exists before bothering the user
+            if (string.IsNullOrEmpty(sourceFilePath) || !File.Exists(sourceFilePath))
+            {
+                MessageBox.Show($"Source file not found:\n{sourceFilePath}",
+                                "Export Error",
+                                MessageBoxButton.OK,
+                                MessageBoxImage.Error);
+                return;
+            }
+
+            // 2. Configure the Save Dialog (WPF Version)
+            SaveFileDialog saveFileDialog = new SaveFileDialog();
+
+            saveFileDialog.Title = "Export Revit Import Settings";
+            saveFileDialog.Filter = "XML Files (*.xml)|*.xml|All files (*.*)|*.*";
+            saveFileDialog.DefaultExt = "xml";
+            saveFileDialog.AddExtension = true;
+
+            // Optional: Default to the current filename
+            saveFileDialog.FileName = Path.GetFileName(sourceFilePath);
+
+            // 3. Show the dialog
+            // In WPF, ShowDialog returns bool? (nullable boolean)
+            if (saveFileDialog.ShowDialog() == true)
+            {
+                string destFilePath = saveFileDialog.FileName;
+
+                try
+                {
+                    // 4. Perform the copy
+                    // The 'true' parameter allows overwriting if the user selected an existing file
+                    File.Copy(sourceFilePath, destFilePath, true);
+
+                    MessageBox.Show("Settings exported successfully.",
+                                    "Export Complete",
+                                    MessageBoxButton.OK,
+                                    MessageBoxImage.Information);
+                }
+                catch (IOException ioEx)
+                {
+                    MessageBox.Show($"File access error: {ioEx.Message}",
+                                    "Export Failed",
+                                    MessageBoxButton.OK,
+                                    MessageBoxImage.Error);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"An unexpected error occurred: {ex.Message}",
+                                    "Export Failed",
+                                    MessageBoxButton.OK,
+                                    MessageBoxImage.Error);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Opens an OpenFileDialog to let the user select an existing XML file.
+        /// </summary>
+        /// <returns>The selected file path if successful; otherwise, null.</returns>
+        public string ImportSettingsFile()
+        {
+            OpenFileDialog openFileDialog = new OpenFileDialog();
+
+            openFileDialog.Title = "Open Revit Import Settings";
+            openFileDialog.Filter = "XML Files (*.xml)|*.xml|All files (*.*)|*.*";
+            openFileDialog.DefaultExt = "xml";
+            openFileDialog.CheckFileExists = true;
+            openFileDialog.CheckPathExists = true;
+
+            if (openFileDialog.ShowDialog() == true)
+            {
+                return openFileDialog.FileName;
+            }
+
+            return null;
+        }
+
     }
 }

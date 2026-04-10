@@ -73,6 +73,8 @@ namespace CarboLifeAPI.Data
             return DeSerializeXML();
         }
         public bool Save()
+
+
         {
             return SerializeXML();
         }
@@ -103,8 +105,21 @@ namespace CarboLifeAPI.Data
                 }
                 catch (Exception ex)
                 {
-                    System.Windows.MessageBox.Show(ex.Message);
-                    return null;
+                    System.Windows.MessageBox.Show(
+                        "Settings file could not be loaded and will be reset to defaults.\n\nDetails: " + ex.Message);
+
+                    // Back up the corrupt file before overwriting
+                    try
+                    {
+                        string backupPath = mySettingsPath + ".bak";
+                        File.Copy(mySettingsPath, backupPath, overwrite: true);
+                    }
+                    catch { /* best effort, don't block recovery */ }
+
+                    // Create and save fresh defaults
+                    CarboSettings newSettings = new CarboSettings();
+                    newSettings.SerializeXML();
+                    return newSettings;
                 }
             }
             else
@@ -114,14 +129,15 @@ namespace CarboLifeAPI.Data
                 return newsettings;
             }
         }
-        private bool SerializeXML()
+        private bool SerializeXML(string path = "")
         {
+            string mySettingsPath = "";
 
-            string mySettingsPath = PathUtils.getSettingsFilePath();
+            if (path == "")
+                mySettingsPath = PathUtils.getSettingsFilePath();
+            else
+                mySettingsPath = path;
 
-            //string myPath = Utils.getAssemblyPath() + "\\" + fileName;
-
-            bool result = false;
             try
             {
                 XmlSerializer ser = new XmlSerializer(typeof(CarboSettings));
@@ -130,14 +146,14 @@ namespace CarboLifeAPI.Data
                 {
                     ser.Serialize(fs, this);
                 }
+                return true;
+
             }
             catch (Exception ex)
             {
                 System.Windows.MessageBox.Show(ex.Message);
                 return false;
             }
-
-            return result;
         }
 
         private List<CarboNumProperty> getCurrentRCMap()

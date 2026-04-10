@@ -9,6 +9,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
 
 namespace CarboLifeRevit
 {
@@ -33,9 +34,10 @@ namespace CarboLifeRevit
                     }
                 }
             }
-            catch
+                
+            catch (Exception ex)
             {
-
+                //MessageBox.Show("Error loading assemblies: " + ex.Message);
             }
             
 

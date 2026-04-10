@@ -255,6 +255,12 @@ namespace CarboLifeAPI
                 return valueList;
             }
 
+            if (Type == "Category Merged +" && table == null)
+            {
+                valueList = ConvertResultTableToDataPointsMergedPlus(projectElements);
+                return valueList;
+            }
+
             //below for normal pie charts
             try
             {
@@ -295,7 +301,48 @@ namespace CarboLifeAPI
             //Values should return now;
             return valueList;
         }
+        /// <summary>
+        /// This code will combine the 
+        /// </summary>
+        /// <param name="projectElements"></param>
+        /// <returns></returns>
+        public static List<CarboDataPoint> ConvertResultTableToDataPointsMergedPlus(List<CarboElement> projectElements)
+        {
+            List<CarboDataPoint> valueList = new List<CarboDataPoint>();
+            try
+            {
+                foreach (CarboElement cEl in projectElements)
+                {
+                    // Determine the name based on your priority rules
+                    string targetName;
+                    if (cEl.isSubstructure)
+                        targetName = "Substructure";
+                    else if (cEl.Category == "Reinforcement")
+                        targetName = cEl.SubCategory;
+                    else
+                        targetName = cEl.Category;
 
+                    // Find if this bucket already exists in our list
+                    var existingPoint = valueList.FirstOrDefault(p => p.Name == targetName);
+
+                    if (existingPoint != null)
+                    {
+                        // Add the raw value (we divide by 1000 at the very end or sum it raw)
+                        existingPoint.Value += (cEl.EC / 1000.0);
+                    }
+                    else
+                    {
+                        valueList.Add(new CarboDataPoint
+                        {
+                            Name = targetName,
+                            Value = (cEl.EC / 1000.0)
+                        });
+                    }
+                }
+            }
+            catch { return null; }
+            return valueList;
+        }
         /// <summary>
         /// By category dataset, however reinforcement values are added to the category
         /// </summary>
@@ -360,53 +407,22 @@ namespace CarboLifeAPI
         /// <returns></returns>
         public static List<CarboDataPoint> ConvertResultTableToDataPointsSubSuperStruct(List<CarboElement> projectElements)
         {
-            List<CarboDataPoint> valueList = new List<CarboDataPoint>();
             try
             {
-                //loop through each element
-                foreach (CarboElement cEl in projectElements)
-                {
-                    CarboDataPoint newelement = new CarboDataPoint();
-                    
-                    //check if element is substructure:
-                   // string isSubStruct = dr["IsSubstructure"].ToString();
-
-                    if (cEl.isSubstructure == true)
-                        newelement.Name = "Substructure";
-                    else
-                        newelement.Name = "Superstructure";
-
-                    newelement.Value = (cEl.EC/1000);
-
-                    bool merged = false;
-                    //valueList.Add(newelement);
-
-                    //Add a new databoint, orr add value if exists
-                    //Add a new databoint, orr add value if exists
-                    if (valueList.Count > 0)
+                return projectElements
+                    .GroupBy(c => c.isSubstructure ? "Substructure" : "Superstructure")
+                    .Select(group => new CarboDataPoint
                     {
-                        foreach (CarboDataPoint pp in valueList)
-                        {
-                            if (pp.Name == newelement.Name)
-                            {
-                                pp.Value += (newelement.Value / 1000);
-                                merged = true;
-                                break;
-                            }
-                        }
-                    }
-                    if (merged == false)
-                        valueList.Add(newelement);
-
-                }
+                        Name = group.Key,
+                        // Perform the division once at the end of the sum to maintain precision
+                        Value = group.Sum(c => c.EC) / 1000.0
+                    })
+                    .ToList();
             }
             catch
             {
                 return null;
             }
-
-            //Values should return now;
-            return valueList;
         }
 
 

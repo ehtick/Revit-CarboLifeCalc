@@ -25,6 +25,7 @@
     <None Remove="circledb\CarboCircleMasterSections.csv" />
     <None Remove="circledb\CarboCircleMasterSections.xlsx" />
     <None Remove="circledb\carboCircleMaterials.cxml" />
+    <None Remove="circledb\CarboCircleSettings.xml" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="circledb\CarboCircleMasterSections.csv">
@@ -34,6 +35,9 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="circledb\carboCircleMaterials.cxml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="circledb\CarboCircleSettings.xml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

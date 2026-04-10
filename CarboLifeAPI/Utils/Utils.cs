@@ -102,12 +102,10 @@ namespace CarboLifeAPI
             return distances[lengthA, lengthB];
         }
 
+        
         public static string getAssemblyPath()
         {
             return PathUtils.getAssemblyPath();
-            //string _path = Assembly.GetExecutingAssembly().Location;
-            //string myPath = Path.GetDirectoryName(_path);
-            //return myPath;
         }
 
         public static DataTable ToDataTables(CarboMaterial material)
@@ -758,6 +756,46 @@ namespace CarboLifeAPI
                     else
                     {
                         MessageBox.Show("The selected Carbo Life Material file is currently in use by another process. Please close any other applications that might be using the file and try again.", "File In Use", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return "";
+                    }
+                }
+            }
+            catch
+            {
+                MessageBox.Show("There was an error in in opening the file, it could not be found, or is of the wrong format", "Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return "";
+            }
+
+            return "";
+        }
+
+        /// <summary>
+        /// Opends a file dialog to select a Carbo Life Material Library file (.clcx)
+        /// </summary>
+        /// <returns>The filepath if valid or "" if not</returns>
+        public static string OpenCarboMappingLibrary(string pathForViewing = "")
+        {
+            string path = "";
+            try
+            {
+                OpenFileDialog openFileDialog = new OpenFileDialog();
+                openFileDialog.Filter = "Carbo Life Mapping File (*.xml)|*.xml";
+
+                if (Directory.Exists(pathForViewing))
+                    openFileDialog.InitialDirectory = pathForViewing;
+
+                var ok = openFileDialog.ShowDialog();
+
+                if (openFileDialog.FileName != "" && File.Exists(openFileDialog.FileName) && openFileDialog.FileName.EndsWith("xml"))
+                {
+                    if (DataExportUtils.IsFileLocked(openFileDialog.FileName) == false)
+                    {
+                        path = openFileDialog.FileName;
+                        return path;
+                    }
+                    else
+                    {
+                        MessageBox.Show("The selected Carbo Life Mapping file is currently in use by another process. Please close any other applications that might be using the file and try again.", "File In Use", MessageBoxButton.OK, MessageBoxImage.Warning);
                         return "";
                     }
                 }

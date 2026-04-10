@@ -63,7 +63,7 @@ namespace CarboLifeUI.UI
         public CarboLifeMainWindow()
         {
             //UserPaths
-            PathUtils.CheckFileLocationsNew();
+            PathUtils.CheckFileLocations();
 
             IsRevit = false;
             carboLifeProject = new CarboProject();
@@ -110,7 +110,7 @@ namespace CarboLifeUI.UI
           //  CultureInfo.DefaultThreadCurrentUICulture = ci;
 
             //UserPaths
-            PathUtils.CheckFileLocationsNew();
+            PathUtils.CheckFileLocations();
 
             carboLifeProject = myProject;
             IsRevit = false;

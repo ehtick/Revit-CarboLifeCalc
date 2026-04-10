@@ -178,11 +178,11 @@ namespace CarboLifeUI.UI
 
                 if (selectedMaterial.isLocked == true)
                 {
-                    grd_Edit.Visibility = Visibility.Hidden;
+                    //grd_Edit.Visibility = Visibility.Hidden;
                 }
                 else
                 {
-                    grd_Edit.Visibility = Visibility.Visible;
+                    //grd_Edit.Visibility = Visibility.Visible;
                 }
             }
         }

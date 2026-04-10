@@ -5,61 +5,85 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:CarboLifeCalc"
         mc:Ignorable="d"
-        Title="Carbon Life Calculator" Height="450" Width="800" MinHeight="450" MinWidth="800" MaxHeight="450" MaxWidth="800" Loaded="Window_Loaded" Closing="Window_Closing" ResizeMode="NoResize">
+        Title="Carbon Life Calculator" 
+        Height="450" Width="800" 
+        MinHeight="450" MinWidth="800" 
+        WindowStartupLocation="CenterScreen"
+        Loaded="Window_Loaded" Closing="Window_Closing" ResizeMode="CanMinimize">
 
     <Window.Resources>
-        <ResourceDictionary>
-            <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary
-                    Source="MyStyles.xaml">
-                </ResourceDictionary>
-            </ResourceDictionary.MergedDictionaries>
-        </ResourceDictionary>
+        <ResourceDictionary Source="MyStyles.xaml"/>
     </Window.Resources>
 
-    <Grid Background="White" Loaded="Grid_Loaded">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="5"/>
-            <RowDefinition Height="25"/>
-            <RowDefinition Height="1*"/>
-            <RowDefinition Height="100"/>
-            <RowDefinition Height="5"/>
-        </Grid.RowDefinitions>
+    <Grid Background="#F9F9F9">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="5"/>
-            <ColumnDefinition Width="200"/>
-            <ColumnDefinition Width="200"/>
+            <ColumnDefinition Width="240"/>
             <ColumnDefinition Width="*"/>
-            <ColumnDefinition Width="5"/>
         </Grid.ColumnDefinitions>
 
-        <Button Name="btn_Launch" Grid.Column="1" Grid.Row="2" Width="175" Height="35" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,10,10,10" Click="btn_Launch_Click" Style="{StaticResource ButtonStyle}">Launch...</Button>
-        <Button Name="btn_Open" Grid.Column="1" Grid.Row="2" Width="175" Height="35" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,50,10,10" Click="btn_Open_Click" Style="{StaticResource ButtonStyle}">Open Project...</Button>
-        <Button Name="btn_Materials" Grid.Column="1" Grid.Row="2" Width="175" Height="35" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,90,10,10" Click="btn_Materials_Click" Style="{StaticResource ButtonStyle}" Visibility="Visible">Edit a Material Template...</Button>
-        <Button Name="btn_Addin" Visibility="Visible" Grid.Column="1" Grid.Row="2" Width="175" Height="35" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,130,10,10" Click="Addin_Click"  Style="{StaticResource ButtonStyle}">Manage Revit Addin...</Button>
-        <Button Name="btn_Test" Visibility="Hidden" Grid.Column="1" Grid.Row="2" Width="175" Height="35" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,170,10,10" Click="btn_Test_Click"  Style="{StaticResource ButtonStyle}" >Test</Button>
+        <Border Grid.Column="0" Background="White" BorderBrush="#E0E0E0" BorderThickness="0,0,1,0">
+            <StackPanel Margin="20,30,20,20">
+                <TextBlock Text="ACTIONS" 
+           FontSize="11" 
+           FontWeight="Bold" 
+           Foreground="Gray" 
+           Margin="10,0,0,15" 
+           />
+                <Button Name="btn_Launch" Content="Launch New" Margin="0,5" Height="40" Style="{StaticResource ButtonStyle}" Click="btn_Launch_Click"/>
+                <Button Name="btn_Open" Content="Open Project..." Margin="0,5" Height="40" Style="{StaticResource ButtonStyle}" Click="btn_Open_Click"/>
+                <Button Name="btn_Materials" Content="Material Templates" Margin="0,5" Height="40" Style="{StaticResource ButtonStyle}" Click="btn_Materials_Click"/>
+                <Button Name="btn_Addin" Content="Revit Add-in" Margin="0,5" Height="40" Style="{StaticResource ButtonStyle}" Click="Addin_Click"/>
 
-        <Image Grid.Column="2" Grid.Row="2" Width="128" Margin="0,30,0,0" Height="128" HorizontalAlignment="Center" VerticalAlignment="Top" Source="pack://siteoforigin:,,,/Resources/Logo128.jpg" ></Image>
-        <Image Grid.Column="3" Grid.Row="3" Width="128" Margin="249,42,5,0" Height="53" HorizontalAlignment="Center" VerticalAlignment="Top" Source="pack://siteoforigin:,,,/Resources/DVLogo256.jpg" />
+                <Separator Margin="0,20" Background="#F0F0F0"/>
 
-        <Label Grid.Column="3" Grid.Row="2" Width="282" Height="35" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,10,0,0" FontFamily="Segoe UI" FontSize="22" Foreground="#FFB21616">Carbo Life Calculator</Label>
-        <TextBlock Grid.Column="3" Grid.Row="2" Width="277" Height="19" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="15,50,0,0" FontSize="14"  FontFamily="Segoe UI">
-            <Hyperlink NavigateUri="https://github.com/DavidVeld/CarboLifeCalc" RequestNavigate="Hyperlink_RequestNavigate" FontSize="14"  FontFamily="Segoe UI">
-        https://github.com/DavidVeld/CarboLifeCalc
-        </Hyperlink>
-        </TextBlock>
-        <Label Grid.Column="3" Grid.Row="2" Width="362" Height="35" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,74,0,0" FontFamily="Segoe UI" FontSize="14" Foreground="#000" FontWeight="Light">Embodied Carbon Calculator to EN 15978:2011</Label>
+                <Button Name="btn_Test" Content="Run Test" Visibility="Collapsed" Height="35" Style="{StaticResource ButtonStyle}" Click="btn_Test_Click" />
+            </StackPanel>
+        </Border>
 
-        <Label Name="lbl_Version" Grid.Column="3" Grid.Row="2" Width="199" Height="35" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,120,0,0" FontFamily="Segoe UI" FontSize="14" Foreground="#000" FontWeight="Light">Build: V X.X.X</Label>
-        <Label Grid.Column="3" Grid.Row="2" Width="199" Height="35" HorizontalAlignment="Right" HorizontalContentAlignment="Right" VerticalAlignment="Top" Margin="0,270,10,0" FontFamily="Segoe UI" FontSize="14" Foreground="#000" FontWeight="Light" Grid.RowSpan="2">Author: David In't Veld</Label>
-        <TextBlock Grid.Column="3" Grid.Row="3" Width="300" Height="19" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,18,10,0" FontSize="14"  FontFamily="Segoe UI" TextAlignment="Right">
-            <Hyperlink NavigateUri="https://sites.google.com/view/david-veld" RequestNavigate="Hyperlink_RequestNavigate" FontSize="14"  FontFamily="Segoe UI">
-        https://sites.google.com/view/david-veld
-        </Hyperlink>
-        </TextBlock>
-        <Label Grid.Column="1" Grid.Row="3" Grid.ColumnSpan="3" Width="682" Height="28" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,0,0,0" FontFamily="Segoe UI" FontSize="14" Visibility="Hidden" Foreground="#000" FontWeight="Light">[Files]</Label>
-        <Button Name="btn_Files" Grid.Column="3" Grid.Row="3" Width="75" Height="28" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="10,0,10,10" Click="Addin_Click" Visibility="Hidden" Style="{StaticResource ButtonStyle}">Change...</Button>
+        <Grid Grid.Column="1" Margin="40">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
 
+            <StackPanel Grid.Row="0" Orientation="Horizontal" VerticalAlignment="Top">
+                <Border CornerRadius="8" Background="White" Padding="10" BorderBrush="#EEE" BorderThickness="1">
+                    <Image Source="pack://siteoforigin:,,,/Resources/Logo128.jpg" Width="80" Height="80" Stretch="Uniform"/>
+                </Border>
 
+                <StackPanel VerticalAlignment="Center" Margin="20,0,0,0">
+                    <TextBlock Text="Carbo Life Calculator" FontSize="28" FontWeight="Light" Foreground="#FFB21616"/>
+                    <TextBlock Text="Embodied Carbon Calculator to EN 15978:2011" FontSize="14" Foreground="#666" Margin="2,2,0,0"/>
+                </StackPanel>
+            </StackPanel>
+
+            <StackPanel Grid.Row="1" Margin="0,30,0,0">
+                <TextBlock Margin="0,5">
+                    <Hyperlink NavigateUri="https://github.com/DavidVeld/CarboLifeCalc" RequestNavigate="Hyperlink_RequestNavigate" Foreground="#007ACC" TextDecorations="None">
+                        GitHub Project &amp; Documentation
+                    </Hyperlink>
+                </TextBlock>
+                <TextBlock Name="lbl_Version" Text="Build: V X.X.X" FontSize="13" Foreground="Gray" Margin="0,5,0,0"/>
+            </StackPanel>
+
+            <Grid Grid.Row="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" VerticalAlignment="Bottom">
+                    <TextBlock Text="Author: David In't Veld" FontSize="13" FontWeight="SemiBold"/>
+                    <TextBlock Margin="0,2">
+                        <Hyperlink NavigateUri="https://sites.google.com/view/david-veld" RequestNavigate="Hyperlink_RequestNavigate" Foreground="Gray">
+                            Visit Website
+                        </Hyperlink>
+                    </TextBlock>
+                </StackPanel>
+
+                <Image Grid.Column="1" Source="pack://siteoforigin:,,,/Resources/DVLogo256.jpg" Height="40" Opacity="0.7" VerticalAlignment="Bottom"/>
+            </Grid>
+        </Grid>
     </Grid>
 </Window>

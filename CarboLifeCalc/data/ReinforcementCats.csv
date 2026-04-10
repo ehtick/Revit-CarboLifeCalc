@@ -1,29 +1,29 @@
 RebarCategory,Density
 Mass Concrete,0
-General Slab,172
+General Slab,110
 Transfer Slab,150
 Raft,115
 Pile,80
 General Beam,220
-Ground Beam,280
+Ground Beam,230
 Light Column,100
-Medium Column,193
+Medium Column,350
 Heavy Column,400
-General Wall,109
-Retaining Wall,168
+General Wall,65
+Retaining Wall,110
 Precast Wall,40
 Precast Plank,80
 Precast Column,100
 Pilecap,272
 PT slab,85
-Columns,200
+Columns,350
 Floors,175
-Generic Models,85
+Generic Models,110
 Mass,0
 Ramps,150
 Roofs,160
 Stairs,150
-Structural Columns,200
+Structural Columns,400
 Structural Foundations,250
 Structural Framing,220
 Structural Trusses,200

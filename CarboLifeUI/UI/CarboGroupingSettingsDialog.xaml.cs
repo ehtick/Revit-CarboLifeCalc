@@ -134,7 +134,7 @@ namespace CarboLifeUI.UI
 
             //Demolished
             chk_ImportDemolished.IsChecked = importSettings.IncludeDemo;
-            chk_CombineExistingAndDemo.IsChecked = importSettings.CombineExistingAndDemo;
+            //chk_CombineExistingAndDemo.IsChecked = importSettings.CombineExistingAndDemo;
 
             //Additional Parameter
             cbb_ExtraImportType.Items.Clear();
@@ -199,7 +199,7 @@ namespace CarboLifeUI.UI
 
             settings.defaultCarboGroupSettings.IncludeDemo = chk_ImportDemolished.IsChecked.Value;
             settings.defaultCarboGroupSettings.IncludeExisting = chk_ImportExisting.IsChecked.Value;
-            settings.defaultCarboGroupSettings.CombineExistingAndDemo = chk_CombineExistingAndDemo.IsChecked.Value;
+            //settings.defaultCarboGroupSettings.CombineExistingAndDemo = chk_CombineExistingAndDemo.IsChecked.Value;
 
             //additional value
             settings.defaultCarboGroupSettings.IncludeAdditionalParameter = chk_AdditionalImport.IsChecked.Value;
@@ -279,7 +279,31 @@ namespace CarboLifeUI.UI
 
         }
 
+        private void btn_ExportSettings_Click(object sender, RoutedEventArgs e)
+        {
+            SaveSettings();
 
+            importSettings.SerializeXML();
 
+            string path = PathUtils.getSettingsFilePath();
+            //Copy The file to a custom Locaiton
+            importSettings.ExportSettingsFile(path);
+
+        }
+
+        private void btn_ImportSettings_Click(object sender, RoutedEventArgs e)
+        {
+            SaveSettings();
+            importSettings.SerializeXML();
+
+            string pathNewFile = importSettings.ImportSettingsFile();
+            string path = PathUtils.getSettingsFilePath();
+
+            PathUtils.OverrideSettingsFile(pathNewFile, path); 
+
+            System.Windows.MessageBox.Show("Settings imported. Restart CarboLifeCalculator to load the settings.");
+
+            this.Close();
+        }
     }
 }

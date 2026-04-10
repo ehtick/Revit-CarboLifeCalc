@@ -43,6 +43,8 @@ namespace CarboLifeUI.UI
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             txt_Path.Text = settings.templatePath;
+            txt_Mapping.Text = settings.mappingPath;
+
             txt_DesignLife.Text = settings.defaultDesignLife.ToString();
             txt_SecretMessage.Text = settings.secretMessage;
 
@@ -71,34 +73,21 @@ namespace CarboLifeUI.UI
 
             settings.launchCircle = chx_Experimental.IsChecked.Value;
 
+            settings.templatePath = txt_Path.Text;
+            settings.mappingPath = txt_Mapping.Text;
+
             settings.Save();
             this.Close();
         }
 
-        private void btn_Browse_Click(object sender, RoutedEventArgs e)
-        {
-            string currentDir = System.IO.Path.GetDirectoryName(settings.templatePath);
 
-            string MaterialPathToOpen = Utils.OpenCarboMaterialLibrary(currentDir);
-
-            if (MaterialPathToOpen != "")
-            {
-                FileInfo finfo = new FileInfo(MaterialPathToOpen);
-
-                settings.templatePath = MaterialPathToOpen;
-                txt_Path.Text = settings.templatePath;
-                CheckTemplateFile();
-                System.Windows.MessageBox.Show("You have changed your template path, this will be used next time you start a new calculation.");
-                
-            }
-        }
 
         private void CheckTemplateFile()
         {
-            if (File.Exists(settings.templatePath))
-                lbl_CheckTemplatePath.Content = "Template Found";
-            else
-                lbl_CheckTemplatePath.Content = "Template NOT Found";
+            //if (File.Exists(settings.templatePath))
+                //lbl_CheckTemplatePath.Text = "Template Found";
+            //else
+                //lbl_CheckTemplatePath.Text = "Template NOT Found";
         }
 
         private void btn_Coffee_Click(object sender, RoutedEventArgs e)
@@ -127,10 +116,40 @@ namespace CarboLifeUI.UI
                 System.Windows.Clipboard.SetText(secretEnCrypted);
             }
         }
+        private void btn_Browse_Click(object sender, RoutedEventArgs e)
+        {
+            string currentDir = System.IO.Path.GetDirectoryName(settings.templatePath);
+
+            string MaterialPathToOpen = Utils.OpenCarboMaterialLibrary(currentDir);
+
+            if (MaterialPathToOpen != "")
+            {
+                FileInfo finfo = new FileInfo(MaterialPathToOpen);
+
+                settings.templatePath = MaterialPathToOpen;
+                txt_Path.Text = settings.templatePath;
+                CheckTemplateFile();
+                System.Windows.MessageBox.Show("You have changed your template path, this will be used next time you start a new calculation.");
+
+            }
+        }
 
         private void btn_BrowseMap_Click(object sender, RoutedEventArgs e)
         {
+            string currentDir = System.IO.Path.GetDirectoryName(settings.mappingPath);
 
+            string MappingPathToOpen = Utils.OpenCarboMappingLibrary(currentDir);
+
+            if (MappingPathToOpen != "")
+            {
+                FileInfo finfo = new FileInfo(MappingPathToOpen);
+
+                settings.mappingPath = MappingPathToOpen;
+                txt_Mapping.Text = settings.mappingPath;
+                //CheckTemplateFile();
+                System.Windows.MessageBox.Show("You have changed your mapping file path, this will be used next time you start a new calculation.");
+
+            }
         }
     }
 }
