@@ -12,7 +12,9 @@ using System.Xml.Serialization;
 
 namespace CarboLifeAPI.Data
 {
-    [Serializable]
+    //[Serializable]
+    [XmlRoot(Namespace = "")]
+    [XmlType(Namespace = "")]
     public class CarboSettings
     {
         public string templatePath { get; set; }
@@ -80,7 +82,6 @@ namespace CarboLifeAPI.Data
         }
         private CarboSettings DeSerializeXML()
         {
-
             string mySettingsPath = PathUtils.getSettingsFilePath();
 
             if (File.Exists(mySettingsPath))
@@ -100,7 +101,6 @@ namespace CarboLifeAPI.Data
                         bufferproject.defaultCarboGroupSettings.rcQuantityMap = getCurrentRCMap();
                     }
 
-                    //If the settings exists and all is well use this:
                     return bufferproject;
                 }
                 catch (Exception ex)
@@ -108,15 +108,6 @@ namespace CarboLifeAPI.Data
                     System.Windows.MessageBox.Show(
                         "Settings file could not be loaded and will be reset to defaults.\n\nDetails: " + ex.Message);
 
-                    // Back up the corrupt file before overwriting
-                    try
-                    {
-                        string backupPath = mySettingsPath + ".bak";
-                        File.Copy(mySettingsPath, backupPath, overwrite: true);
-                    }
-                    catch { /* best effort, don't block recovery */ }
-
-                    // Create and save fresh defaults
                     CarboSettings newSettings = new CarboSettings();
                     newSettings.SerializeXML();
                     return newSettings;

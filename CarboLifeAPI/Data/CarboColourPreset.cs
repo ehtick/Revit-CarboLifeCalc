@@ -4,10 +4,13 @@ using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml.Serialization;
 
 namespace CarboLifeAPI.Data
 {
-    [Serializable]
+    //[Serializable]
+    [XmlType(Namespace = "")]
+
     public class CarboColourPreset
     {
 

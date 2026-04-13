@@ -14,7 +14,9 @@ using System.Xml.Serialization;
 
 namespace CarboLifeAPI.Data
 {
-    [Serializable]
+    //[Serializable]
+    [XmlType(Namespace = "")]
+
     public class CarboGroupSettings
     {
         public string CategoryName { get; set; }
