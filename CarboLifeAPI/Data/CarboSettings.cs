@@ -75,8 +75,6 @@ namespace CarboLifeAPI.Data
             return DeSerializeXML();
         }
         public bool Save()
-
-
         {
             return SerializeXML();
         }
@@ -89,19 +87,19 @@ namespace CarboLifeAPI.Data
                 try
                 {
                     XmlSerializer ser = new XmlSerializer(typeof(CarboSettings));
-                    CarboSettings bufferproject;
+                    CarboSettings buffer;
 
                     using (FileStream fs = new FileStream(mySettingsPath, FileMode.Open))
                     {
-                        bufferproject = ser.Deserialize(fs) as CarboSettings;
+                        buffer = ser.Deserialize(fs) as CarboSettings;
                     }
 
-                    if (bufferproject.defaultCarboGroupSettings.rcQuantityMap.Count == 0)
+                    if (buffer.defaultCarboGroupSettings.rcQuantityMap.Count == 0)
                     {
-                        bufferproject.defaultCarboGroupSettings.rcQuantityMap = getCurrentRCMap();
+                        buffer.defaultCarboGroupSettings.rcQuantityMap = getCurrentRCMap();
                     }
 
-                    return bufferproject;
+                    return buffer;
                 }
                 catch (Exception ex)
                 {
@@ -120,7 +118,7 @@ namespace CarboLifeAPI.Data
                 return newsettings;
             }
         }
-        private bool SerializeXML(string path = "")
+        public bool SerializeXML(string path = "")
         {
             string mySettingsPath = "";
 

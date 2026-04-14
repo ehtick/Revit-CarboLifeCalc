@@ -13,16 +13,37 @@ namespace CarboLifeAPI
 {
     public static class PathUtils
     {
+
+        // ── Root locations ──────────────────────────────────────────────
+        public static string GetAssemblyDir() =>
+            Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+
+        public static string GetMaterialsDir() =>
+            Path.Combine(GetAssemblyDir(), "db", "materials");
+
+        public static string GetDbSettingsDir() =>
+            Path.Combine(GetAssemblyDir(), "db", "settings");
+
+        public static string GetDataDir() =>
+            Path.Combine(GetAssemblyDir(), "data");
+
+        // ── Settings file ───────────────────────────────────────────────
+        public static string GetSettingsFilePath() =>
+            Path.Combine(GetDataDir(), "CarboSettings.xml");
+
+
         /// <summary>
         /// The current location from where the application runs
         /// </summary>
         /// <returns>The application path </returns>
+        /* Obsolete
         public static string getAssemblyPath()
         {
             string _path = Assembly.GetExecutingAssembly().Location;
             string myPath = Path.GetDirectoryName(_path);
             return myPath;
         }
+        */
 
         /// <summary>
         /// Sets and prepares the usermaterials and settings File
@@ -39,7 +60,7 @@ namespace CarboLifeAPI
             try
             {
                 //Essential Locations:
-                string assemblyPath = Utils.getAssemblyPath();
+                string assemblyPath = PathUtils.GetAssemblyDir();
                 string dataPath = Path.Combine(assemblyPath, "data");
                 string dbPath = Path.Combine(assemblyPath, "db");
 
@@ -152,9 +173,11 @@ namespace CarboLifeAPI
         /// <returns>Settings File path</returns>
         public static string getSettingsFilePath()
         {
+            return GetSettingsFilePath();
+            /* test Obsolete
             //string fileName = "db\\CarboSettings.xml";
             //string myPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "\\CarboLifeCalc\\CarboSettings.xml";
-            string myLocalPath = Path.Combine(getAssemblyPath(),"data","CarboSettings.xml");
+            string myLocalPath = Path.Combine(GetAssemblyDir(),"data","CarboSettings.xml");
 
             //if (File.Exists(myPath))
             //    return myPath;
@@ -168,10 +191,10 @@ namespace CarboLifeAPI
                             // "Target: " + myPath + Environment.NewLine +
                             "Target: " + myLocalPath, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
 
-                    CarboGroupSettings settings = new CarboGroupSettings();
+                    CarboSettings settings = new CarboSettings();
                     bool ok = settings.SerializeXML(myLocalPath);
 
-                    if(ok == true)
+                    if (ok == true)
                         return myLocalPath;
                     else
                         return "";
@@ -182,50 +205,42 @@ namespace CarboLifeAPI
                     return "";
                 }
             }
-
+            */
         }
 
         /// <summary>
         /// Finds the location of the Carbo Life Calculator Template File
         /// </summary>
         /// <returns>Template Path</returns>
-        public static string getTemplateFile(bool local = true)
+        public static string getTemplateFile()
         {
             try
             {
                 CarboSettings settings = new CarboSettings().Load();
+                string resolved = PathUtils.ResolveTemplatePath(settings.templatePath);
 
-                string templatetarget = settings.templatePath;
-                string myLocalPath = getAssemblyPath() + "\\db\\" + "UserMaterials.cxml";
-                //option 1 - user specified path
-                //option 2 - local path, n case not found.
+                if (resolved != null)
+                {
+                    // Heal the stored path if it had drifted
+                    if (!string.Equals(resolved, settings.templatePath, StringComparison.OrdinalIgnoreCase))
+                    {
+                        settings.templatePath = resolved;
+                        settings.Save();
+                    }
+                    return resolved;
+                }
 
-                if (File.Exists(templatetarget))
-                    return templatetarget;
-                else if (File.Exists(myLocalPath))
-                {
-                    //Fix the setting;
-                    settings.templatePath = myLocalPath;
-                    settings.Save();
-                    MessageBox.Show("The template file could not be found at: " + templatetarget + Environment.NewLine +
-                        "This is most likely because this is the frst time you run the app, i'll try to calibrate the addin now for you." + Environment.NewLine + Environment.NewLine +
-                        "The local template file will be used at: " + myLocalPath, "Warning", MessageBoxButton.OK);
-                    return myLocalPath;
-                }
-                else
-                {
-                    MessageBox.Show("Could not find a path reference to the template file, you possibly have to re-install the software" + Environment.NewLine +
-                        "Target: " + templatetarget + Environment.NewLine +
-                        "Target: " + myLocalPath, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                    return "";
-                }
+                MessageBox.Show(
+                    "Could not find a template file. You may need to reinstall the software.\n" +
+                    "Expected location: " + PathUtils.GetMaterialsDir(),
+                    "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return "";
             }
             catch (Exception ex)
             {
                 MessageBox.Show(ex.Message);
                 return "";
             }
-            //return "";
         }
 
         /// <summary>
@@ -234,6 +249,9 @@ namespace CarboLifeAPI
         /// <returns>Template Path</returns>
         public static IDictionary<string, string> getTemplateFiles()
         {
+            CarboSettings settings = new CarboSettings().Load();
+            return GetTemplateFiles(settings.templatePath);
+            
             var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
             try
@@ -275,17 +293,101 @@ namespace CarboLifeAPI
             return result;
         }
 
+        // ── Template resolution ─────────────────────────────────────────
+        /// <summary>
+        /// Resolves the template file path.
+        /// Priority: 1) stored absolute path if valid
+        ///           2) stored filename found in local materials folder
+        ///           3) default UserMaterials.cxml in materials folder
+        /// </summary>
+        public static string ResolveTemplatePath(string storedPath)
+        {
+            // 1. Stored absolute path still valid
+            if (!string.IsNullOrEmpty(storedPath) && File.Exists(storedPath))
+                return storedPath;
+
+            // 2. Stored value might just be a filename — try local materials folder
+            if (!string.IsNullOrEmpty(storedPath))
+            {
+                string fileName = Path.GetFileName(storedPath);
+                string localGuess = Path.Combine(GetMaterialsDir(), fileName);
+                if (File.Exists(localGuess))
+                    return localGuess;
+            }
+
+            // 3. Fall back to default
+            string defaultPath = Path.Combine(GetMaterialsDir(), "UserMaterials.cxml");
+            if (File.Exists(defaultPath))
+                return defaultPath;
+
+            return null; // caller handles missing file
+        }
+
+        // ── Mapping file resolution ─────────────────────────────────────
+        public static string ResolveMappingPath(string storedPath)
+        {
+            if (!string.IsNullOrEmpty(storedPath) && File.Exists(storedPath))
+                return storedPath;
+
+            if (!string.IsNullOrEmpty(storedPath))
+            {
+                string fileName = Path.GetFileName(storedPath);
+                string localGuess = Path.Combine(GetDbSettingsDir(), fileName);
+                if (File.Exists(localGuess))
+                    return localGuess;
+            }
+
+            string defaultPath = Path.Combine(GetDbSettingsDir(), "defaultmappingfile.xml");
+            if (File.Exists(defaultPath))
+                return defaultPath;
+
+            return null;
+        }
+
+        // ── Template file discovery ─────────────────────────────────────
+        public static IDictionary<string, string> GetTemplateFiles(string storedPath)
+        {
+            var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+            string resolved = ResolveTemplatePath(storedPath);
+            string searchDir = string.IsNullOrEmpty(resolved)
+                ? GetMaterialsDir()
+                : Path.GetDirectoryName(resolved);
+
+            if (!Directory.Exists(searchDir)) return result;
+
+            foreach (string ext in new[] { "*.cxml", "*.csv" })
+            {
+                foreach (string file in Directory.GetFiles(searchDir, ext))
+                {
+                    string name = Path.GetFileName(file);
+                    if (!result.ContainsKey(name))
+                        result.Add(name, file);
+                }
+            }
+
+            return result;
+        }
+
+
+
+
+
+
+
+
         /// <summary>
         /// Finds the location of the Carbo Life Calculator Downloaded Files Path
         /// </summary>
         /// <returns>Download Path</returns>
+        [Obsolete]
         public static string getDownloadedPath(bool local = true)
         {
             //sourcePath = PathUtils.getDownloadedPath() + "\\db\\online\\" + selectedItem + ".cxml";
 
 
             string myPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "\\CarboLifeCalc\\online\\";
-            string myLocalPath = getAssemblyPath() + "\\db\\online\\";
+            string myLocalPath = GetAssemblyDir() + "\\db\\online\\";
 
             if (local == true)
             {

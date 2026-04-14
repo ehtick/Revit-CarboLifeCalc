@@ -105,7 +105,7 @@ namespace CarboLifeAPI
         
         public static string getAssemblyPath()
         {
-            return PathUtils.getAssemblyPath();
+            return PathUtils.GetAssemblyDir();
         }
 
         public static DataTable ToDataTables(CarboMaterial material)

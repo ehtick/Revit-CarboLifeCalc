@@ -109,13 +109,13 @@ namespace CarboLifeAPI.Data
                 try
                 {
                     XmlSerializer ser = new XmlSerializer(typeof(CarboGroupSettings));
-                    CarboGroupSettings bufferproject;
+                    CarboGroupSettings buffer;
 
                     using (FileStream fs = new FileStream(importSettingsPath, FileMode.Open))
                     {
-                        bufferproject = ser.Deserialize(fs) as CarboGroupSettings;
+                        buffer = ser.Deserialize(fs) as CarboGroupSettings;
                     }
-                    return bufferproject;
+                    return buffer;
                 }
                 catch (Exception ex)
                 {
