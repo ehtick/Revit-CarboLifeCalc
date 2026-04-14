@@ -58,14 +58,7 @@ namespace CarboLifeUI.UI
         {
             dialogOk = MessageBoxResult.Cancel;
 
-            //var version = typeof(SkiaSharp.SKPicture).Assembly.ImageRuntimeVersion;
-            //var loadedDllPath = typeof(SkiaSharp.SKPicture).Assembly.Location;
-
-            //System.Windows.Forms.MessageBox.Show(loadedDllPath.ToString());
-
-            //TemplateList
-
-            //get DefaultTemplate:
+            // Get DefaultTemplate:
             templateCollection = PathUtils.getTemplateFiles();
             if (templateCollection != null)
             {
@@ -73,11 +66,17 @@ namespace CarboLifeUI.UI
                 {
                     cbb_Template.Items.Add(template.Key);
                 }
-                cbb_Template.SelectedIndex = 0;
+
+                // Select the template saved in settings, fall back to index 0
+                CarboSettings settings = new CarboSettings().Load();
+                string savedFileName = Path.GetFileName(settings.templatePath);
+
+                int savedIndex = cbb_Template.Items.IndexOf(savedFileName);
+                cbb_Template.SelectedIndex = savedIndex >= 0 ? savedIndex : 0;
             }
 
             loadSettingsToUI();
- 
+
         }
 
         /// <summary>
@@ -184,7 +183,7 @@ namespace CarboLifeUI.UI
 
         private void SaveSettings()
         {
-            
+
             //Save the latest settings in the default;
             CarboSettings settings = new CarboSettings();
             settings = settings.Load();
@@ -229,7 +228,13 @@ namespace CarboLifeUI.UI
 
             settings.defaultCarboGroupSettings.UncertaintyFactor = Convert.ToDouble(txt_UncertFact.Text) / 100.0;
 
-            //Seve as default for next time/project;
+            if (chk_UseAsDefault.IsChecked == true)
+            { 
+                string fullTemplatePath = PathUtils.getTemplateFilePath(cbb_Template.Text);
+                settings.templatePath = fullTemplatePath;
+            }
+
+            //Save as default for next time/project;
             settings.Save();
 
             importSettings = settings.defaultCarboGroupSettings;
@@ -281,11 +286,12 @@ namespace CarboLifeUI.UI
 
         private void btn_ExportSettings_Click(object sender, RoutedEventArgs e)
         {
+            //save the settings to current (this is a requirement)
             SaveSettings();
 
-            importSettings.SerializeXML();
-
+            //importSettings.SerializeXML();
             string path = PathUtils.getSettingsFilePath();
+
             //Copy The file to a custom Locaiton
             importSettings.ExportSettingsFile(path);
 
@@ -293,6 +299,7 @@ namespace CarboLifeUI.UI
 
         private void btn_ImportSettings_Click(object sender, RoutedEventArgs e)
         {
+            //save the settings to current (this is a requirement)
             SaveSettings();
             importSettings.SerializeXML();
 

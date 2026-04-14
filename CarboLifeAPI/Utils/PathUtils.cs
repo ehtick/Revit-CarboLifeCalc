@@ -468,5 +468,29 @@ namespace CarboLifeAPI
                                 MessageBoxImage.Error);
             }
         }
+
+        /// <summary>
+        /// Returns the full path of a template file given just its filename.
+        /// Searches the materials folder and falls back to the resolved default.
+        /// </summary>
+        /// <param name="fileName">Filename selected by the user e.g. "UserMaterials.cxml"</param>
+        /// <returns>Full path to the template file, or null if not found</returns>
+        public static string getTemplateFilePath(string fileName)
+        {
+            if (string.IsNullOrEmpty(fileName))
+                return ResolveTemplatePath(null); // fall back to default
+
+            // 1. Already a full valid path (e.g. passed in from settings directly)
+            if (File.Exists(fileName))
+                return fileName;
+
+            // 2. Just a filename — look in the materials folder
+            string localPath = Path.Combine(GetMaterialsDir(), fileName);
+            if (File.Exists(localPath))
+                return localPath;
+
+            // 3. Fall back to default template
+            return ResolveTemplatePath(fileName);
+        }
     }
 }
