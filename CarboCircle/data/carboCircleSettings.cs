@@ -130,8 +130,47 @@ namespace CarboCircle.data
 
         /// <summary>
         /// Permitted extra strength when substituting a member, in %.
+        ///
+        /// This is the width of the substitution window, and it is the one setting that decides
+        /// whether the tool finds anything at all. Consecutive serial sizes in one section
+        /// family differ by roughly 10-18% in elastic modulus - a 305x165x40 UB to a
+        /// 305x165x46 UB is 15% - so a 10% window admits almost nothing but the exact section,
+        /// which is why the default is 25%: wide enough to reach the next size or two up, tight
+        /// enough that the substitute is still recognisably the right member.
         /// </summary>
         public double strengthRange { get; set; }
+
+        /// <summary>
+        /// Permitted extra section width when substituting a member, in mm.
+        ///
+        /// The companion to <see cref="depthRange"/>. Depth alone does not describe a section:
+        /// without this a 254 mm wide UC would be offered for a 165 mm wide UB purely because
+        /// it is shallow enough, and it would not fit the detail it has to sit in.
+        /// </summary>
+        public double widthRange { get; set; }
+
+        /// <summary>
+        /// The shortest offcut worth putting back into stock, in mm.
+        ///
+        /// A remnant below this is reported as waste rather than offered again, because the
+        /// handling and the second saw cut cost more than the steel is worth.
+        /// </summary>
+        public double minOffcutLength { get; set; }
+
+        /// <summary>
+        /// Whether a column section may be offered for a beam requirement.
+        ///
+        /// The one cross-family substitution the tool will consider: family H stock - UC, UKC,
+        /// HE - serving a family I requirement - UB, UKB, IPE. A UC of equal bending capacity
+        /// is shallower and much stiffer about the minor axis, so it is a sound beam; the
+        /// reverse is not true, and no other pairing of families is offered in either
+        /// direction.
+        ///
+        /// Off by default. It changes the shape of the member, so every connection on it has to
+        /// be re-detailed, and that is a decision for the engineer to opt
+        /// into rather than one for the tool to assume.
+        /// </summary>
+        public bool allowCrossFamilySubstitution { get; set; }
 
         //--------------------------------------------------------------------------------
         // Visualisation colours
@@ -184,7 +223,10 @@ namespace CarboCircle.data
             materialDataBasePath = string.Empty;
 
             depthRange = 50;
-            strengthRange = 10;
+            strengthRange = 25;
+            widthRange = 50;
+            minOffcutLength = 1000;
+            allowCrossFamilySubstitution = false;
 
             colour_ReusedMinedData = new CarboColour(255, 25, 160, 235);
             colour_NotReused = new CarboColour(255, 235, 235, 235);

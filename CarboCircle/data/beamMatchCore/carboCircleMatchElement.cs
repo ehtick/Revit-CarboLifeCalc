@@ -1,5 +1,6 @@
 ﻿using Autodesk.Revit.DB;
 using CarboLifeAPI;
+using CarboCircle.data;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -33,6 +34,35 @@ namespace CarboCircle
         public string required_standardName { get; set; }
         public string mined_standardName { get; set; }
         public double match_Score { get; set; }
+
+        /// <summary>
+        /// Which class of match this is: see carboCircleMatchRules. Stored, because it is the
+        /// sort key that keeps the groups in priority order - 100% matches first, no-matches
+        /// last - and because the row colour keys off it.
+        /// </summary>
+        public int matchRank { get; set; }
+
+        /// <summary>Length actually cut out of stock for this requirement, in metres.</summary>
+        public double used_netLength { get; set; }
+
+        /// <summary>
+        /// Length of the remnant this cut left, in metres. Carried from the engine rather than
+        /// recomputed: usable minus required omits the cutting allowance, so anyone deriving it
+        /// downstream got a different number from the one the engine put back into stock.
+        /// </summary>
+        public double offcut_netLength { get; set; }
+
+        /// <summary>
+        /// What the user reads, and what the grid groups on.
+        ///
+        /// Computed rather than stored on purpose: a get-only property has no backing field, so
+        /// it changes neither the [Serializable] shape nor the positional csv, and there is no
+        /// way for it to disagree with matchRank.
+        /// </summary>
+        public string matchCategory
+        {
+            get { return carboCircleMatchRules.classLabel(matchRank); }
+        }
 
         public string description { get; set; }
 
@@ -69,6 +99,8 @@ namespace CarboCircle
             this.isVolumeElement = isVolumeElement;
             required_standardName = requiredStandardName;
             mined_standardName = minedStandardName;
+            //Was accepted as a parameter and then dropped on the floor.
+            this.match_Score = match_Score;
             this.description = description;
         }
 
@@ -91,6 +123,9 @@ namespace CarboCircle
                 required_standardName = this.required_standardName,
                 mined_standardName = this.mined_standardName,
                 match_Score = this.match_Score,
+                matchRank = this.matchRank,
+                used_netLength = this.used_netLength,
+                offcut_netLength = this.offcut_netLength,
                 description = this.description
             };
 

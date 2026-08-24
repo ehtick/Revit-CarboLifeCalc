@@ -17,431 +17,702 @@ namespace CarboCircle.data
     internal class carboCircleMatchCore
     {
         /// <summary>
-        /// Evaluation of reusable volume elements such as concrete & masonry
+        /// What the demolished concrete and masonry can come back as.
+        ///
+        /// Aggregate, and only aggregate. These materials cannot return as the thing they were:
+        /// you cannot re-hang a cast wall or re-lay a bonded skin as structure. Crushing them
+        /// for aggregate is the honest answer, and it is the only one this tool offers.
+        ///
+        /// The old version claimed otherwise in two ways. Masonry came back as "Reused masonry",
+        /// implying whole reclaimed bricks, which no part of the import can establish. And every
+        /// concrete volume was multiplied by TWO, which had the tool reporting more aggregate
+        /// than there was concrete to crush - a headline figure twice the truth.
+        ///
+        /// ONE LOSS, APPLIED ONCE. The recoverable figure is netVolume, which
+        /// carboCircleProject.correctMinedValues has already reduced by the user's loss
+        /// percentage. Applying a factor again here would charge the same loss twice.
         /// </summary>
-        /// <param name="carboCircleProject"></param>
-        /// <returns>lisyt of reuse opportunities</returns>
         internal static List<carboCircleElement> findVolumeOpportunities(carboCircleProject carboCircleProject)
         {
-
-
             List<carboCircleElement> result = new List<carboCircleElement>();
 
-            //Reset the matched
-            foreach (carboCircleElement ccE in carboCircleProject.minedVolumes)
-            {
-                ccE.matchGUID = "";
-            }
+            if (carboCircleProject == null)
+                return result;
 
-            foreach (carboCircleElement ccE in carboCircleProject.requiredVolumes)
+            foreach (carboCircleElement mined in carboCircleProject.minedVolumes)
             {
-                ccE.matchGUID = "";
-            }
+                if (mined == null)
+                    continue;
 
-            foreach (carboCircleElement mined_cce in carboCircleProject.minedVolumes)
-            {
                 try
                 {
-                    carboCircleElement reuseElement = mined_cce.Copy();
+                    carboCircleElement aggregate = mined.Copy();
 
-                    if (mined_cce.materialClass == "Concrete")
+                    //Only concrete and masonry are crushed for aggregate. Everything else that
+                    //ends up in the volume lists - a timber floor, a material the importer could
+                    //not class - keeps its own name, because calling it aggregate would be a
+                    //claim about it that nobody has made.
+                    if (mined.materialClass == "Concrete" || mined.materialClass == "Masonry")
                     {
-                        reuseElement.name = "Aggregate from: " + mined_cce.name;
-                        reuseElement.volume = mined_cce.volume * 2;
-                        reuseElement.materialName = "Aggregate from concrete ";
-                        reuseElement.materialClass = "Aggregate";
-                    }
-                    else if (mined_cce.materialClass == "Masonry" || mined_cce.materialClass == "Brick")
-                    {
-                        //Masonry comes back as reusable masonry, less what deconstruction
-                        //destroys. The factor mirrors how VolumeLoss is applied to concrete
-                        //in carboCircleProject.correctMinedValues.
-                        double masonryFactor = 1 - (Convert.ToDouble(carboCircleProject.settings.MasonryLoss) / 100);
-
-                        if (masonryFactor < 0)
-                            masonryFactor = 0;
-
-                        reuseElement.name = "Reused masonry from: " + mined_cce.name;
-                        reuseElement.volume = mined_cce.volume * masonryFactor;
-                        reuseElement.materialName = "Reused masonry";
-                        reuseElement.materialClass = "Masonry";
+                        //netVolume already carries the deconstruction loss. Gross is carried too,
+                        //so the report can show both what was there and what survives.
+                        aggregate.name = "Aggregate from " + describeOrigin(mined);
+                        aggregate.materialName = "Aggregate from " + lowerFirst(materialLabel(mined));
+                        aggregate.materialClass = "Aggregate";
                     }
                     else
                     {
-                        reuseElement.name = "Aggregate from: " + mined_cce.name;
-                        reuseElement.volume = mined_cce.volume * 2;
-                        reuseElement.materialName = "Aggregate from other ";
-                        reuseElement.materialClass = "Aggregate";
+                        aggregate.name = "Recovered " + lowerFirst(materialLabel(mined)) +
+                                         " from " + describeOrigin(mined);
                     }
 
-                    result.Add(reuseElement);
+                    result.Add(aggregate);
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
-
+                    //One unreadable record must not cost the rest of the schedule.
                 }
-
             }
 
+            return result;
+        }
 
-            return result;        
-                
-             }
+        /// <summary>What this volume came out of, for the aggregate row's name.</summary>
+        private static string describeOrigin(carboCircleElement mined)
+        {
+            if (!string.IsNullOrWhiteSpace(mined.name))
+                return mined.name;
 
+            if (!string.IsNullOrWhiteSpace(mined.materialName))
+                return mined.materialName;
+
+            return "demolished material";
+        }
+
+        /// <summary>The material in words, whatever the class string happens to be.</summary>
+        private static string materialLabel(carboCircleElement mined)
+        {
+            if (mined.materialClass == "Concrete")
+                return "Concrete";
+
+            if (mined.materialClass == "Masonry")
+                return "Masonry";
+
+            return string.IsNullOrWhiteSpace(mined.materialClass) ? "Other material" : mined.materialClass;
+        }
+
+        private static string lowerFirst(string text)
+        {
+            if (string.IsNullOrEmpty(text))
+                return "";
+
+            return char.ToLowerInvariant(text[0]) + text.Substring(1);
+        }
 
         /// <summary>
-        /// Main entry point, this gets a list of matches based on scoring system and returns a pairing list.
+        /// Pairs each required member with the best piece of existing material that can serve
+        /// it, and says why for every one - including the ones that found nothing.
+        ///
+        /// HOW IT WORKS, AND WHY THIS SHAPE
+        ///
+        /// There is ONE pool of stock, and an offcut goes straight back into it the moment it is
+        /// created. That deletes a whole class of bug rather than fixing it: the old engine
+        /// appended remnants to one list and then searched a different, permanently empty one,
+        /// so offcut reuse was dead code that looked alive.
+        ///
+        /// Requirements are served longest-and-strongest first. That ordering is the mitigation
+        /// for the obvious greedy failure - a short requirement eating a long member while a
+        /// long requirement then finds nothing - because a long strong member can only be served
+        /// by long strong stock, whereas short light requirements can be served by the remnants
+        /// the big ones leave behind.
+        ///
+        /// Each requirement then takes the BEST admissible piece, not the first: exact sections
+        /// before substitutes, remnants before whole members, tightest fit before loosest. The
+        /// selection key is lexicographic, so a perfect match can never be outvoted by a
+        /// better-fitting substitute. Priority is structural, not a number.
+        ///
+        /// It is greedy, not globally optimal, and that is a deliberate choice. The exact
+        /// problem is assignment and cutting-stock combined; an exact solver would be a few
+        /// hundred lines that no reviewer of this codebase could check by reading, in a project
+        /// with no test suite. This is the standard heuristic for saw-and-reuse and it is
+        /// auditable line by line.
+        ///
+        /// Same input, same output, always: every ordering in here is total, ending in an
+        /// ordinal GUID comparison.
         /// </summary>
-        /// <param name="carboCircleProject"></param>
-        /// <returns></returns>
         internal static List<carboCirclePair> findOpportunities(carboCircleProject carboCircleProject, out List<carboCircleElement> leftOvers)
         {
-            //
-            leftOvers = null;
-            List<carboCircleElement> leftOverList = new List<carboCircleElement> ();
-
-            //Reset the matched
-            foreach (carboCircleElement ccE in carboCircleProject.minedData)
-            {
-                ccE.matchGUID = "";
-            }
-
-            foreach (carboCircleElement ccE in carboCircleProject.requiredData)
-            {
-                ccE.matchGUID = "";
-            }
-
-            //Get All Data From Project
-            List<carboCircleElement> existingBeamList = new List<carboCircleElement>();
-            List<carboCircleElement> requiredBeamList = new List<carboCircleElement>();
-
-            //List<carboCircleElement> existingWoodBeamList = new List<carboCircleElement>();
-            //List<carboCircleElement> requiredWoodBeamList = new List<carboCircleElement>();
-
-
-            List<carboCircleElement> offcuts = new List<carboCircleElement>();
-            List<carboCircleElement> finalOffcuts = new List<carboCircleElement>();
+            //Assigned before anything can return, so no exit path leaves the caller with null.
+            leftOvers = new List<carboCircleElement>();
 
             List<carboCirclePair> matchedpairs = new List<carboCirclePair>();
 
-            //get valid steel or timber beams:
-            foreach(carboCircleElement ccE in carboCircleProject.minedData)
+            if (carboCircleProject == null)
+                return matchedpairs;
+
+            carboCircleSettings settings = carboCircleProject.settings ?? new carboCircleSettings();
+
+            //Clear last run's claims. Every list, because a member can move between them
+            //between runs.
+            resetMatchMarks(carboCircleProject.minedData);
+            resetMatchMarks(carboCircleProject.requiredData);
+            resetMatchMarks(carboCircleProject.minedVolumes);
+            resetMatchMarks(carboCircleProject.requiredVolumes);
+
+            //Lookup only, never iterated: used at the end to mark the project's own mined
+            //records so the mined grid can show what was taken.
+            Dictionary<string, carboCircleElement> minedByGuid = new Dictionary<string, carboCircleElement>(StringComparer.Ordinal);
+
+            foreach (carboCircleElement el in carboCircleProject.minedData)
             {
-                if(ccE.materialClass == "Steel" || ccE.materialClass == "Wood")
-                {
-                    existingBeamList.Add(ccE); 
-                }/*
-                else if(ccE.materialClass =="Wood")
-                {
-                    existingWoodBeamList.Add(ccE);
-                }*/
+                if (el != null && !string.IsNullOrEmpty(el.GUID) && !minedByGuid.ContainsKey(el.GUID))
+                    minedByGuid.Add(el.GUID, el);
             }
 
-            foreach (carboCircleElement ccE in carboCircleProject.requiredData)
+            //---------------------------------------------------------------------------
+            // The stock pool
+            //---------------------------------------------------------------------------
+            List<carboCircleElement> pool = new List<carboCircleElement>();
+
+            foreach (carboCircleElement mined in carboCircleProject.minedData)
             {
-                if (ccE.materialClass == "Steel" || ccE.materialClass == "Wood")
+                if (mined == null)
+                    continue;
+
+                if (mined.materialClass != "Steel" && mined.materialClass != "Wood")
+                    continue;
+
+                //Copies, because cutting mutates lengths and the project's own lists are
+                //recalculated from gross figures on every run.
+                carboCircleElement piece = mined.Copy();
+
+                if (piece.netLength <= 0)
                 {
-                    requiredBeamList.Add(ccE);
-                }/*
-                else if (ccE.materialClass == "Wood")
+                    leftOvers.Add(withNote(piece, "no usable length once the cutting allowance is taken off"));
+                    continue;
+                }
+
+                if (!carboCircleMatchRules.hasUsableSection(piece) ||
+                    piece.sectionConfidence == carboCircleMatchRules.ConfidenceUnmapped)
                 {
-                    requiredWoodBeamList.Add(ccE);
-                }*/
+                    leftOvers.Add(withNote(piece, "section not recognised" + rawName(piece)));
+                    continue;
+                }
+
+                pool.Add(piece);
             }
 
-            //valid Data Wasnt collected
-            if (existingBeamList.Count <= 0 || requiredBeamList.Count <= 0)
-                return null;
+            //Stable, content-based order so the whole run is reproducible.
+            pool = pool.OrderBy(p => p.GUID, StringComparer.Ordinal).ToList();
 
-            //Iterate through required Data and find matches.
+            //---------------------------------------------------------------------------
+            // The requirements
+            //
+            // References, not copies: matchGUID is written back onto the project's own objects
+            // and the grids and the csv export read it from there.
+            //---------------------------------------------------------------------------
+            List<carboCircleElement> queue = new List<carboCircleElement>();
 
-            foreach (carboCircleElement req_el in requiredBeamList)
+            foreach (carboCircleElement required in carboCircleProject.requiredData)
             {
-                carboCirclePair matchedPairSeries = new carboCirclePair();
-                try
+                if (required == null)
+                    continue;
+
+                if (required.materialClass != "Steel" && required.materialClass != "Wood")
+                    continue;
+
+                //Screened here rather than silently dropped. A structural column usually
+                //reports no length in Revit, and the old engine simply omitted every one of
+                //them from the results - the user was never told why their columns vanished.
+                if (required.length <= 0)
                 {
-                    matchedPairSeries = getBestMatchingPair(req_el, existingBeamList, carboCircleProject.settings);
-                    //create offcut from pair:
-                    if (matchedPairSeries != null)
+                    matchedpairs.Add(noMatch(required,
+                        "Revit reports no length for this member, so nothing can be cut to fit it. " +
+                        "Give the family type a Cut Length parameter, or leave columns out of the import."));
+                    continue;
+                }
+
+                if (!carboCircleMatchRules.hasUsableSection(required) ||
+                    required.sectionConfidence == carboCircleMatchRules.ConfidenceUnmapped)
+                {
+                    matchedpairs.Add(noMatch(required, "Section not recognised" + rawName(required) +
+                        ", so it cannot be compared with anything in stock."));
+                    continue;
+                }
+
+                queue.Add(required);
+            }
+
+            //Longest and strongest first. LINQ OrderBy is a stable sort; List.Sort is not.
+            queue = queue
+                .OrderByDescending(r => r.length)
+                .ThenByDescending(r => r.Wy)
+                .ThenBy(r => r.GUID, StringComparer.Ordinal)
+                .ThenBy(r => r.id)
+                .ToList();
+
+            //How many times each original member has been cut, for stable offcut ids.
+            Dictionary<string, int> cutCounts = new Dictionary<string, int>(StringComparer.Ordinal);
+
+            //---------------------------------------------------------------------------
+            // Allocation
+            //---------------------------------------------------------------------------
+            foreach (carboCircleElement required in queue)
+            {
+                carboCircleElement best = null;
+                int bestRank = 0;
+                double bestOver = 0;
+                double bestWaste = 0;
+
+                //The nearest thing to a match that was refused, so a failure can be explained
+                //in terms of what was actually in the yard.
+                carboCircleElement nearest = null;
+                int nearestKind = carboCircleMatchRules.MissNone;
+                double nearestAmount = 0;
+                string nearestReason = "";
+
+                foreach (carboCircleElement piece in pool)
+                {
+                    //Already claimed by an earlier requirement.
+                    if (!string.IsNullOrEmpty(piece.matchGUID))
+                        continue;
+
+                    int rank;
+                    string reason;
+                    int missKind;
+                    double missAmount;
+
+                    if (carboCircleMatchRules.isAdmissible(required, piece, settings,
+                                                           out rank, out reason, out missKind, out missAmount))
                     {
-                        req_el.matchGUID = matchedPairSeries.mined_Element.GUID;
-                        
-                        //reove from the list as it cannot be considered twice:
-                        for(int i = 0; i < existingBeamList.Count; i++)
-                        {
-                            carboCircleElement mined_el = existingBeamList[i];
-                            if (mined_el.GUID == matchedPairSeries.mined_Element.GUID)
-                            {
-                                existingBeamList.RemoveAt(i);
-                                break;
-                            }
-                        }
-                        /*
-                        foreach (carboCircleElement mined_el in existingBeamList)
-                        {
+                        double over = carboCircleMatchRules.overProvision(required, piece);
+                        double waste = carboCircleMatchRules.waste(required, piece);
 
-                            break;
+                        if (best == null || isBetterChoice(rank, piece, over, waste,
+                                                           bestRank, best, bestOver, bestWaste))
+                        {
+                            best = piece;
+                            bestRank = rank;
+                            bestOver = over;
+                            bestWaste = waste;
                         }
-                        */
-
-                        matchedpairs.Add(matchedPairSeries);
-                        carboCircleElement offcut = matchedPairSeries.getOffcut();
-                        
-                        if(offcut != null)
-                            finalOffcuts.Add(offcut);
+                    }
+                    else if (isNearerMiss(missKind, missAmount, nearestKind, nearestAmount))
+                    {
+                        nearest = piece;
+                        nearestKind = missKind;
+                        nearestAmount = missAmount;
+                        nearestReason = reason;
                     }
                 }
-                catch
-                {                 
+
+                if (best == null)
+                {
+                    matchedpairs.Add(noMatch(required,
+                        explainFailure(required, nearest, nearestReason, nearestKind, settings)));
+                    continue;
                 }
 
+                //-----------------------------------------------------------------------
+                // Form the pair
+                //-----------------------------------------------------------------------
+                carboCirclePair pair = new carboCirclePair(required, best);
 
-            }
+                pair.matchClass = carboCircleMatchRules.classify(best, bestRank);
+                pair.match_Score = best.Wy > 0 ? 100.0 * required.Wy / best.Wy : 0;
+                pair.used_netLength = required.length;
 
-            //At the end go through all the offcuts, 
-            foreach (carboCircleElement req_el in requiredBeamList)
-            {
-                //a matched existing element needs to be skipped
-                if (req_el.matchGUID != "")
-                    continue;
+                double volumePerMetre = best.netLength > 0 ? best.netVolume / best.netLength : 0;
+                pair.used_netVolume = volumePerMetre * required.length;
 
-                carboCirclePair matchedPairSeries = new carboCirclePair();
+                //-----------------------------------------------------------------------
+                // Cut it, and put what is left back in the pool
+                //-----------------------------------------------------------------------
+                string sourceKey = string.IsNullOrEmpty(best.sourceGUID) ? best.GUID : best.sourceGUID;
+                int cutNumber = nextCutNumber(cutCounts, sourceKey);
 
-                try
+                carboCircleElement offcut = pair.getOffcut(cutNumber, cutAllowanceMetres(best, settings));
+
+                if (offcut != null)
                 {
-                    matchedPairSeries = getBestMatchingPair(req_el, offcuts, carboCircleProject.settings);
-                    //create offcut from pair:
-                    if (matchedPairSeries != null)
+                    pair.offcut_netLength = offcut.netLength;
+
+                    if (offcut.netLength * 1000 >= settings.minOffcutLength)
                     {
-                        req_el.matchGUID = matchedPairSeries.mined_Element.GUID;
-
-                        //reove from the list as it cannot be considered twice:
-                        for (int i = 0; i < offcuts.Count; i++)
-                        {
-                            carboCircleElement mined_el = offcuts[i];
-                            if (mined_el.GUID == matchedPairSeries.mined_Element.GUID)
-                                offcuts.RemoveAt(i);
-                            break;
-                        }
-
-                        matchedpairs.Add(matchedPairSeries);
-                        carboCircleElement offcut = matchedPairSeries.getOffcut();
-
-                        if (offcut != null)
-                            offcuts.Add(offcut);
+                        //Straight back into the same pool. Appended, so it is considered by
+                        //every later requirement without disturbing the pieces already scanned.
+                        pool.Add(offcut);
+                    }
+                    else
+                    {
+                        leftOvers.Add(withNote(offcut, "offcut too short to be worth reusing"));
                     }
                 }
-                catch
-                { }
+
+                pair.description = describe(pair, required, best, bestRank, settings);
+
+                //Claim the piece, and record the claim on both sides.
+                best.matchGUID = required.GUID;
+                required.matchGUID = sourceKey;
+
+                carboCircleElement minedOriginal;
+
+                if (minedByGuid.TryGetValue(sourceKey, out minedOriginal) && minedOriginal != null)
+                    minedOriginal.matchGUID = required.GUID;
+
+                matchedpairs.Add(pair);
             }
 
-            //Collect not matched elements
-            foreach (carboCircleElement offcut in finalOffcuts)
+            //---------------------------------------------------------------------------
+            // What nobody wanted
+            //---------------------------------------------------------------------------
+            foreach (carboCircleElement piece in pool)
             {
-                //a matched existing element needs to be skipped
-                if (offcut.matchGUID != "")
-                    continue;
-
-                carboCircleElement offCutCopy = new carboCircleElement();
-
-                try
-                {
-                    offCutCopy = offcut.Copy();
-                    leftOverList.Add(offCutCopy);
-                }
-                catch
-                { 
-                }
+                if (string.IsNullOrEmpty(piece.matchGUID))
+                    leftOvers.Add(piece.Copy());
             }
-
-            foreach (carboCircleElement leftOverBeam in existingBeamList)
-            {
-                //a matched existing element needs to be skipped
-                if (leftOverBeam.matchGUID != "")
-                    continue;
-
-                carboCircleElement leftOverCopy = new carboCircleElement();
-
-                try
-                {
-                    leftOverCopy = leftOverBeam.Copy();
-                    leftOverList.Add(leftOverCopy);
-                }
-                catch
-                {
-                }
-            }
-
-            leftOvers = leftOverList;
 
             return matchedpairs;
         }
 
+        //--------------------------------------------------------------------------------
+        // Selection
+        //--------------------------------------------------------------------------------
+
         /// <summary>
-        /// A clever matching script to be improved that finds a match of a beam within a list, returns null if no match is found 
+        /// Whether this candidate beats the best so far, on a lexicographic key.
+        ///
+        /// The order of the tests IS the policy:
+        ///  1. section rank   - an exact section beats any substitute, always. This is why a
+        ///                      100% match cannot be outvoted by a tighter-fitting substitute,
+        ///                      which is exactly what the old numeric score allowed.
+        ///  2. offcuts first  - use up the remnants before cutting into whole members, so whole
+        ///                      stock stays whole for the requirements that need the length.
+        ///  3. least over-provision - the tightest structural fit, so a heavy section is not
+        ///                      spent on a light requirement.
+        ///  4. least waste    - the shortest piece that still does the job.
+        ///  5. GUID           - so the answer is the same every run.
         /// </summary>
-        /// <param name="req_el"></param>
-        /// <param name="existingBeamList"></param>
-        /// <param name="settings"></param>
-        /// <returns>returns best matching beam within a list, null oif no suitable match is found</returns>
-        private static carboCirclePair getBestMatchingPair(carboCircleElement req_el, List<carboCircleElement> existingBeamList, carboCircleSettings settings)
+        private static bool isBetterChoice(int rank, carboCircleElement piece, double over, double waste,
+                                           int bestRank, carboCircleElement best, double bestOver, double bestWaste)
         {
-            carboCirclePair matchedPairSeries = new carboCirclePair();
-            double BestScore = 0;
+            if (rank != bestRank)
+                return rank < bestRank;
 
-            foreach (carboCircleElement ccE_mined in existingBeamList)
-            {
-                //if an proposed beam was matched, continue.
-                if (ccE_mined.matchGUID != "")
-                    continue;
-                //find a match
-                try
-                {
-                    string description = "";
+            if (piece.isOffcut != best.isOffcut)
+                return piece.isOffcut;
 
-                    double pairScore = getScore(req_el, ccE_mined, settings,out description);
-                    if (pairScore > 0)
-                    {
-                        if (pairScore > BestScore)
-                        {
-                            //new Best Pair:
-                            matchedPairSeries = new carboCirclePair(req_el.Copy(), ccE_mined.Copy(), pairScore,description);
-                            BestScore = pairScore;
-                        }
-                    }
-                }
-                catch
-                { }
-            }
+            if (!nearlyEqual(over, bestOver))
+                return over < bestOver;
 
-            if (BestScore == 0)
-                return null;
-            else
-                return matchedPairSeries;
+            if (!nearlyEqual(waste, bestWaste))
+                return waste < bestWaste;
+
+            return string.CompareOrdinal(piece.GUID, best.GUID) < 0;
         }
 
-        private static double getScore(carboCircleElement req_el, carboCircleElement mined_el, carboCircleSettings settings, out string description)
+        private static bool nearlyEqual(double a, double b)
         {
-            //material classes are: "Wood" or "Steel"
-
-            double score = 0;
-            double d_value = settings.depthRange; //mm
-            double str_factor = settings.strengthRange / 100; //mm
-
-            //If the mined beam isnt long wnough skip any other form of matching;
-            double l_mined = mined_el.netLength;
-            double l_required = req_el.length;
-
-            double offcutlength = l_mined - l_required;
-            double lengthFactor = 1;
-            description = "";
-
-            //Check if class is equal, otherwise no match
-            if(mined_el.materialClass != req_el.materialClass)
-            {
-                description = "No Match.";
-                return 0;
-            }
-
-            //the material class ie the same, check if beam is long enough.
-            if (offcutlength < 0)
-            {
-                description = "No Match.";
-                return 0;
-            }
-            else
-            {
-                //Percentage of beam used: 100% usage would return a factor 1 here:
-                //The smaller the offcut the larger the factor = smaller correction of the total score.
-                lengthFactor = l_required / l_mined;
-            }
-
-            //factors considered:
-            //type name:
-            if (req_el.standardName == mined_el.standardName)
-            {
-                score = 500; //This section size matched exactly the required one: 100 points
-                description = "Full Match.";
-
-            }
-            else
-            {
-                //cutoff values:
-                double d_max = req_el.standardDepth + d_value;
-                double d_mined = mined_el.standardDepth;
-                double d_required = req_el.standardDepth;
-
-                double str_Iy_max = req_el.Iy + (req_el.Iy * str_factor);
-                double str_Wy_max = req_el.Wy + (req_el.Wy * str_factor);
-                double str_Iz_max = req_el.Iz + (req_el.Iz * str_factor);
-                double str_Wz_max = req_el.Wz + (req_el.Wz * str_factor);
-
-                double d_score = 0;
-                double Iy_score = 0;
-                double Wy_score = 0;
-                double Iz_score = 0;
-                double Wz_score = 0;
-
-                //0 would mean too big
-                if (d_mined > d_required && d_mined <= d_max)
-                {
-                    d_score = calcFactoredScore(d_max, d_required, d_mined);
-                }
-
-                //strength:
-                if (mined_el.Iy > req_el.Iy && mined_el.Iy <= str_Iy_max)
-                {
-                    Iy_score = calcFactoredScore(str_Iy_max, req_el.Iy, mined_el.Iy);
-                }
-
-                if (mined_el.Wy > req_el.Wy && mined_el.Wy <= str_Wy_max)
-                {
-                    Wy_score = calcFactoredScore(str_Wy_max, req_el.Wy, mined_el.Wy);
-                }
-
-                if (mined_el.Iz > req_el.Iz && mined_el.Iz <= str_Iz_max)
-                {
-                    Iz_score = calcFactoredScore(str_Iz_max, req_el.Iz, mined_el.Iz);
-                }
-                if (mined_el.Wz > req_el.Wz && mined_el.Wz <= str_Wz_max)
-                {
-                    Wz_score = calcFactoredScore(str_Wz_max, req_el.Wz, mined_el.Wz);
-                }
-
-                //All Values need to pass, not only one.
-                if(d_score <= 0 || Iy_score <= 0 || Wy_score <= 0 || Iz_score <= 0 || Wz_score <= 0)
-                    score = 0;
-                else
-                {
-                    score = d_score + Iy_score + Wy_score + Iz_score + Wz_score; //Max 500
-                    description = "Partial match.";
-
-                }
-            }
-
-            if (score > 0)
-            {
-                description += " Offcut length: " + offcutlength + " mm";
-            }
-
-            //returns value if within bounds, if out of bounds returns 0;
-            return score * lengthFactor;
-
+            return Math.Abs(a - b) <= 1e-9 * (1 + Math.Abs(b));
         }
 
-        private static double calcFactoredScore(double value_max, double value_required, double value_mined)
+        /// <summary>
+        /// Whether this refusal is more worth reporting than the one held. Ordered by how
+        /// actionable it is: being told a section was 3% too weak is useful, being told the
+        /// material was different is not.
+        /// </summary>
+        private static bool isNearerMiss(int kind, double amount, int heldKind, double heldAmount)
         {
-            double result = 0;
-            
-            //get scale:
-            double v_delta = value_max - value_required;
-            double v_scale = v_delta / 100;
+            if (kind == carboCircleMatchRules.MissNone)
+                return false;
 
-            double value_minedDelta = value_mined - value_required;
+            if (heldKind == carboCircleMatchRules.MissNone)
+                return true;
 
-            result = 100 - (value_minedDelta * v_scale);
+            if (kind != heldKind)
+                return kind < heldKind;
 
-            return result;
+            //Within one kind, the nearest one. Comparing only the kind kept whichever candidate
+            //happened to be scanned first, and then called it "closest in stock" - which was
+            //simply untrue, and the number offered as the threshold to change was the wrong
+            //number.
+            return Math.Abs(amount) < Math.Abs(heldAmount);
+        }
+
+        //--------------------------------------------------------------------------------
+        // Words
+        //--------------------------------------------------------------------------------
+
+        /// <summary>
+        /// One sentence per pair, always the same grammar: what kind of match, which section,
+        /// how much of the piece was used, and anything the engineer should be wary of.
+        /// </summary>
+        private static string describe(carboCirclePair pair, carboCircleElement required,
+                                       carboCircleElement stock, int rank, carboCircleSettings settings)
+        {
+            StringBuilder text = new StringBuilder();
+
+            switch (pair.matchClass)
+            {
+                case carboCircleMatchRules.ClassExactSection:
+                    text.Append("Exact section. " + stock.standardName + ", whole member. ");
+                    break;
+
+                case carboCircleMatchRules.ClassFromOffcut:
+                    text.Append("From an offcut. " + stock.standardName);
+                    text.Append(rank == 0 ? " (exact section)" : " (substitute)");
+                    text.Append(", cut from " + carboCircleMatchRules.m(stock.netLength) +
+                                " left over from " + sourceLabel(stock) + ". ");
+                    break;
+
+                case carboCircleMatchRules.ClassAdequateCrossFamily:
+                    text.Append("Adequate substitute, different shape family. ");
+                    text.Append(stock.standardName + " for " + required.standardName + ": ");
+                    text.Append(compare(required, stock) + ". ");
+                    break;
+
+                default:
+                    text.Append("Adequate substitute, same family. ");
+                    text.Append(stock.standardName + " for " + required.standardName + ": ");
+                    text.Append(compare(required, stock) + ". ");
+                    break;
+            }
+
+            text.Append(carboCircleMatchRules.m(pair.used_netLength) + " used of " +
+                        carboCircleMatchRules.m(stock.netLength) + " usable");
+
+            if (pair.offcut_netLength > 0)
+            {
+                text.Append(", " + carboCircleMatchRules.m(pair.offcut_netLength) + " offcut");
+                text.Append(pair.offcut_netLength * 1000 >= settings.minOffcutLength
+                    ? " returned to stock." : " too short to reuse.");
+            }
+            else
+            {
+                text.Append(", no offcut.");
+            }
+
+            //Caveats. These are the things the tool genuinely does not know, said out loud.
+            //
+            //Every gate in carboCircleMatchRules is about bending and stiffness, because that is
+            //all the catalogue supports. Anything else a substitution has to satisfy - grade,
+            //shear, axial load, section classification, the connections at each end - is
+            //invisible here, and a tool that stays quiet about that is claiming more than it
+            //checked.
+            if (required.sectionConfidence == carboCircleMatchRules.ConfidenceAssumed ||
+                stock.sectionConfidence == carboCircleMatchRules.ConfidenceAssumed)
+                text.Append(" Section identified by name similarity, not confirmed.");
+
+            //Recorded when a gate could not run, rather than left to look like a gate that
+            //passed. A required value of zero means the comparison was skipped, which is not
+            //the same as the substitute being adequate on that axis.
+            if (required.Wz <= 0)
+                text.Append(" Minor-axis capacity not compared - the requirement has none recorded.");
+
+            if (required.Iy <= 0 || required.Iz <= 0)
+                text.Append(" Stiffness not fully compared - the requirement has none recorded.");
+
+            if (pair.matchClass == carboCircleMatchRules.ClassAdequateCrossFamily)
+                text.Append(" Different shape family - every connection on this member needs re-detailing.");
+
+            if (rank == 0)
+                text.Append(" " + carboCircleMatchRules.exactSectionCaveat());
+            else
+                text.Append(" " + carboCircleMatchRules.substitutionCaveat());
+
+            return text.ToString();
+        }
+
+        /// <summary>How the substitute differs from what was asked for, in the terms that decided it.</summary>
+        private static string compare(carboCircleElement required, carboCircleElement stock)
+        {
+            List<string> parts = new List<string>();
+
+            double over = carboCircleMatchRules.overProvision(required, stock);
+            parts.Add(over >= 0
+                ? carboCircleMatchRules.pc(over) + " stronger"
+                : carboCircleMatchRules.pc(-over) + " weaker");
+
+            double deeper = stock.standardDepth - required.standardDepth;
+
+            if (Math.Abs(deeper) >= 0.5)
+                parts.Add(carboCircleMatchRules.mm(Math.Abs(deeper)) + (deeper > 0 ? " deeper" : " shallower"));
+
+            double wider = stock.standardWidth - required.standardWidth;
+
+            if (Math.Abs(wider) >= 0.5)
+                parts.Add(carboCircleMatchRules.mm(Math.Abs(wider)) + (wider > 0 ? " wider" : " narrower"));
+
+            return string.Join(", ", parts.ToArray());
+        }
+
+        /// <summary>
+        /// Why nothing could serve this requirement, named in terms of the closest thing that
+        /// was actually available and what the user could change.
+        /// </summary>
+        private static string explainFailure(carboCircleElement required, carboCircleElement nearest,
+                                             string nearestReason, int nearestKind, carboCircleSettings settings)
+        {
+            if (nearest == null)
+                return "No match. Nothing of the same material with a recognised section was left in stock.";
+
+            string text = "No match. Closest in stock: " + nearest.standardName + " (" +
+                          carboCircleMatchRules.m(nearest.netLength) + " usable) - " + nearestReason + ".";
+
+            //The remedy, but only the one that actually applies. Naming a setting that would
+            //not have changed the answer is worse than saying nothing: the user changes it,
+            //nothing happens, and they stop believing the rest of the sentence. So each remedy
+            //is tied to the reason that was actually binding.
+            switch (nearestKind)
+            {
+                case carboCircleMatchRules.MissOverProvision:
+                    text += " A strength tolerance above " +
+                            carboCircleMatchRules.pc(carboCircleMatchRules.overProvision(required, nearest)) +
+                            " would let it be considered.";
+                    break;
+
+                //"would let it be considered", not "would allow it". isAdmissible returns at
+                //the first gate that fails, so the gates after this one were never evaluated -
+                //widening this tolerance may simply reveal the next objection.
+                case carboCircleMatchRules.MissTooDeep:
+                    text += " A depth allowance above " +
+                            carboCircleMatchRules.mm(nearest.standardDepth - required.standardDepth) +
+                            " would let it be considered.";
+                    break;
+
+                case carboCircleMatchRules.MissTooWide:
+                    text += " A width allowance above " +
+                            carboCircleMatchRules.mm(nearest.standardWidth - required.standardWidth) +
+                            " would let it be considered.";
+                    break;
+
+                case carboCircleMatchRules.MissFamily:
+                    //Only worth offering when the setting is the thing standing in the way, and
+                    //only for the one substitution the tool is willing to make.
+                    if (!settings.allowCrossFamilySubstitution &&
+                        carboCircleMatchRules.sectionFamily(required) == "I" &&
+                        carboCircleMatchRules.sectionFamily(nearest) == "H")
+                        text += " Allowing column sections to serve beams in the settings would let this " +
+                                "be considered - the connections would all need re-detailing.";
+                    break;
+
+                case carboCircleMatchRules.MissCapacity:
+                    text += " Nothing can be done about this one: a substitute has to be at least as " +
+                            "strong and as stiff as the member it replaces.";
+                    break;
+            }
+
+            return text;
+        }
+
+        /// <summary>
+        /// What to call the member an offcut came out of. The PARENT, not the offcut: "left over
+        /// from M12" rather than "left over from M12_OC1", which named the remnant as its own
+        /// source.
+        /// </summary>
+        private static string sourceLabel(carboCircleElement stock)
+        {
+            string label = stock.humanId;
+
+            if (!string.IsNullOrEmpty(label))
+            {
+                int cut = label.IndexOf("_OC", StringComparison.Ordinal);
+
+                if (cut > 0)
+                    label = label.Substring(0, cut);
+
+                return label;
+            }
+
+            return string.IsNullOrEmpty(stock.sourceGUID) ? stock.GUID : stock.sourceGUID;
+        }
+
+        private static string rawName(carboCircleElement el)
+        {
+            return string.IsNullOrWhiteSpace(el.name) ? "" : " (\"" + el.name + "\")";
+        }
+
+        //--------------------------------------------------------------------------------
+        // Small helpers
+        //--------------------------------------------------------------------------------
+
+        private static void resetMatchMarks(List<carboCircleElement> list)
+        {
+            if (list == null)
+                return;
+
+            foreach (carboCircleElement el in list)
+            {
+                if (el != null)
+                    el.matchGUID = "";
+            }
+        }
+
+        /// <summary>
+        /// A requirement nothing could serve, as a real pair so the required schedule is
+        /// complete in one grid. mined_Element is left default, so mined_id is 0 and every
+        /// downstream consumer can tell there is no member behind it.
+        /// </summary>
+        private static carboCirclePair noMatch(carboCircleElement required, string reason)
+        {
+            carboCirclePair pair = new carboCirclePair();
+
+            pair.required_element = required.Copy();
+            pair.matchClass = carboCircleMatchRules.ClassNoMatch;
+            pair.match_Score = 0;
+            pair.description = reason;
+
+            //There is no member behind this row, and the id has to say so. A fresh
+            //carboCircleElement carries id = -999 from its constructor, which the grid printed
+            //as if it were a Revit element id and which Select Pair then asked Revit to
+            //highlight. Zero is the value every consumer already treats as "nothing here".
+            pair.mined_Element.id = 0;
+            pair.mined_Element.name = "";
+            pair.mined_Element.standardName = "";
+
+            return pair;
+        }
+
+        /// <summary>Tags a leftover with why it is a leftover, for the grid to show.</summary>
+        private static carboCircleElement withNote(carboCircleElement el, string note)
+        {
+            carboCircleElement copy = el.Copy();
+
+            copy.matchGUID = "";
+
+            //Into grade, which is the one string field on the leftovers grid that carries
+            //nothing useful for a mined member - it holds the Revit material class, which the
+            //Material column already says. The note used to go into name, and only when name
+            //was empty, which it never is for anything the importer produced: the reason was
+            //written and then discarded on every single element.
+            copy.grade = note;
+
+            return copy;
+        }
+
+        /// <summary>
+        /// Length lost preparing the new end a cut creates, in metres. One end, not two: the
+        /// two-end allowance has already been taken off the whole member's usable length by
+        /// correctMinedValues, and charging it again per cut would compound.
+        /// </summary>
+        private static double cutAllowanceMetres(carboCircleElement stock, carboCircleSettings settings)
+        {
+            double mm = stock.materialClass == "Wood"
+                ? settings.timberCutoffLength
+                : settings.cutoffbeamLength;
+
+            return mm > 0 ? mm / 1000.0 : 0;
+        }
+
+        private static int nextCutNumber(Dictionary<string, int> counts, string sourceKey)
+        {
+            int n;
+
+            counts.TryGetValue(sourceKey, out n);
+            n = n + 1;
+            counts[sourceKey] = n;
+
+            return n;
         }
 
 

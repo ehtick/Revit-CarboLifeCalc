@@ -63,6 +63,9 @@ namespace CarboCircle.UI
 
             settings.depthRange = readDouble(txt_SteelBeamDepthTolerance, settings.depthRange); //in mm
             settings.strengthRange = readDouble(txt_BeamStrengthTolerance, settings.strengthRange); //in percent
+            settings.widthRange = readDouble(txt_WidthTolerance, settings.widthRange); //in mm
+            settings.minOffcutLength = readDouble(txt_MinOffcutLength, settings.minOffcutLength); //in mm
+            settings.allowCrossFamilySubstitution = chk_AllowCrossFamily.IsChecked == true;
 
             settings.Save();
 
@@ -116,6 +119,9 @@ namespace CarboCircle.UI
 
                 txt_SteelBeamDepthTolerance.Text = settings.depthRange.ToString(); //in mm
                 txt_BeamStrengthTolerance.Text = settings.strengthRange.ToString(); //in percent
+                txt_WidthTolerance.Text = settings.widthRange.ToString(); //in mm
+                txt_MinOffcutLength.Text = settings.minOffcutLength.ToString(); //in mm
+                chk_AllowCrossFamily.IsChecked = settings.allowCrossFamilySubstitution;
             }
         }
 

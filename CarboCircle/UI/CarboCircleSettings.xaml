@@ -199,6 +199,8 @@
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
 
                                 <Label   Grid.Row="0" Grid.Column="0" Style="{StaticResource RowCaption}"
@@ -214,9 +216,35 @@
                                          Content="Permitted extra _strength"/>
                                 <TextBox Grid.Row="1" Grid.Column="1" x:Name="txt_BeamStrengthTolerance"
                                          Style="{StaticResource RowValue}"
-                                         ToolTip="A mined member may be this much stronger than the one it replaces, measured on Iy, Iz, Wely and Welz."/>
+                                         ToolTip="A substitute may carry this much more bending capacity than the member it replaces. Consecutive serial sizes differ by 10-18%, so below about 15% almost nothing but the exact section qualifies."/>
                                 <Label   Grid.Row="1" Grid.Column="2" Style="{StaticResource RowUnit}" Content="%"/>
+
+                                <Label   Grid.Row="2" Grid.Column="0" Style="{StaticResource RowCaption}"
+                                         Target="{Binding ElementName=txt_WidthTolerance}"
+                                         Content="Permitted extra section _width"/>
+                                <TextBox Grid.Row="2" Grid.Column="1" x:Name="txt_WidthTolerance"
+                                         Style="{StaticResource RowValue}"
+                                         ToolTip="A substitute may be this much wider than the member it replaces. Without it a 254 mm wide column section would be offered for a 165 mm wide beam purely because it is shallow enough, and it would not fit the detail it has to sit in."/>
+                                <Label   Grid.Row="2" Grid.Column="2" Style="{StaticResource RowUnit}" Content="mm"/>
+
+                                <Label   Grid.Row="3" Grid.Column="0" Style="{StaticResource RowCaption}"
+                                         Target="{Binding ElementName=txt_MinOffcutLength}"
+                                         Content="Shortest _offcut worth keeping"/>
+                                <TextBox Grid.Row="3" Grid.Column="1" x:Name="txt_MinOffcutLength"
+                                         Style="{StaticResource RowValue}"
+                                         ToolTip="A remnant shorter than this is reported as waste rather than offered again - below it the handling and the second saw cut cost more than the steel is worth."/>
+                                <Label   Grid.Row="3" Grid.Column="2" Style="{StaticResource RowUnit}" Content="mm"/>
                             </Grid>
+
+                            <CheckBox x:Name="chk_AllowCrossFamily"
+                                      Style="{StaticResource SettingsCheckBox}"
+                                      Margin="0,10,0,0"
+                                      Content="Allow column sections to serve beams"
+                                      ToolTip="Permits a UC, UKC or HE section to substitute for a UB, UKB or IPE requirement. At equal bending capacity a column section is shallower and much stiffer about its minor axis, so it makes a sound beam - but the shape changes, so every connection on the member has to be re-detailed. The reverse substitution is never offered."/>
+
+                            <TextBlock Style="{StaticResource GroupNote}"
+                                       Margin="0,6,0,0"
+                                       Text="Angles and channels are only ever offered as an exact section. The published properties for them describe the wrong axes, so there is no sound basis here for substituting one size for another."/>
                         </StackPanel>
                     </GroupBox>
                 </StackPanel>

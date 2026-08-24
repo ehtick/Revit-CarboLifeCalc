@@ -57,14 +57,20 @@ namespace CarboCircle
 
         public event EventHandler<List<carboCircleElement>> DataReady;
 
-        public event EventHandler<string> ImageReady;
-        public string imagePath;
+        /// <summary>
+        /// Where the pending report should be written.
+        ///
+        /// Part of the request, like the extraction method. It used to live on the window,
+        /// which is exactly what broke the report - see CreateReport below.
+        /// </summary>
+        private string requestedReportPath = string.Empty;
+
         /// <summary>
         /// 0 = No Action
         /// 1 = ImportElementsfromActiveView.
         /// 2 = ColourView
         /// 3 = SelectPair
-        /// 4 = GetactiveViewImage
+        /// 4 = CreateReport
         /// </summary>
         /// <param name="v"></param>
         public void SetSwitch(int v)
@@ -81,6 +87,15 @@ namespace CarboCircle
             requestedExtractionMethod = string.IsNullOrEmpty(method)
                 ? carboCircleExtractionMethod.AllVisibleInView
                 : method;
+        }
+
+        /// <summary>
+        /// Sets the file the next report should be written to. Call this alongside
+        /// <see cref="SetSwitch"/> before raising the external event.
+        /// </summary>
+        internal void SetReportPath(string path)
+        {
+            requestedReportPath = path == null ? string.Empty : path;
         }
         public void Execute(UIApplication uiapp)
         {
@@ -112,9 +127,7 @@ namespace CarboCircle
                     }
                     else if (commandSwitch == 4)
                     {
-                        ExportImage(uiapp);
-                        ImageReady?.Invoke(this, imagePath);
-
+                        CreateReport(uiapp);
                     }
                     else
                     {
@@ -132,30 +145,121 @@ namespace CarboCircle
 
         }
 
-        private void ExportImage(UIApplication uiapp)
+        /// <summary>
+        /// Writes the report for the file this request named, and opens it.
+        ///
+        /// This used to be split across two objects: the handler exported an image and
+        /// raised an ImageReady event, and the window wrote the report in response. The
+        /// path lived on the window - and because the window hides rather than closes and
+        /// never unsubscribes, every window ever opened answered that event, stale ones
+        /// included, whose path was still empty. That is where "Empty path name is not
+        /// legal" came from. Nothing about writing a report needs the window, so it happens
+        /// here, against the path and the project that arrived with the request.
+        /// </summary>
+        private void CreateReport(UIApplication uiapp)
         {
-            //get temp Filepath
-            string MyAssemblyPath = System.Reflection.Assembly.GetExecutingAssembly().Location;
-            string MyAssemblyDir = Path.GetDirectoryName(MyAssemblyPath);
-            string tempImgpath = MyAssemblyDir + "\\tempCircleImg.jpg";
+            string imageFailure;
+            string imageFile = exportActiveViewImage(out imageFailure);
+            string imageAsString = "";
+
+            if (imageFile != null)
+                imageAsString = carboCircleReportUtils.getImageAsString(imageFile);
+
+            string message;
+            bool ok = carboCircleReportUtils.ExportReport(activeProject, imageAsString, requestedReportPath, out message);
+
+            //A report without its picture is still a report, so a failed image is a note
+            //rather than a reason to abandon the whole thing.
+            if (ok && !string.IsNullOrEmpty(imageFailure))
+                message += Environment.NewLine + Environment.NewLine + imageFailure;
+
+            if (ok)
+            {
+                string openFailure;
+
+                if (!carboCircleReportUtils.OpenReport(requestedReportPath, out openFailure))
+                    message += Environment.NewLine + Environment.NewLine + openFailure;
+            }
+
+            discardTempImages();
+
             try
             {
-                if (File.Exists(tempImgpath))
-                { File.Delete(tempImgpath); }
+                TaskDialog dialog = new TaskDialog("CarboCircle report");
+                dialog.MainInstruction = ok ? "Report created." : "The report was not created.";
+                dialog.MainContent = message;
+                dialog.Show();
+            }
+            catch
+            {
+                //Never let the report about a failure become a second failure.
+            }
+        }
+
+        /// <summary>
+        /// Exports the active view and hands back the image file Revit actually wrote, or
+        /// null with a reason.
+        ///
+        /// Two things worth knowing. Revit appends its own extension to match the chosen
+        /// file type, so the old code - which asked for PNG while naming the file
+        /// tempCircleImg.jpg - could leave the image somewhere the caller was not looking.
+        /// The export therefore goes into a folder of its own, and whatever turns up in
+        /// there is the answer. And that folder is under the user temp directory rather
+        /// than beside the dll, which is read-only wherever the add-in is installed for
+        /// all users.
+        /// </summary>
+        private string exportActiveViewImage(out string failure)
+        {
+            failure = "";
+
+            try
+            {
+                string folder = tempImageFolder();
+
+                discardTempImages();
+                Directory.CreateDirectory(folder);
 
                 ImageExportOptions options = new ImageExportOptions();
-                options.FilePath = tempImgpath;
+                options.FilePath = Path.Combine(folder, "view");
                 options.HLRandWFViewsFileType = ImageFileType.PNG;
                 options.PixelSize = 1024;
                 options.FitDirection = FitDirectionType.Horizontal;
                 options.ExportRange = ExportRange.CurrentView;
 
                 doc.ExportImage(options);
-                imagePath = tempImgpath;
+
+                string[] produced = Directory.GetFiles(folder);
+
+                if (produced.Length > 0)
+                    return produced[0];
+
+                failure = "Revit did not produce an image of the active view, so the report has no picture.";
+            }
+            catch (Exception ex)
+            {
+                failure = "The active view could not be exported as an image, so the report has no picture: " + ex.Message;
+            }
+
+            return null;
+        }
+
+        private static string tempImageFolder()
+        {
+            return Path.Combine(Path.GetTempPath(), "CarboCircleReport");
+        }
+
+        private static void discardTempImages()
+        {
+            try
+            {
+                string folder = tempImageFolder();
+
+                if (Directory.Exists(folder))
+                    Directory.Delete(folder, true);
             }
             catch
             {
-                imagePath = null;
+                //A leftover temp image is not worth reporting.
             }
         }
 

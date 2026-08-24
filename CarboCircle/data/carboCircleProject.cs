@@ -43,6 +43,8 @@ namespace CarboCircle.data
             requiredVolumes = new List<carboCircleElement>();
             carboCircleMatchedPairs = new List<carboCirclePair>();
             volumeOpportunities = new List<carboCircleElement>();
+            //Was left null until the first successful run, so every consumer had to guard it.
+            leftOverData = new List<carboCircleElement>();
 
             settings = new carboCircleSettings();
         }
@@ -133,11 +135,16 @@ namespace CarboCircle.data
 
             }
 
-            double factor = 1 - (volumeLoss / 100);
+            //Masonry has its own loss, and it was being ignored. MasonryLoss is edited in the
+            //settings dialog and written to the settings file, and nothing anywhere read it -
+            //every volume, brick or concrete, was reduced by VolumeLoss.
+            double masonryLoss = settings.MasonryLoss > 0 ? settings.MasonryLoss : 0;
 
             foreach (carboCircleElement cCE in minedVolumes)
             {
-                cCE.netVolume = cCE.volume * factor;
+                double loss = cCE.materialClass == "Masonry" ? masonryLoss : volumeLoss;
+
+                cCE.netVolume = cCE.volume * (1 - (loss / 100));
             }
         }
 
@@ -257,18 +264,14 @@ namespace CarboCircle.data
             correctMinedValues();
             correctRequiredValues();
 
-            List<carboCircleElement> leftOvers = new List<carboCircleElement>();
+            List<carboCircleElement> leftOvers;
 
-            List<carboCirclePair> pairs = carboCircleMatchCore.findOpportunities(this, out leftOvers);
-
-            if (pairs != null)
-            {
-                carboCircleMatchedPairs = pairs;
-                if(leftOvers != null)
-                {
-                    leftOverData = leftOvers;
-                }
-            }
+            //Assigned unconditionally. findOpportunities never returns null now, and the old
+            //guarded assignment left the previous run's pairs on screen next to this run's
+            //volumes whenever a match pass came back empty - results from two different states
+            //of the model, side by side, with nothing to say so.
+            carboCircleMatchedPairs = carboCircleMatchCore.findOpportunities(this, out leftOvers);
+            leftOverData = leftOvers;
 
             //Asses Volumes
 

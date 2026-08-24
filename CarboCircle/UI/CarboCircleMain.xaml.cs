@@ -39,7 +39,6 @@ namespace CarboCircle.UI
         private static List<carboCircleElement> collectedElements;
 
         private int dataSwitch = 0;
-        string reportPath = "";
 
         public CarboCircleMain(ExternalEvent exEvent, CarboCircleHandler handler)
         {
@@ -57,7 +56,6 @@ namespace CarboCircle.UI
 
                 // Subscribe to the DataReady event
                 m_Handler.DataReady += OnDataReady;
-                m_Handler.ImageReady += OnImageReady;
             }
             catch (Exception ex)
             {
@@ -66,28 +64,6 @@ namespace CarboCircle.UI
 
         }
 
-
-        private void OnImageReady(object sender, string tempImgpath)
-        {
-            //Create a report after ImageCreation:
-            //check if image was created:
-            //get temp Filepath
-            //string MyAssemblyPath = System.Reflection.Assembly.GetExecutingAssembly().Location;
-            //string MyAssemblyDir = System.IO.Path.GetDirectoryName(MyAssemblyPath);
-            //string tempImgpath = MyAssemblyDir + "\\tempCircleImg.jpg";
-            if (File.Exists(tempImgpath))
-            {
-                string imgstring = carboCircleReportUtils.getImageAsString(tempImgpath);
-                carboCircleReportUtils.ExportReport(activeProject, imgstring, reportPath);
-                //if all ok delete the temp image:
-                if (File.Exists(tempImgpath))
-                    File.Delete(tempImgpath);
-            }
-            else
-            {
-                System.Windows.MessageBox.Show("Error");
-            }
-        }
 
         private void OnDataReady(object sender, List<carboCircleElement> e)
         {
@@ -192,6 +168,18 @@ namespace CarboCircle.UI
                 try
                 {
                     carboCircleMatchElement selectedMatch = liv_MatchedFraming.SelectedItem as carboCircleMatchElement;
+
+                    //A no-match row has no member behind it, so there is nothing in the model to
+                    //go and look at. Asking Revit to select it would send it an id that resolves
+                    //to nothing.
+                    if (selectedMatch != null && selectedMatch.matchRank == carboCircleMatchRules.ClassNoMatch)
+                    {
+                        System.Windows.MessageBox.Show(
+                            "This requirement has no match yet, so there is no existing member to show." +
+                            Environment.NewLine + Environment.NewLine + selectedMatch.description,
+                            "Nothing to select", MessageBoxButton.OK, MessageBoxImage.Information);
+                        return;
+                    }
 
                     if (selectedMatch != null)
                     {
@@ -337,21 +325,88 @@ namespace CarboCircle.UI
             storeSettings();
 
             // Main script:
-            if (activeProject.minedData.Count > 0 && activeProject.requiredData.Count > 0)
+            //
+            //Volumes need only a mine: crushing demolished concrete for aggregate does not
+            //depend on there being a proposed frame. Requiring both lists meant a
+            //concrete-only or masonry-only mine produced nothing at all, said nothing, and
+            //left the previous run on screen.
+            if (activeProject.minedData.Count > 0 || activeProject.minedVolumes.Count > 0)
             {
                 activeProject.FindOpportunities();
 
                 liv_MatchedFraming.ItemsSource = null;
                 liv_MatchedFraming.ItemsSource = activeProject.getCarboMatchesListSimplified();
+                applyMatchGrouping(liv_MatchedFraming);
 
                 liv_MatchedVolumes.ItemsSource = null;
                 liv_MatchedVolumes.ItemsSource = activeProject.getCarboVolumeOpportunities();
 
                 liv_LeftOverData.ItemsSource = null;
                 liv_LeftOverData.ItemsSource = activeProject.getLeftOverData();
+                applyLeftOverGrouping(liv_LeftOverData);
             }
+        }
 
-            // TODO: colours
+        /// <summary>
+        /// Groups the matched-framing grid by match category, in priority order.
+        ///
+        /// Applied here rather than in the markup because the list is rebuilt from scratch on
+        /// every run: the getter hands back a fresh List each call, so its default view is new
+        /// each time and anything configured on the previous one is gone. It also has to run
+        /// AFTER the real ItemsSource assignment - there is no view to configure while the
+        /// source is still null.
+        ///
+        /// Sorted on matchRank rather than on the label, so the groups come out in the order
+        /// that matters - exact matches first, the work still to do last - instead of
+        /// alphabetically.
+        /// </summary>
+        private static void applyMatchGrouping(System.Windows.Controls.ListView list)
+        {
+            System.ComponentModel.ICollectionView view = CollectionViewSource.GetDefaultView(list.ItemsSource);
+
+            if (view == null)
+                return;
+
+            using (view.DeferRefresh())
+            {
+                //Cleared before adding. If the source list is ever cached rather than rebuilt,
+                //adding without clearing would nest the same grouping inside itself on the
+                //second run.
+                view.GroupDescriptions.Clear();
+                view.SortDescriptions.Clear();
+
+                view.SortDescriptions.Add(new System.ComponentModel.SortDescription(
+                    "matchRank", System.ComponentModel.ListSortDirection.Ascending));
+                view.SortDescriptions.Add(new System.ComponentModel.SortDescription(
+                    "required_length", System.ComponentModel.ListSortDirection.Descending));
+
+                view.GroupDescriptions.Add(new PropertyGroupDescription("matchCategory"));
+            }
+        }
+
+        /// <summary>
+        /// Groups the leftovers grid into remnants and whole members nobody wanted - two
+        /// different kinds of leftover that call for different action.
+        /// </summary>
+        private static void applyLeftOverGrouping(System.Windows.Controls.ListView list)
+        {
+            System.ComponentModel.ICollectionView view = CollectionViewSource.GetDefaultView(list.ItemsSource);
+
+            if (view == null)
+                return;
+
+            using (view.DeferRefresh())
+            {
+                view.GroupDescriptions.Clear();
+                view.SortDescriptions.Clear();
+
+                view.SortDescriptions.Add(new System.ComponentModel.SortDescription(
+                    "sourceLabel", System.ComponentModel.ListSortDirection.Ascending));
+                view.SortDescriptions.Add(new System.ComponentModel.SortDescription(
+                    "netLength", System.ComponentModel.ListSortDirection.Descending));
+
+                view.GroupDescriptions.Add(new PropertyGroupDescription("sourceLabel"));
+            }
         }
 
         private void btn_MineSettings_Click(object sender, RoutedEventArgs e)
@@ -665,10 +720,13 @@ namespace CarboCircle.UI
                 if (m_ExEvent != null)
                 {
                     dataSwitch = -1;
-                    reportPath = Path;
 
                     m_Handler.SetSwitch(4);
                     m_Handler.SetSettings(activeProject);
+                    //The path travels with the request. It used to be stored on this window
+                    //and read back when the handler raised ImageReady - which every window
+                    //ever opened answered, stale ones included, whose path was still empty.
+                    m_Handler.SetReportPath(Path);
 
                     m_ExEvent.Raise();
                 }

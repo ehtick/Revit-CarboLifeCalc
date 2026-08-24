@@ -7,6 +7,8 @@ using CarboLifeAPI.Data;
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Globalization;
+using System.Text;
 using System.IO;
 using System.Linq;
 using System.Windows.Controls;
@@ -460,6 +462,20 @@ namespace CarboCircle
             //has already reported why.
             if (steelBeams.Count > 0 && steelSectionDataBase != null && steelSectionDataBase.Count > 0 && appSettings != null)
             {
+                //The catalogue indexed by canonical designation, built once. This is what lets
+                //"UB254x146x43" find "254x146x43 UB" as the SAME section rather than as a
+                //five-edit guess - see canonicalSectionKey. Without it nothing in a real model
+                //was ever reported as a 100% match.
+                Dictionary<string, carboCircleElement> byCanonicalName =
+                    new Dictionary<string, carboCircleElement>(StringComparer.Ordinal);
+
+                foreach (carboCircleElement dataBaseBeam in steelSectionDataBase)
+                {
+                    string catalogueKey = canonicalSectionKey(dataBaseBeam.standardName);
+
+                    if (catalogueKey.Length > 0 && !byCanonicalName.ContainsKey(catalogueKey))
+                        byCanonicalName.Add(catalogueKey, dataBaseBeam);
+                }
 
                 foreach (carboCircleElement ccE in steelBeams)
                 {
@@ -479,20 +495,35 @@ namespace CarboCircle
 
                     try
                     {
-                        //find the closest steel beam section
+                        //Identified, or merely the nearest thing by spelling? The difference is
+                        //what separates a 100% match from a substitution the user has to check.
+                        carboCircleElement closestMatchingBeam = null;
+                        bool identified = false;
 
-                        foreach (carboCircleElement dataBaseBeam in steelSectionDataBase)
+                        string modelKey = canonicalSectionKey(matchingBeam.name);
+
+                        if (modelKey.Length > 0 && byCanonicalName.TryGetValue(modelKey, out closestMatchingBeam))
                         {
-                            int levDist = Utils.CalcLevenshteinDistance(matchingBeam.name, dataBaseBeam.standardName);
-                            if (levDist < lowestLevDist)
-                            {
-                                lowestLevDist = levDist;
-                                indexFound = i;
-                            }
-                            i++;
+                            identified = true;
                         }
+                        else
+                        {
+                            //Nothing recognisable in the name, so fall back to the nearest one by
+                            //spelling. It still gets whatever section properties that row has -
+                            //they may well be right - but it is recorded as an assumption.
+                            foreach (carboCircleElement dataBaseBeam in steelSectionDataBase)
+                            {
+                                int levDist = Utils.CalcLevenshteinDistance(matchingBeam.name, dataBaseBeam.standardName);
+                                if (levDist < lowestLevDist)
+                                {
+                                    lowestLevDist = levDist;
+                                    indexFound = i;
+                                }
+                                i++;
+                            }
 
-                        carboCircleElement closestMatchingBeam = steelSectionDataBase[indexFound];
+                            closestMatchingBeam = steelSectionDataBase[indexFound];
+                        }
                         matchingBeam.standardName = closestMatchingBeam.name;
                         matchingBeam.standardDepth = closestMatchingBeam.standardDepth;
                         matchingBeam.standardWidth = closestMatchingBeam.standardWidth;
@@ -502,6 +533,9 @@ namespace CarboCircle
                         matchingBeam.Wy = closestMatchingBeam.Wy;
                         matchingBeam.Iz = closestMatchingBeam.Iz;
                         matchingBeam.Wz = closestMatchingBeam.Wz;
+                        matchingBeam.massPerMetre = closestMatchingBeam.massPerMetre;
+
+                        matchingBeam.sectionConfidence = judgeSectionMapping(ccE, matchingBeam, identified, log);
 
                         result.Add(matchingBeam);
                     }
@@ -573,6 +607,15 @@ namespace CarboCircle
 
                     ccE.materialName = dr[5].ToString();
 
+                    //Mass per metre. Blank on the 18 IPE rows, which is why every use of it
+                    //has to tolerate zero.
+                    ccE.massPerMetre = Utils.ConvertMeToDouble(dr[7].ToString());
+
+                    //A catalogue row IS its section, by definition.
+                    ccE.sectionConfidence = 0;
+
+                    repairSecondMomentUnits(ccE);
+
                     result.Add(ccE);
                 }
                 catch (Exception)
@@ -588,6 +631,247 @@ namespace CarboCircle
                          " could not be read and were ignored.");
 
             return result;
+        }
+
+
+        /// <summary>
+        /// Puts one catalogue row's second moments into the same unit as every other row.
+        ///
+        /// For a well-formed row the elastic modulus and the second moment agree through the
+        /// section depth:
+        ///
+        ///     Wely [cm3]  ~=  Iy [cm4] * 20 / h [mm]
+        ///
+        /// THE SHIPPED TABLE NO LONGER NEEDS THIS. It used to fail that identity by a factor of
+        /// exactly 100 on 18 rows - the whole IPE family - which carried Iy and Iz in 10^6 mm4
+        /// while everything else used cm4: "IPE300" was listed as Iy 83.56 where the figure is
+        /// 8356 cm4. Those 18 rows have been corrected in circledb\CarboCircleMasterSections.csv
+        /// itself, so this method now finds nothing to do on the shipped file and is verified to
+        /// rescale zero rows.
+        ///
+        /// It stays because the file is not the only source. carboCircleSettings.dataBasePath
+        /// lets a user point the tool at their own section table, and the same mistake in that
+        /// one would be just as invisible: an under-scaled section reads a hundred times weaker
+        /// than it is, so it could never be offered as an adequate substitute, and a required
+        /// member that mapped onto one would make almost anything look stronger than it.
+        ///
+        /// The test is derived rather than hardcoded to a family name, so it catches the fault
+        /// wherever it appears and leaves a correctly written row alone. Wely and Welz are in
+        /// cm3 on every row of every table seen so far, which is what makes them the reliable
+        /// side of the identity.
+        ///
+        /// Note there is no equivalent guard on iy and iz - the radius of gyration was wrong in
+        /// mm on 24 HE rows and has also been corrected in the file. Nothing reads those columns
+        /// today. Anyone adding a buckling or axial check should read this and add one.
+        /// </summary>
+        /// <summary>
+        /// The section a designation names, reduced to a form that survives how it was written.
+        ///
+        /// This is what lets an exact match be recognised at all. A Revit type is called
+        /// "UB254x146x43"; the catalogue calls the same section "254x146x43 UB". Compared as
+        /// strings those are five edits apart, so the nearest-name search found the right row
+        /// but recorded it as a guess - and an exact section that is only "assumed" can never be
+        /// reported as a 100% match. Before this, no real project produced one, because nobody
+        /// writes Revit type names in the catalogue's word order.
+        ///
+        /// The key is the series token plus the dimension numbers in the order they appear:
+        ///
+        ///     "UB254x146x43"    -> "UB|254x146x43"
+        ///     "254x146x43 UB"   -> "UB|254x146x43"
+        ///     "254x146x43 UKB"  -> "UB|254x146x43"     (UKB is the same section as UB)
+        ///     "HE 400 B"        -> "HEB|400"
+        ///     "HEB400"          -> "HEB|400"
+        ///     "168.3x5 CHS"     -> "CHS|168.3x5"
+        ///
+        /// The numbers carry the identity and are compared exactly, so 254x146x43 can never
+        /// collide with 254x146x37. The series token stops a UC being taken for a UB of the same
+        /// serial size. Anything with no recognisable series or no numbers returns "", which
+        /// means "do not claim this is an exact anything".
+        /// </summary>
+        internal static string canonicalSectionKey(string designation)
+        {
+            if (string.IsNullOrWhiteSpace(designation))
+                return "";
+
+            string text = designation.ToUpperInvariant();
+
+            StringBuilder letters = new StringBuilder();
+            List<string> numbers = new List<string>();
+            StringBuilder current = new StringBuilder();
+            bool inNumber = false;
+
+            //One pass, splitting into letter runs and number runs. A number may carry one
+            //decimal point, because CHS sizes do: "168.3x5 CHS".
+            for (int i = 0; i < text.Length; i++)
+            {
+                char c = text[i];
+                bool isDigit = c >= '0' && c <= '9';
+                bool isPoint = c == '.' && inNumber && i + 1 < text.Length && text[i + 1] >= '0' && text[i + 1] <= '9';
+
+                if (isDigit || isPoint)
+                {
+                    if (!inNumber)
+                    {
+                        inNumber = true;
+                        current.Length = 0;
+                    }
+
+                    current.Append(c);
+                }
+                else
+                {
+                    if (inNumber)
+                    {
+                        numbers.Add(trimNumber(current.ToString()));
+                        inNumber = false;
+                    }
+
+                    if (c >= 'A' && c <= 'Z')
+                        letters.Append(c);
+                }
+            }
+
+            if (inNumber)
+                numbers.Add(trimNumber(current.ToString()));
+
+            if (numbers.Count == 0)
+                return "";
+
+            string series = seriesToken(letters.ToString());
+
+            if (series.Length == 0)
+                return "";
+
+            return series + "|" + string.Join("x", numbers.ToArray());
+        }
+
+        /// <summary>
+        /// Drops a trailing ".0" so "40" and "40.0" are the same dimension.
+        /// </summary>
+        private static string trimNumber(string number)
+        {
+            double value;
+
+            if (!double.TryParse(number, NumberStyles.Float, CultureInfo.InvariantCulture, out value))
+                return number;
+
+            return value.ToString("0.####", CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>
+        /// The section series a blob of letters names, or "" if none of them is recognised.
+        ///
+        /// The list is every token the shipped catalogue actually uses, longest first so "UKB"
+        /// is tested before "UB" and "HEB" before "HE". The three UK/EU spellings that mean the
+        /// same section are folded together: a UKB and a UB of one serial size ARE one section,
+        /// and refusing to call them equal would lose exactly the matches this is here to find.
+        ///
+        /// Matching by substring rather than by equality, because a Revit family name carries
+        /// more than the designation - "UB-Universal Beam" and "UKB Universal Beam" both reduce
+        /// to a blob with the series buried in it.
+        /// </summary>
+        private static string seriesToken(string letters)
+        {
+            if (string.IsNullOrEmpty(letters))
+                return "";
+
+            //Longest first. Order matters: HEB must be found before HE, UKB before UB.
+            string[] tokens = new string[]
+            {
+                "UKPFC", "HEA", "HEB", "HEM", "UKB", "UKC", "UKA", "PFC", "CHS", "RHS", "SHS", "IPE", "UB", "UC", "EA"
+            };
+
+            foreach (string token in tokens)
+            {
+                if (letters.IndexOf(token, StringComparison.Ordinal) >= 0)
+                {
+                    //The spellings that mean one section.
+                    if (token == "UKB") return "UB";
+                    if (token == "UKC") return "UC";
+                    if (token == "UKA") return "EA";
+                    if (token == "UKPFC") return "PFC";
+
+                    return token;
+                }
+            }
+
+            return "";
+        }
+
+        /// <summary>
+        /// Decides how far the name mapping can be trusted, and says so rather than pretending.
+        ///
+        /// The mapping is a nearest-name search with no floor, so it always returns something.
+        /// A Revit type called "SHS 40x40x3" can land on "HE 400 A" simply because the letters
+        /// are close, and the old code recorded that with the same confidence as a name that
+        /// matched outright. Once the result carries a match class, that silence becomes a lie:
+        /// a wrong mapping would be presented as a 100% match.
+        ///
+        /// So the mapping is checked against physics rather than spelling. The modelled cross
+        /// section - volume divided by length - times the density of steel must come out near
+        /// the catalogue mass per metre. The two are derived from completely independent data
+        /// (Revit geometry on one side, the published section table on the other), which is what
+        /// makes the check worth anything. It catches the catastrophic mismatches while letting
+        /// through the harmless ones, such as a UKB row standing in for a UB name.
+        /// </summary>
+        /// <returns>0 exact, 1 assumed, 2 unmapped.</returns>
+        private static int judgeSectionMapping(carboCircleElement modelled, carboCircleElement mapped, bool identified, carboCircleImportLog log)
+        {
+            //No name to map means no section, whatever the search returned.
+            if (string.IsNullOrWhiteSpace(modelled.name) || string.IsNullOrWhiteSpace(mapped.standardName))
+            {
+                log.Skip("no section name to map", modelled.id);
+                return 2;
+            }
+
+            //Only a designation the catalogue recognises earns Exact. A nearest-by-spelling
+            //hit is at best an assumption, however close it came.
+            int confidence = identified ? 0 : 1;
+
+            //The mass check. Skipped rather than failed when either side is unknown: the
+            //catalogue leaves mass blank on 18 rows, and a column with no length cannot give a
+            //cross section. Refusing on missing data would reject sound sections.
+            if (mapped.massPerMetre > 0 && modelled.length > 0 && modelled.volume > 0)
+            {
+                double modelledMassPerMetre = (modelled.volume / modelled.length) * steelDensity;
+                double ratio = modelledMassPerMetre / mapped.massPerMetre;
+
+                //Wide on purpose. A modelled beam carries fillets, plates and a coat of paint
+                //that the tabulated mass does not, and Revit families are approximations. The
+                //band is here to catch a section mapped to something of a wholly different
+                //size, not to audit the geometry.
+                if (ratio < 0.6 || ratio > 1.8)
+                {
+                    log.Skip("section name \"" + modelled.name + "\" mapped to \"" + mapped.standardName +
+                             "\", which weighs " + mapped.massPerMetre.ToString("N1") + " kg/m against a modelled " +
+                             modelledMassPerMetre.ToString("N1") + " kg/m - too far apart to trust, so it will not " +
+                             "be offered as an exact match", modelled.id);
+                    return 2;
+                }
+            }
+
+            return confidence;
+        }
+
+        /// <summary>Density of structural steel, kg/m3. Used only by the mapping mass check.</summary>
+        private const double steelDensity = 7850;
+
+        private static void repairSecondMomentUnits(carboCircleElement section)
+        {
+            //Needs all three to say anything. A row missing one is left exactly as found.
+            if (section.standardDepth <= 0 || section.Wy <= 0 || section.Iy <= 0)
+                return;
+
+            double impliedWy = section.Iy * 20 / section.standardDepth;
+            double ratio = impliedWy / section.Wy;
+
+            //Consistent rows land near 1. The broken ones land near 0.01. Anything else is a
+            //row this rule does not understand, and guessing would be worse than leaving it.
+            if (ratio > 0.005 && ratio < 0.02)
+            {
+                section.Iy = section.Iy * 100;
+                section.Iz = section.Iz * 100;
+            }
         }
 
         private static bool IsFileLocked(string file)
@@ -758,19 +1042,21 @@ namespace CarboCircle
 
                 if (isSectionElement)
                 {
+                    //Falls through on the VALUE, not on whether the parameter exists. A family
+                    //that declares "Cut Length" and leaves it empty used to take the first
+                    //branch, come back zero, and never reach the built-in length at all - and a
+                    //member with no length cannot be matched to anything.
                     Parameter lengthParam = inst.LookupParameter("Cut Length");
+
                     if (lengthParam != null)
-                    {
                         length = (lengthParam.AsDouble() * 304.8) / 1000; //to m1
-                    }
-                    else
+
+                    if (length <= 0)
                     {
-                        BuiltInParameter paraIndex = BuiltInParameter.INSTANCE_LENGTH_PARAM;
-                        Parameter coLength = inst.get_Parameter(paraIndex);
+                        Parameter coLength = inst.get_Parameter(BuiltInParameter.INSTANCE_LENGTH_PARAM);
+
                         if (coLength != null)
-                        {
                             length = (coLength.AsDouble() * 304.8) / 1000; //to m1
-                        }
                     }
                 }
 
@@ -804,7 +1090,13 @@ namespace CarboCircle
                         typeWy = (width * (Math.Pow(depth, 2))) / 6;
                         typeWz = (depth * (Math.Pow(width, 2))) / 6;
 
-                        typeName = width.ToString() + "x" + depth.ToString();
+                        //Rounded to whole millimetres, invariant culture. This string is the
+                        //section identity for timber - two members are the same section when
+                        //their keys are equal - so it has to be stable. Raw double formatting
+                        //made "100x300" and "100.00000000001x300" different sections, and on a
+                        //comma-decimal machine it produced "100,5x300" which then broke the csv.
+                        typeName = width.ToString("F0", CultureInfo.InvariantCulture) + "x" +
+                                   depth.ToString("F0", CultureInfo.InvariantCulture);
 
                     }
                 }
@@ -1020,11 +1312,15 @@ namespace CarboCircle
 
             foreach (carboCircleMatchElement element in matchedData)
             {
-                ElementId matchedMinedElement = element.mined_id.ToElementId();
-                ElementId matchedRequiredElement = element.required_id.ToElementId();
+                //A no-match row carries no mined member, so there is nothing on the mined side
+                //to colour. Its id is zero and resolving that would hand Revit a garbage
+                //ElementId; the required member is still real and still worth colouring as
+                //"needs new material".
+                if (element.mined_id > 0)
+                    reusedMinedElementIds.Add(element.mined_id.ToElementId());
 
-                reusedRequiredElementIds.Add(matchedRequiredElement);
-                reusedMinedElementIds.Add(matchedMinedElement);
+                if (element.required_id > 0 && element.matchRank != carboCircleMatchRules.ClassNoMatch)
+                    reusedRequiredElementIds.Add(element.required_id.ToElementId());
             }
 
             //collect leftovers
