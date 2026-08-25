@@ -35,10 +35,18 @@ namespace CarboCircle.UI
         private CarboCircleHandler m_Handler;
         private ExternalEvent m_ExEvent;
 
-        private static carboCircleProject activeProject;
-        private static List<carboCircleElement> collectedElements;
+        /// <summary>
+        /// This window's project.
+        ///
+        /// An instance field, not a static one. It was static, and shared by every window the
+        /// session ever created - so a stale window answering the same import event wrote its
+        /// own interpretation of that import into the one project everybody was looking at.
+        /// Per-window state means a second window, however it came about, cannot corrupt the
+        /// first.
+        /// </summary>
+        private carboCircleProject activeProject;
 
-        private int dataSwitch = 0;
+        private List<carboCircleElement> collectedElements;
 
         public CarboCircleMain(ExternalEvent exEvent, CarboCircleHandler handler)
         {
@@ -56,6 +64,18 @@ namespace CarboCircle.UI
 
                 // Subscribe to the DataReady event
                 m_Handler.DataReady += OnDataReady;
+
+                //And let go of it when this window really goes away. The handler outlives every
+                //window - it is created once per session - so a window that closed while still
+                //subscribed would keep being handed imports it can no longer show, and would
+                //keep itself alive through the handler's reference for as long as Revit runs.
+                this.Closed += (s, args) =>
+                {
+                    if (m_Handler != null)
+                        m_Handler.DataReady -= OnDataReady;
+
+                    FormStatusChecker.isWindowOpen = false;
+                };
             }
             catch (Exception ex)
             {
@@ -65,13 +85,16 @@ namespace CarboCircle.UI
         }
 
 
-        private void OnDataReady(object sender, List<carboCircleElement> e)
+        private void OnDataReady(object sender, carboCircleImportResult result)
         {
-            if (e == null) return;
+            //A failed import leaves the previous results on screen rather than wiping them; the
+            //handler has already said what went wrong.
+            if (result == null || result.Elements == null)
+                return;
 
-            if (dataSwitch == 0)
+            if (!result.ForProject)
             {
-                collectedElements = e;
+                collectedElements = result.Elements;
                 activeProject.ParseMinedData(collectedElements);
 
                 liv_MinedData.ItemsSource = null;
@@ -82,9 +105,9 @@ namespace CarboCircle.UI
 
                 setMineOk();
             }
-            else if (dataSwitch == 1)
+            else
             {
-                collectedElements = e;
+                collectedElements = result.Elements;
                 activeProject.ParseRequiredData(collectedElements);
 
                 liv_requiredMaterialList.ItemsSource = null;
@@ -168,10 +191,10 @@ namespace CarboCircle.UI
 
             if (m_ExEvent != null)
             {
-                dataSwitch = 0;
                 m_Handler.SetSwitch(1);
                 m_Handler.SetSettings(activeProject);
                 m_Handler.SetExtractionMethod(method);
+                m_Handler.SetImportSide(false);
 
                 m_ExEvent.Raise();
             }
@@ -188,10 +211,10 @@ namespace CarboCircle.UI
 
             if (m_ExEvent != null)
             {
-                dataSwitch = 1;
                 m_Handler.SetSwitch(1);
                 m_Handler.SetSettings(activeProject);
                 m_Handler.SetExtractionMethod(method);
+                m_Handler.SetImportSide(true);
 
                 m_ExEvent.Raise();
             }
@@ -202,7 +225,6 @@ namespace CarboCircle.UI
 
             if (m_ExEvent != null)
             {
-                dataSwitch = 2;
                 m_Handler.SetSwitch(2);
                 m_Handler.SetSettings(activeProject);
 
@@ -234,7 +256,6 @@ namespace CarboCircle.UI
                     {
                         if (m_ExEvent != null)
                         {
-                            dataSwitch = 3;
                             m_Handler.SetSwitch(3);
                             m_Handler.SetSettings(selectedMatch);
 
@@ -781,9 +802,13 @@ namespace CarboCircle.UI
         {
             storeSettings();
             activeProject.settings.Save();
-            FormStatusChecker.isWindowOpen = false;
 
-            this.Hide(); // instead of Close()
+            //Hidden, not closed, so a mine and a project survive putting the window away and
+            //bringing it back. isWindowOpen is deliberately NOT cleared here: it used to be,
+            //and the application read that as "there is no window" and built a second one on
+            //the next click - leaving the first alive, still subscribed to every import, and
+            //still writing into the project the user was looking at.
+            this.Hide();
         }
 
         private void btn_Report_Click(object sender, RoutedEventArgs e)
@@ -836,8 +861,6 @@ namespace CarboCircle.UI
             {
                 if (m_ExEvent != null)
                 {
-                    dataSwitch = -1;
-
                     m_Handler.SetSwitch(4);
                     m_Handler.SetSettings(activeProject);
                     //The path travels with the request. It used to be stored on this window
@@ -926,9 +949,11 @@ namespace CarboCircle.UI
         {
             storeSettings();
             activeProject.settings.Save();
-            FormStatusChecker.isWindowOpen = false;
 
-            this.Hide(); // instead of Close()
+            //The title bar X is a real close, and is allowed to be one - the Closed handler set
+            //up in the constructor unsubscribes from the handler and clears the open flag. The
+            //Hide() that used to be here ran a moment before the window closed anyway and only
+            //made the sequence harder to follow.
         }
     }
 }

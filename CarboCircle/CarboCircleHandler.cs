@@ -55,7 +55,21 @@ namespace CarboCircle
             //_revitEvent = ExternalEvent.Create(this);
         }
 
-        public event EventHandler<List<carboCircleElement>> DataReady;
+        /// <summary>
+        /// Raised when an import has finished. The result carries the elements AND which side
+        /// asked for them, so a subscriber never has to remember which request it made.
+        /// </summary>
+        //Internal, like the result it carries: nothing outside this assembly subscribes, and
+        //the payload type is internal too.
+        internal event EventHandler<carboCircleImportResult> DataReady;
+
+        /// <summary>
+        /// Which side of the project the pending import is for: false = mine, true = proposed.
+        ///
+        /// Part of the request, like the extraction method and the report path. See
+        /// carboCircleImportResult for why remembering this on the window was a bug.
+        /// </summary>
+        private bool requestedProjectSide;
 
         /// <summary>
         /// Where the pending report should be written.
@@ -97,6 +111,15 @@ namespace CarboCircle
         {
             requestedReportPath = path == null ? string.Empty : path;
         }
+
+        /// <summary>
+        /// Sets which side of the project the next import is for. Call this alongside
+        /// <see cref="SetSwitch"/> before raising the external event.
+        /// </summary>
+        internal void SetImportSide(bool forProject)
+        {
+            requestedProjectSide = forProject;
+        }
         public void Execute(UIApplication uiapp)
         {
             try
@@ -115,7 +138,7 @@ namespace CarboCircle
                     {
                         ImportElementsActiveView(uiapp);
                         //Push event in the dialogwindow to update the listbox:
-                        DataReady?.Invoke(this, collectedElements);
+                        DataReady?.Invoke(this, new carboCircleImportResult(collectedElements, requestedProjectSide));
                     }
                     else if (commandSwitch == 2)
                     {

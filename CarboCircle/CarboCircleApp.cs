@@ -89,25 +89,32 @@ namespace CarboCircle
                 exEvent = ExternalEvent.Create(handler);
             }
 
-            if (m_CarboCircleWindow == null || !FormStatusChecker.isWindowOpen)
+            //One window per session, and the test for it is whether one exists - not whether
+            //it happens to be visible.
+            //
+            //This used to build a new window whenever isWindowOpen was false, and the Close
+            //button cleared that flag while only HIDING the window. So the second time a user
+            //opened CarboCircle they got a second window, with the first still alive behind it
+            //and still subscribed to every import. Both then wrote into the same project, each
+            //applying its own idea of which side the import was for, and a mine could land in
+            //the required bucket with nothing to show it had happened.
+            if (m_CarboCircleWindow == null)
             {
                 m_CarboCircleWindow = new CarboCircleMain(exEvent, handler);
 
-                // *** THIS IS THE FIX ***
+                //Only a real close clears the reference, so the next click builds a fresh
+                //window. Hiding does not, and must not.
                 m_CarboCircleWindow.Closed += (s, e) =>
                 {
                     FormStatusChecker.isWindowOpen = false;
                     m_CarboCircleWindow = null;
                 };
+            }
 
-                FormStatusChecker.isWindowOpen = true;
-                m_CarboCircleWindow.Show();
-            }
-            else
-            {
-                m_CarboCircleWindow.Activate();
-                m_CarboCircleWindow.Show();
-            }
+            FormStatusChecker.isWindowOpen = true;
+
+            m_CarboCircleWindow.Show();
+            m_CarboCircleWindow.Activate();
         }
     }
 }
