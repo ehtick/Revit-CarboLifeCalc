@@ -99,12 +99,61 @@ namespace CarboCircle.UI
 
         private void setRequiredOk()
         {
-            btn_GotoProject.Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(255, 125, 218, 88));
+            setStepState(btn_GotoProject, "Nothing loaded yet", "required",
+                count(activeProject.requiredData), count(activeProject.requiredVolumes));
         }
 
         private void setMineOk()
         {
-            btn_GotoMine.Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(255, 125, 218, 88));
+            setStepState(btn_GotoMine, "Nothing recovered yet", "recovered",
+                count(activeProject.minedData), count(activeProject.minedVolumes));
+        }
+
+        /// <summary>
+        /// Puts one of the two set-up step buttons into the state its side is actually in, and
+        /// writes the totals onto it.
+        ///
+        /// Red while the step is outstanding, green once elements have arrived. These buttons
+        /// are the only thing on the set-up tab that reports whether a side has data, and an
+        /// empty side is the usual reason Find opportunities comes back with nothing - so the
+        /// state is worth the strongest signal the window has.
+        ///
+        /// Zero counts as outstanding. An import that ran and returned nothing is the case most
+        /// worth flagging, and going green on an empty list would say the opposite.
+        ///
+        /// Style is swapped rather than Background, so the border and the text colour move with
+        /// the fill: on a solid button, changing one of the three and not the others reads as a
+        /// rendering fault rather than as a state.
+        /// </summary>
+        private void setStepState(System.Windows.Controls.Button button, string waitingText,
+            string noun, int members, int volumes)
+        {
+            if (button == null)
+                return;
+
+            if (members + volumes <= 0)
+            {
+                button.Style = (Style)FindResource("CircleStepButton");
+                button.Content = waitingText;
+                return;
+            }
+
+            //Members and volumes are two different things - one is cut to length, the other is
+            //taken by volume - and the tab below shows them in two separate grids, so a single
+            //summed figure would not match anything the user can count.
+            string text = "Review " + members.ToString("N0") + " " + noun + " element"
+                + (members == 1 ? "" : "s");
+
+            if (volumes > 0)
+                text += " and " + volumes.ToString("N0") + " volume" + (volumes == 1 ? "" : "s");
+
+            button.Style = (Style)FindResource("CircleStepButtonReady");
+            button.Content = text;
+        }
+
+        private static int count<T>(List<T> list)
+        {
+            return list == null ? 0 : list.Count;
         }
 
         private void btn_ImportmaterialsRevit_Click(object sender, RoutedEventArgs e)
@@ -267,6 +316,14 @@ namespace CarboCircle.UI
             txt_BeamStrengthTolerance.Text = activeProject.settings.strengthRange.ToString();
             txt_SteelBeamDepthTolerance.Text = activeProject.settings.depthRange.ToString();
 
+            txt_SteelCutoffLength.Text = activeProject.settings.cutoffbeamLength.ToString();
+            txt_TimberCutoffLength.Text = activeProject.settings.timberCutoffLength.ToString();
+
+            //Setting .Text above raises TextChanged, which refreshes these anyway. Called
+            //explicitly so the state does not depend on that: if either box already held the
+            //same string, WPF raises nothing and the notes would keep a previous verdict.
+            refreshCutoffWarnings();
+
             //load colours
             btn_ColourMinedNotReused.Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(255,
                 activeProject.settings.colour_NotReused.r, activeProject.settings.colour_NotReused.g, activeProject.settings.colour_NotReused.b));
@@ -279,6 +336,13 @@ namespace CarboCircle.UI
                 activeProject.settings.colour_FromReusedData.r, activeProject.settings.colour_FromReusedData.g, activeProject.settings.colour_FromReusedData.b));
             btn_ColourMassReusable.Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(255,
                 activeProject.settings.colour_ReusedMinedVolumes.r, activeProject.settings.colour_ReusedMinedVolumes.g, activeProject.settings.colour_ReusedMinedVolumes.b));
+
+            //Both step buttons read their own state rather than being left on whatever the
+            //markup happened to say. activeProject is static and outlives the window, so on a
+            //second open the two sides may well already hold data - the buttons come up green,
+            //with the totals, instead of claiming nothing has been read.
+            setMineOk();
+            setRequiredOk();
 
         }
 
@@ -437,10 +501,63 @@ namespace CarboCircle.UI
 
             if (!string.IsNullOrWhiteSpace(txt_SteelBeamDepthTolerance.Text))
                 activeProject.settings.depthRange = Utils.ConvertMeToDouble(txt_SteelBeamDepthTolerance.Text);
+
+            //Blank is left alone rather than read as zero. An empty box means the user cleared
+            //it on the way to typing something else, and taking that as "no allowance at all"
+            //would quietly hand every mined member its full length back.
+            if (!string.IsNullOrWhiteSpace(txt_SteelCutoffLength.Text))
+                activeProject.settings.cutoffbeamLength = Utils.ConvertMeToDouble(txt_SteelCutoffLength.Text);
+
+            if (!string.IsNullOrWhiteSpace(txt_TimberCutoffLength.Text))
+                activeProject.settings.timberCutoffLength = Utils.ConvertMeToDouble(txt_TimberCutoffLength.Text);
         }
 
         private void txt_ParseTextSettings_TextChanged(object sender, TextChangedEventArgs e)
         {
+            refreshCutoffWarnings();
+        }
+
+        /// <summary>
+        /// Shows or hides the note under each cut-off box as the value is typed.
+        ///
+        /// Advisory only - nothing is clamped or rejected. A shorter allowance is a legitimate
+        /// thing to model; it is precisely what makes the case for a specialist deconstruction
+        /// method, and the note is there so that assumption is stated rather than buried in a
+        /// number two tabs away from the results it changes.
+        /// </summary>
+        private void refreshCutoffWarnings()
+        {
+            setCutoffWarning(txt_SteelCutoffLength, wrn_SteelCutoff, txt_SteelCutoffWarning,
+                carboCircleSettings.SteelCutoffAdvisoryMin);
+
+            setCutoffWarning(txt_TimberCutoffLength, wrn_TimberCutoff, txt_TimberCutoffWarning,
+                carboCircleSettings.TimberCutoffAdvisoryMin);
+        }
+
+        private static void setCutoffWarning(System.Windows.Controls.TextBox box,
+            System.Windows.Controls.Border note, System.Windows.Controls.TextBlock text, double advisoryMin)
+        {
+            //Called from TextChanged, which can fire while the tree is still being built.
+            if (box == null || note == null || text == null)
+                return;
+
+            double value;
+
+            //Nothing to say about a box that is empty or half-typed. Only a value that parses
+            //and comes out low is a decision worth flagging - "1e" on the way to "1500" is not.
+            bool parsed = double.TryParse((box.Text ?? "").Replace(',', '.'),
+                NumberStyles.Any, CultureInfo.InvariantCulture, out value);
+
+            if (parsed && value < advisoryMin)
+            {
+                text.Text = carboCircleSettings.CutoffAdvisoryMessage
+                    + " (below " + advisoryMin.ToString("N0") + " mm).";
+                note.Visibility = System.Windows.Visibility.Visible;
+            }
+            else
+            {
+                note.Visibility = System.Windows.Visibility.Collapsed;
+            }
         }
 
         private void btn_ExportMinedToCSV(object sender, RoutedEventArgs e)

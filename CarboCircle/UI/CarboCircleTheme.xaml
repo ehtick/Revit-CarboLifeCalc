@@ -1,0 +1,1060 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+
+    <!-- ================================================================
+         CarboCircle theme.
+         Drop-in: no code changes, no third-party libraries.
+
+         App.xaml (or CarboCircleMain.xaml <Window.Resources>):
+             <ResourceDictionary.MergedDictionaries>
+                 <ResourceDictionary Source="/CarboCircle;component/UI/CarboCircleTheme.xaml"/>
+             </ResourceDictionary.MergedDictionaries>
+
+         Every style below is implicit (TargetType only), so existing
+         controls pick it up without renaming anything. Keyed styles at
+         the bottom are opt-in: Style="{StaticResource CirclePrimaryButton}".
+
+         PALETTE.
+
+         Accent is the house red, #B21616 - the same value as PrimaryAccentBrush in
+         MyStyles.xaml and the coral custom property in the HTML report, so this window, the
+         settings dialog and the exported report all read as one product. Everything red
+         below is a tint or a shade of it.
+
+         Green is deliberately NOT in the palette. It has exactly one job in this window -
+         a set-up step that has its data - so wherever it appears it means "done", not
+         "decoration". Those four values are kept apart, under Ok*, for that reason.
+         ================================================================ -->
+
+    <Color x:Key="AccentColor">#FFB21616</Color>
+    <SolidColorBrush x:Key="Accent"        Color="#FFB21616"/>
+    <SolidColorBrush x:Key="AccentDark"    Color="#FF911212"/>
+    <SolidColorBrush x:Key="AccentText"    Color="#FF8E1111"/>
+    <SolidColorBrush x:Key="AccentWash"    Color="#FFFFF0F2"/>
+    <SolidColorBrush x:Key="AccentWashHot" Color="#FFFFE2E7"/>
+    <SolidColorBrush x:Key="AccentEdge"    Color="#FFFFD0D6"/>
+
+    <!-- Progress, and nothing else. Same green as MatchExactEdge on the results grid, where
+         it already means "settled - stop thinking about it". -->
+    <SolidColorBrush x:Key="Ok"     Color="#FF2E7D32"/>
+    <SolidColorBrush x:Key="OkDark" Color="#FF1B5E20"/>
+    <SolidColorBrush x:Key="OkText" Color="#FF1B5E20"/>
+    <SolidColorBrush x:Key="OkWash" Color="#FFEDF7ED"/>
+
+    <!-- "Read this before you go on." Amber, and the same amber as MatchAdequateEdge, which
+         already carries that meaning on the results grid. Not the house red: red is the
+         chrome on every screen here, so a red note reads as furniture. -->
+    <SolidColorBrush x:Key="Warn"     Color="#FFB58900"/>
+    <SolidColorBrush x:Key="WarnDark" Color="#FF8A6800"/>
+    <SolidColorBrush x:Key="WarnWash" Color="#FFFBF4E0"/>
+
+    <SolidColorBrush x:Key="Ink"        Color="#FF1F2933"/>
+    <SolidColorBrush x:Key="InkMuted"   Color="#FF6B7681"/>
+    <SolidColorBrush x:Key="InkFaint"   Color="#FF8A929A"/>
+    <SolidColorBrush x:Key="Surface"    Color="#FFFFFFFF"/>
+    <SolidColorBrush x:Key="SurfaceAlt" Color="#FFFAFAFB"/>
+    <SolidColorBrush x:Key="Canvas"     Color="#FFF4F5F6"/>
+    <SolidColorBrush x:Key="HeaderFill" Color="#FFF7F8F9"/>
+    <SolidColorBrush x:Key="Line"       Color="#FFE2E5E8"/>
+    <SolidColorBrush x:Key="LineSoft"   Color="#FFEEF0F2"/>
+    <SolidColorBrush x:Key="Edge"       Color="#FFD3D8DC"/>
+    <SolidColorBrush x:Key="EdgeHot"    Color="#FFA9B1B8"/>
+    <SolidColorBrush x:Key="RowHover"   Color="#FFFBF4F5"/>
+    <SolidColorBrush x:Key="RowSelect"  Color="#FFFDE9EC"/>
+
+    <sys:Double x:Key="FontS">12</sys:Double>
+    <sys:Double x:Key="FontM">13</sys:Double>
+    <FontFamily x:Key="UIFont">Segoe UI</FontFamily>
+
+    <!-- ============================ WINDOW ============================ -->
+
+    <Style TargetType="{x:Type Window}">
+        <Setter Property="Background" Value="{StaticResource Canvas}"/>
+        <Setter Property="FontFamily" Value="{StaticResource UIFont}"/>
+        <Setter Property="FontSize"   Value="{StaticResource FontM}"/>
+        <Setter Property="Foreground" Value="{StaticResource Ink}"/>
+        <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+        <Setter Property="UseLayoutRounding" Value="True"/>
+    </Style>
+
+    <Style TargetType="{x:Type TextBlock}">
+        <Setter Property="Foreground" Value="{StaticResource Ink}"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="TextWrapping" Value="Wrap"/>
+    </Style>
+
+    <Style TargetType="{x:Type Label}">
+        <Setter Property="Foreground" Value="{StaticResource Ink}"/>
+        <Setter Property="Padding" Value="0,0,0,4"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+
+    <!-- Small uppercase caption above a field. -->
+    <Style x:Key="FieldLabel" TargetType="{x:Type TextBlock}">
+        <Setter Property="Foreground" Value="{StaticResource InkFaint}"/>
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Margin" Value="0,0,0,5"/>
+    </Style>
+
+    <Style x:Key="SectionTitle" TargetType="{x:Type TextBlock}">
+        <Setter Property="Foreground" Value="{StaticResource Ink}"/>
+        <Setter Property="FontSize" Value="15"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Margin" Value="0,0,0,2"/>
+    </Style>
+
+    <Style x:Key="HelpText" TargetType="{x:Type TextBlock}">
+        <Setter Property="Foreground" Value="{StaticResource InkMuted}"/>
+        <Setter Property="FontSize" Value="{StaticResource FontS}"/>
+        <Setter Property="Margin" Value="0,4,0,0"/>
+        <!-- Explicit, not inherited: a keyed style does not pick up the implicit TextBlock
+             style, so without this the caption under a fixed-width field is clipped. -->
+        <Setter Property="TextWrapping" Value="Wrap"/>
+        <Setter Property="VerticalAlignment" Value="Top"/>
+    </Style>
+
+    <!-- Inline note attached to the field above it. Collapsed until the value earns it, so
+         a window with nothing to say carries no amber at all. -->
+    <Style x:Key="WarnNote" TargetType="{x:Type Border}">
+        <Setter Property="Background" Value="{StaticResource WarnWash}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource Warn}"/>
+        <Setter Property="BorderThickness" Value="3,0,0,0"/>
+        <Setter Property="CornerRadius" Value="0,3,3,0"/>
+        <Setter Property="Padding" Value="8,5"/>
+        <Setter Property="Margin" Value="0,6,0,0"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+        <Setter Property="Visibility" Value="Collapsed"/>
+    </Style>
+
+    <Style x:Key="WarnText" TargetType="{x:Type TextBlock}">
+        <Setter Property="Foreground" Value="{StaticResource WarnDark}"/>
+        <Setter Property="FontSize" Value="{StaticResource FontS}"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="TextWrapping" Value="Wrap"/>
+        <Setter Property="VerticalAlignment" Value="Top"/>
+    </Style>
+
+    <!-- A white panel with a hairline border. Wrap groups of controls in
+         one of these instead of a GroupBox. -->
+    <Style x:Key="Card" TargetType="{x:Type Border}">
+        <Setter Property="Background" Value="{StaticResource Surface}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="6"/>
+        <Setter Property="Padding" Value="20"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+    </Style>
+
+    <Style TargetType="{x:Type GroupBox}">
+        <Setter Property="Foreground" Value="{StaticResource Ink}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
+        <Setter Property="Margin" Value="0,0,0,14"/>
+        <Setter Property="Padding" Value="16"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type GroupBox}">
+                    <Border Background="{StaticResource Surface}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="1" CornerRadius="6" SnapsToDevicePixels="True">
+                        <DockPanel>
+                            <Border DockPanel.Dock="Top" Padding="16,12"
+                                    BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1">
+                                <ContentPresenter ContentSource="Header"
+                                                  TextBlock.FontWeight="SemiBold"
+                                                  TextBlock.FontSize="{StaticResource FontM}"
+                                                  TextBlock.Foreground="{StaticResource Ink}"/>
+                            </Border>
+                            <ContentPresenter Margin="{TemplateBinding Padding}"/>
+                        </DockPanel>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ============================ BUTTONS =================================
+         Default button: quiet outline. The one action that matters on a
+         screen should carry CirclePrimaryButton.
+         ====================================================================== -->
+
+    <!--
+        Two button templates, and the difference matters.
+
+        OutlineButtonTemplate repaints Background on hover. That is right for a button whose
+        Background nobody else owns.
+
+        TintButtonTemplate never touches Background - it lays a translucent scrim over the top
+        instead. Any button whose colour is set from code-behind has to use this one, or the
+        first hover wipes the colour out: setMineOk() paints btn_GotoMine green to say the data
+        arrived, and a hover trigger writing HeaderFill into the same property would throw that
+        signal away for as long as the pointer sat on it.
+    -->
+    <ControlTemplate x:Key="OutlineButtonTemplate" TargetType="{x:Type Button}">
+        <Border x:Name="Bd"
+                Background="{TemplateBinding Background}"
+                BorderBrush="{TemplateBinding BorderBrush}"
+                BorderThickness="{TemplateBinding BorderThickness}"
+                CornerRadius="4" SnapsToDevicePixels="True">
+            <ContentPresenter Margin="{TemplateBinding Padding}"
+                              HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                              RecognizesAccessKey="True"/>
+        </Border>
+        <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource EdgeHot}"/>
+                <Setter TargetName="Bd" Property="Background"  Value="{StaticResource HeaderFill}"/>
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+                <Setter TargetName="Bd" Property="Background" Value="{StaticResource LineSoft}"/>
+            </Trigger>
+            <Trigger Property="IsKeyboardFocused" Value="True">
+                <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource AccentDark}"/>
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter TargetName="Bd" Property="Background" Value="{StaticResource HeaderFill}"/>
+                <Setter Property="Foreground" Value="{StaticResource InkFaint}"/>
+                <Setter Property="Cursor" Value="Arrow"/>
+            </Trigger>
+        </ControlTemplate.Triggers>
+    </ControlTemplate>
+
+    <ControlTemplate x:Key="TintButtonTemplate" TargetType="{x:Type Button}">
+        <Border x:Name="Bd"
+                Background="{TemplateBinding Background}"
+                BorderBrush="{TemplateBinding BorderBrush}"
+                BorderThickness="{TemplateBinding BorderThickness}"
+                CornerRadius="4" SnapsToDevicePixels="True">
+            <Grid>
+                <Border x:Name="Scrim" CornerRadius="3" Background="#FF000000" Opacity="0"/>
+                <ContentPresenter Margin="{TemplateBinding Padding}"
+                                  HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                  VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                  RecognizesAccessKey="True"/>
+            </Grid>
+        </Border>
+        <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Scrim" Property="Opacity" Value="0.07"/>
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+                <Setter TargetName="Scrim" Property="Opacity" Value="0.15"/>
+            </Trigger>
+            <Trigger Property="IsKeyboardFocused" Value="True">
+                <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource Ink}"/>
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter TargetName="Bd" Property="Background" Value="{StaticResource HeaderFill}"/>
+                <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource Edge}"/>
+                <Setter Property="Foreground" Value="{StaticResource InkFaint}"/>
+                <Setter Property="Cursor" Value="Arrow"/>
+            </Trigger>
+        </ControlTemplate.Triggers>
+    </ControlTemplate>
+
+    <Style TargetType="{x:Type Button}">
+        <Setter Property="Background" Value="{StaticResource Surface}"/>
+        <Setter Property="Foreground" Value="{StaticResource Ink}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource Edge}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Padding" Value="14,0"/>
+        <Setter Property="MinHeight" Value="32"/>
+        <Setter Property="MinWidth" Value="88"/>
+        <Setter Property="Margin" Value="0,0,8,0"/>
+        <Setter Property="FontSize" Value="{StaticResource FontM}"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="Template" Value="{StaticResource OutlineButtonTemplate}"/>
+    </Style>
+
+    <!-- The single most important action on a screen: btn_Go. House red, white text. -->
+    <Style x:Key="CirclePrimaryButton" TargetType="{x:Type Button}" BasedOn="{StaticResource {x:Type Button}}">
+        <Setter Property="Template" Value="{StaticResource TintButtonTemplate}"/>
+        <Setter Property="Background" Value="{StaticResource Accent}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource AccentDark}"/>
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="MinHeight" Value="34"/>
+        <Setter Property="Padding" Value="20,0"/>
+    </Style>
+
+    <!-- Dark neutral: the "read from model" imports. -->
+    <Style x:Key="CircleStrongButton" TargetType="{x:Type Button}" BasedOn="{StaticResource {x:Type Button}}">
+        <Setter Property="Template" Value="{StaticResource TintButtonTemplate}"/>
+        <Setter Property="Background" Value="{StaticResource Ink}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource Ink}"/>
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+
+    <!--
+        The two "go to..." step buttons, in their two states.
+
+        These are the only thing on the set-up tab that says whether a side has any data, and
+        an empty side is the reason Find opportunities comes back with nothing. So the state
+        is carried by the strongest signal available: red while the step is outstanding, green
+        the moment elements arrive, with the totals written onto the button.
+
+        setMineOk() / setRequiredOk() swap between the two by assigning Style, not Background -
+        a raw Background assignment leaves the border and the text colour behind, which on a
+        solid button reads as a rendering fault rather than as a state.
+    -->
+    <Style x:Key="CircleStepButton" TargetType="{x:Type Button}" BasedOn="{StaticResource {x:Type Button}}">
+        <Setter Property="Template" Value="{StaticResource TintButtonTemplate}"/>
+        <Setter Property="Background" Value="{StaticResource Accent}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource AccentDark}"/>
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="MinHeight" Value="34"/>
+        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+    </Style>
+
+    <Style x:Key="CircleStepButtonReady" TargetType="{x:Type Button}" BasedOn="{StaticResource CircleStepButton}">
+        <Setter Property="Background" Value="{StaticResource Ok}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource OkDark}"/>
+        <Setter Property="Foreground" Value="White"/>
+    </Style>
+
+    <!-- Colour pickers. The whole button IS the swatch, so give it no
+         chrome to fight with and let Background show through. -->
+    <Style x:Key="CircleSwatchButton" TargetType="{x:Type Button}">
+        <Setter Property="Width" Value="26"/>
+        <Setter Property="Height" Value="26"/>
+        <Setter Property="MinWidth" Value="26"/>
+        <Setter Property="MinHeight" Value="26"/>
+        <Setter Property="Margin" Value="0,0,8,0"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type Button}">
+                    <Grid>
+                        <Ellipse x:Name="Ring" Fill="{TemplateBinding Background}"
+                                 Stroke="#22000000" StrokeThickness="1"/>
+                        <Ellipse x:Name="Halo" Stroke="{StaticResource EdgeHot}" StrokeThickness="1"
+                                 Margin="-3" Opacity="0"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Halo" Property="Opacity" Value="1"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ============================ TEXT INPUT ============================ -->
+
+    <Style TargetType="{x:Type TextBox}">
+        <Setter Property="Background" Value="{StaticResource Surface}"/>
+        <Setter Property="Foreground" Value="{StaticResource Ink}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource Edge}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Padding" Value="9,0"/>
+        <Setter Property="MinHeight" Value="32"/>
+        <Setter Property="FontSize" Value="{StaticResource FontM}"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="SelectionBrush" Value="{StaticResource Accent}"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type TextBox}">
+                    <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="4" SnapsToDevicePixels="True">
+                        <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"
+                                      VerticalAlignment="Center" Focusable="False"
+                                      HorizontalScrollBarVisibility="Hidden"
+                                      VerticalScrollBarVisibility="Hidden"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource EdgeHot}"/>
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource AccentDark}"/>
+                            <Setter TargetName="Bd" Property="BorderThickness" Value="1.6"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource HeaderFill}"/>
+                            <Setter Property="Foreground" Value="{StaticResource InkFaint}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ============================ COMBOBOX ============================ -->
+
+    <Style x:Key="ComboToggle" TargetType="{x:Type ToggleButton}">
+        <Setter Property="Focusable" Value="False"/>
+        <Setter Property="ClickMode" Value="Press"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type ToggleButton}">
+                    <Border x:Name="Bd" Background="{StaticResource Surface}"
+                            BorderBrush="{StaticResource Edge}" BorderThickness="1"
+                            CornerRadius="4" SnapsToDevicePixels="True">
+                        <Path x:Name="Arrow" HorizontalAlignment="Right" VerticalAlignment="Center"
+                              Margin="0,0,11,0" Fill="{StaticResource InkFaint}"
+                              Data="M 0 0 L 4 4 L 8 0 Z"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource EdgeHot}"/>
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource AccentDark}"/>
+                            <Setter TargetName="Arrow" Property="Fill" Value="{StaticResource Ink}"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource HeaderFill}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="{x:Type ComboBoxItem}">
+        <Setter Property="Padding" Value="10,7"/>
+        <Setter Property="Foreground" Value="{StaticResource Ink}"/>
+        <Setter Property="FontSize" Value="{StaticResource FontM}"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type ComboBoxItem}">
+                    <Border x:Name="Bd" Background="Transparent" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsHighlighted" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource RowHover}"/>
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource RowSelect}"/>
+                            <Setter Property="FontWeight" Value="SemiBold"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="{x:Type ComboBox}">
+        <Setter Property="Background" Value="{StaticResource Surface}"/>
+        <Setter Property="Foreground" Value="{StaticResource Ink}"/>
+        <Setter Property="MinHeight" Value="32"/>
+        <Setter Property="Padding" Value="10,0,28,0"/>
+        <Setter Property="FontSize" Value="{StaticResource FontM}"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+        <Setter Property="ScrollViewer.CanContentScroll" Value="True"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type ComboBox}">
+                    <Grid>
+                        <ToggleButton x:Name="PART_Toggle" Style="{StaticResource ComboToggle}"
+                                      IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"/>
+                        <ContentPresenter x:Name="PART_Content"
+                                          Content="{TemplateBinding SelectionBoxItem}"
+                                          ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                          Margin="{TemplateBinding Padding}"
+                                          HorizontalAlignment="Left" VerticalAlignment="Center"
+                                          IsHitTestVisible="False"/>
+                        <TextBox x:Name="PART_EditableTextBox" Visibility="Collapsed"
+                                 Margin="{TemplateBinding Padding}" BorderThickness="0"
+                                 Background="Transparent" VerticalAlignment="Center"/>
+                        <Popup x:Name="PART_Popup" AllowsTransparency="True" Focusable="False"
+                               Placement="Bottom" VerticalOffset="4"
+                               IsOpen="{TemplateBinding IsDropDownOpen}"
+                               PopupAnimation="Fade">
+                            <Border Background="{StaticResource Surface}"
+                                    BorderBrush="{StaticResource Edge}" BorderThickness="1"
+                                    CornerRadius="4" Padding="4"
+                                    MinWidth="{TemplateBinding ActualWidth}"
+                                    MaxHeight="{TemplateBinding MaxDropDownHeight}">
+                                <Border.Effect>
+                                    <DropShadowEffect BlurRadius="16" ShadowDepth="3"
+                                                      Direction="270" Opacity="0.16" Color="#FF141C24"/>
+                                </Border.Effect>
+                                <ScrollViewer>
+                                    <ItemsPresenter/>
+                                </ScrollViewer>
+                            </Border>
+                        </Popup>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsEditable" Value="True">
+                            <Setter TargetName="PART_EditableTextBox" Property="Visibility" Value="Visible"/>
+                            <Setter TargetName="PART_Content" Property="Visibility" Value="Collapsed"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Foreground" Value="{StaticResource InkFaint}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ============================ CHECKBOX ============================ -->
+
+    <Style TargetType="{x:Type CheckBox}">
+        <Setter Property="Foreground" Value="{StaticResource Ink}"/>
+        <Setter Property="FontSize" Value="{StaticResource FontM}"/>
+        <Setter Property="Margin" Value="0,0,0,8"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type CheckBox}">
+                    <StackPanel Orientation="Horizontal" Background="Transparent">
+                        <Border x:Name="Box" Width="17" Height="17" CornerRadius="3"
+                                Background="{StaticResource Surface}"
+                                BorderBrush="{StaticResource Edge}" BorderThickness="1"
+                                VerticalAlignment="Center" SnapsToDevicePixels="True">
+                            <Path x:Name="Tick" Stretch="Uniform" Margin="3.5"
+                                  Stroke="White" StrokeThickness="2"
+                                  StrokeEndLineCap="Round" StrokeStartLineCap="Round"
+                                  Data="M 0 4 L 3.2 7 L 9 0" Visibility="Collapsed"/>
+                        </Border>
+                        <ContentPresenter Margin="9,0,0,0" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Box" Property="BorderBrush" Value="{StaticResource EdgeHot}"/>
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Box" Property="Background" Value="{StaticResource AccentDark}"/>
+                            <Setter TargetName="Box" Property="BorderBrush" Value="{StaticResource AccentDark}"/>
+                            <Setter TargetName="Tick" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ============================ TABS ==============================
+         Underlined tabs rather than folder tabs. Number the headers in
+         markup ("1  Set up") so the order reads as a sequence.
+         ================================================================ -->
+
+    <Style TargetType="{x:Type TabControl}">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type TabControl}">
+                    <DockPanel>
+                        <Border DockPanel.Dock="Top" Background="{StaticResource Surface}"
+                                BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1">
+                            <TabPanel IsItemsHost="True" Margin="12,0,12,0" Panel.ZIndex="1"/>
+                        </Border>
+                        <Border Background="Transparent">
+                            <ContentPresenter ContentSource="SelectedContent"/>
+                        </Border>
+                    </DockPanel>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="{x:Type TabItem}">
+        <Setter Property="Foreground" Value="{StaticResource InkMuted}"/>
+        <Setter Property="FontSize" Value="{StaticResource FontM}"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type TabItem}">
+                    <Border x:Name="Bd" Background="Transparent" Padding="16,11,16,0">
+                        <Grid>
+                            <ContentPresenter x:Name="Hdr" ContentSource="Header"
+                                              Margin="0,0,0,11"
+                                              HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <Border x:Name="Rule" Height="3" VerticalAlignment="Bottom"
+                                    Background="Transparent"/>
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource HeaderFill}"/>
+                            <Setter Property="Foreground" Value="{StaticResource Ink}"/>
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="Rule" Property="Background" Value="{StaticResource AccentDark}"/>
+                            <Setter Property="Foreground" Value="{StaticResource Ink}"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Foreground" Value="{StaticResource InkFaint}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ====================== LIST VIEWS / GRID VIEWS ======================
+         The main change. Column headers become a quiet uppercase strip
+         instead of raised 3D buttons; rows get real height (32 -> 30px of
+         padding plus content), a hairline divider, alternating fill, and a
+         green-tinted hover and selection instead of system blue.
+         ====================================================================== -->
+
+    <Style TargetType="{x:Type GridViewColumnHeader}">
+        <Setter Property="Foreground" Value="{StaticResource InkMuted}"/>
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="HorizontalContentAlignment" Value="Left"/>
+        <Setter Property="Padding" Value="12,9"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type GridViewColumnHeader}">
+                    <Grid>
+                        <Border x:Name="Bd" Background="{StaticResource HeaderFill}"
+                                BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1">
+                            <ContentPresenter Margin="{TemplateBinding Padding}"
+                                              HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="Center"
+                                              RecognizesAccessKey="True"/>
+                        </Border>
+                        <Rectangle x:Name="Sep" Width="1" HorizontalAlignment="Right"
+                                   Margin="0,7" Fill="{StaticResource Line}"/>
+                        <Thumb x:Name="PART_HeaderGripper" HorizontalAlignment="Right"
+                               Width="8" Cursor="SizeWE" Opacity="0">
+                            <Thumb.Template>
+                                <ControlTemplate TargetType="{x:Type Thumb}">
+                                    <Border Background="Transparent"/>
+                                </ControlTemplate>
+                            </Thumb.Template>
+                        </Thumb>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource LineSoft}"/>
+                            <Setter Property="Foreground" Value="{StaticResource Ink}"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource Line}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="{x:Type ListView}">
+        <Setter Property="Background" Value="{StaticResource Surface}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Foreground" Value="{StaticResource Ink}"/>
+        <Setter Property="FontSize" Value="{StaticResource FontM}"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="AlternationCount" Value="2"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto"/>
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type ListView}">
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="6" SnapsToDevicePixels="True">
+                        <!-- ClipToBounds keeps the rows inside the rounded corners. -->
+                        <Border CornerRadius="5" ClipToBounds="True">
+                            <!--
+                                GridViewScrollViewerStyleKey, and it is not optional.
+
+                                The column header row is not part of GridView - it lives in the
+                                ScrollViewer template that ListView normally picks up from
+                                GridView.DefaultStyleKey. An implicit Style on ListView outranks
+                                that default style, so the moment this dictionary is merged the
+                                ListView uses the template below instead, and a plain
+                                <ScrollViewer/> here renders the rows with no headers at all -
+                                silently, since nothing throws.
+
+                                Pointing the ScrollViewer at GridView's own style puts the
+                                GridViewHeaderRowPresenter back, and with it column resizing and
+                                the horizontal scroll the wider grids need.
+                            -->
+                            <ScrollViewer Padding="{TemplateBinding Padding}" Focusable="False"
+                                          Style="{DynamicResource {x:Static GridView.GridViewScrollViewerStyleKey}}">
+                                <ItemsPresenter SnapsToDevicePixels="True"/>
+                            </ScrollViewer>
+                        </Border>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="{x:Type ListViewItem}">
+        <Setter Property="Background" Value="{StaticResource Surface}"/>
+        <Setter Property="Foreground" Value="{StaticResource Ink}"/>
+        <Setter Property="Padding" Value="0,7"/>
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type ListViewItem}">
+                    <Border x:Name="Bd"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{StaticResource LineSoft}"
+                            BorderThickness="0,0,0,1"
+                            Padding="{TemplateBinding Padding}"
+                            SnapsToDevicePixels="True">
+                        <Grid>
+                            <!-- Left accent bar, revealed on selection so the
+                                 current row stays findable after scrolling. -->
+                            <Rectangle x:Name="Mark" Width="3" HorizontalAlignment="Left"
+                                       Fill="{StaticResource AccentDark}" Opacity="0"/>
+                            <GridViewRowPresenter x:Name="Row"
+                                                  Content="{TemplateBinding Content}"
+                                                  Columns="{TemplateBinding GridView.ColumnCollection}"
+                                                  VerticalAlignment="Center"
+                                                  SnapsToDevicePixels="True"/>
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="ItemsControl.AlternationIndex" Value="1">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource SurfaceAlt}"/>
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource RowHover}"/>
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource RowSelect}"/>
+                            <Setter TargetName="Mark" Property="Opacity" Value="1"/>
+                            <Setter Property="FontWeight" Value="SemiBold"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Cell text. GridViewColumn.DisplayMemberBinding renders a plain
+         TextBlock, so this gives every cell consistent side padding. -->
+    <Style x:Key="Cell" TargetType="{x:Type TextBlock}">
+        <Setter Property="Margin" Value="12,0"/>
+        <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+        <Setter Property="TextWrapping" Value="NoWrap"/>
+    </Style>
+
+    <Style x:Key="CellNumeric" TargetType="{x:Type TextBlock}" BasedOn="{StaticResource Cell}">
+        <Setter Property="HorizontalAlignment" Value="Right"/>
+        <Setter Property="TextAlignment" Value="Right"/>
+    </Style>
+
+    <Style x:Key="CellQuiet" TargetType="{x:Type TextBlock}" BasedOn="{StaticResource Cell}">
+        <Setter Property="Foreground" Value="{StaticResource InkMuted}"/>
+    </Style>
+
+    <!-- ====================== MATCH CATEGORY COLOURS ======================
+         One colour per class from carboCircleMatchRules, so the engineer can
+         see what kind of result each row is without reading it. Carried over
+         from the previous window unchanged - the ranks and the meanings are
+         the same, only the chrome around them has moved on.
+         ====================================================================== -->
+
+    <!-- 100% match: the same section. Settled - stop thinking about it. -->
+    <SolidColorBrush x:Key="MatchExactEdge" Color="#2E7D32"/>
+    <SolidColorBrush x:Key="MatchExactFill" Color="#EDF7ED"/>
+
+    <!-- Structurally good enough: arithmetic was done for you. Read the reason. -->
+    <SolidColorBrush x:Key="MatchAdequateEdge" Color="#B58900"/>
+    <SolidColorBrush x:Key="MatchAdequateFill" Color="#FBF4E0"/>
+
+    <!-- Different shape family: a human decision is required. -->
+    <SolidColorBrush x:Key="MatchCrossEdge" Color="#D2691E"/>
+    <SolidColorBrush x:Key="MatchCrossFill" Color="#FBEDE2"/>
+
+    <!-- From an offcut: a different kind of good news - material that was going to be scrap. -->
+    <SolidColorBrush x:Key="MatchOffcutEdge" Color="#1565C0"/>
+    <SolidColorBrush x:Key="MatchOffcutFill" Color="#E8F1FB"/>
+
+    <!-- No match: the work still to do. Neutral rather than alarming. -->
+    <SolidColorBrush x:Key="MatchNoneEdge" Color="#546E7A"/>
+    <SolidColorBrush x:Key="MatchNoneFill" Color="#F2F4F5"/>
+
+    <!--
+        The category stripe, in a cell template rather than on the row.
+
+        Anything inside a GridViewColumn.CellTemplate sits within the row presenter, where the
+        ListViewItem hover and selection triggers do not reach - so the colour survives being
+        selected, and selection is unavoidable here because Show in model works off the
+        selected row.
+    -->
+    <Style x:Key="MatchStripe" TargetType="{x:Type Border}">
+        <Setter Property="Width"  Value="5"/>
+        <Setter Property="Height" Value="16"/>
+        <Setter Property="CornerRadius" Value="2.5"/>
+        <Setter Property="HorizontalAlignment" Value="Left"/>
+        <Setter Property="VerticalAlignment"   Value="Center"/>
+        <Setter Property="Margin" Value="12,0,0,0"/>
+        <Setter Property="BorderThickness"     Value="0"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+        <Setter Property="Background" Value="{StaticResource MatchNoneEdge}"/>
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding matchRank}" Value="1">
+                <Setter Property="Background" Value="{StaticResource MatchExactEdge}"/>
+            </DataTrigger>
+            <DataTrigger Binding="{Binding matchRank}" Value="2">
+                <Setter Property="Background" Value="{StaticResource MatchAdequateEdge}"/>
+            </DataTrigger>
+            <DataTrigger Binding="{Binding matchRank}" Value="3">
+                <Setter Property="Background" Value="{StaticResource MatchCrossEdge}"/>
+            </DataTrigger>
+            <DataTrigger Binding="{Binding matchRank}" Value="4">
+                <Setter Property="Background" Value="{StaticResource MatchOffcutEdge}"/>
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <!--
+        The row tint, so a whole group reads as a block at a glance.
+
+        This needs its own template rather than BasedOn the implicit ListViewItem style. That
+        template writes Background straight onto its border from three triggers - alternation,
+        hover and selection - and each of those outranks a Setter on the style, which would
+        leave the tint showing on roughly half the rows and never on the current one. Here
+        Background stays the category colour and the three states are drawn on top of it: a
+        scrim for hover, the accent bar and a ring for selection.
+    -->
+    <Style x:Key="MatchRowStyle" TargetType="{x:Type ListViewItem}">
+        <Setter Property="Background" Value="{StaticResource MatchNoneFill}"/>
+        <Setter Property="Foreground" Value="{StaticResource Ink}"/>
+        <Setter Property="Padding" Value="0,7"/>
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+        <!-- The reason column will always be too narrow for the whole sentence, and it is the
+             most useful thing on the row, so the full text is on the row itself. -->
+        <Setter Property="ToolTip" Value="{Binding description}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type ListViewItem}">
+                    <Border x:Name="Bd"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{StaticResource LineSoft}"
+                            BorderThickness="0,0,0,1"
+                            Padding="{TemplateBinding Padding}"
+                            SnapsToDevicePixels="True">
+                        <Grid>
+                            <Border x:Name="Scrim" Background="#FF000000" Opacity="0"/>
+                            <Rectangle x:Name="Mark" Width="3" HorizontalAlignment="Left"
+                                       Fill="{StaticResource Ink}" Opacity="0"/>
+                            <GridViewRowPresenter x:Name="Row"
+                                                  Content="{TemplateBinding Content}"
+                                                  Columns="{TemplateBinding GridView.ColumnCollection}"
+                                                  VerticalAlignment="Center"
+                                                  SnapsToDevicePixels="True"/>
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Scrim" Property="Opacity" Value="0.04"/>
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="Scrim" Property="Opacity" Value="0.07"/>
+                            <Setter TargetName="Mark" Property="Opacity" Value="1"/>
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource Ink}"/>
+                            <Setter TargetName="Bd" Property="BorderThickness" Value="0,1,0,1"/>
+                            <Setter Property="FontWeight" Value="SemiBold"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding matchRank}" Value="1">
+                <Setter Property="Background" Value="{StaticResource MatchExactFill}"/>
+            </DataTrigger>
+            <DataTrigger Binding="{Binding matchRank}" Value="2">
+                <Setter Property="Background" Value="{StaticResource MatchAdequateFill}"/>
+            </DataTrigger>
+            <DataTrigger Binding="{Binding matchRank}" Value="3">
+                <Setter Property="Background" Value="{StaticResource MatchCrossFill}"/>
+            </DataTrigger>
+            <DataTrigger Binding="{Binding matchRank}" Value="4">
+                <Setter Property="Background" Value="{StaticResource MatchOffcutFill}"/>
+            </DataTrigger>
+            <DataTrigger Binding="{Binding matchRank}" Value="5">
+                <Setter Property="Background" Value="{StaticResource MatchNoneFill}"/>
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- One legend entry: a swatch and what it means. -->
+    <Style x:Key="LegendSwatch" TargetType="{x:Type Border}">
+        <Setter Property="Width"  Value="5"/>
+        <Setter Property="Height" Value="12"/>
+        <Setter Property="CornerRadius" Value="2.5"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="Margin" Value="0,0,6,0"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+    </Style>
+
+    <Style x:Key="LegendText" TargetType="{x:Type TextBlock}">
+        <Setter Property="FontSize"   Value="11"/>
+        <Setter Property="Foreground" Value="{StaticResource InkMuted}"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="TextWrapping" Value="NoWrap"/>
+        <Setter Property="Margin" Value="0,0,16,0"/>
+    </Style>
+
+    <!-- ====================== GROUP HEADERS ==========================
+         applyMatchGrouping / applyLeftOverGrouping add the grouping in
+         code, so this implicit GroupItem style picks it up with no
+         markup change. Name and item count in one quiet band.
+         ================================================================ -->
+
+    <Style TargetType="{x:Type GroupItem}">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type GroupItem}">
+                    <StackPanel>
+                        <Border Background="#FFFBFBFC"
+                                BorderBrush="{StaticResource LineSoft}"
+                                BorderThickness="0,1,0,1"
+                                Padding="14,8" SnapsToDevicePixels="True">
+                            <StackPanel Orientation="Horizontal">
+                                <!-- Neutral, deliberately. The matched grid carries a colour per
+                                     match category on every row, and a coloured dot on the band
+                                     that did not track it would read as a sixth category. -->
+                                <Rectangle Width="8" Height="8" RadiusX="2" RadiusY="2"
+                                           Fill="{StaticResource InkFaint}"
+                                           VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                <TextBlock Text="{Binding Name}"
+                                           FontSize="{StaticResource FontS}" FontWeight="Bold"
+                                           Foreground="{StaticResource Ink}" VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding ItemCount, StringFormat=({0})}" Margin="8,0,0,0"
+                                           FontSize="{StaticResource FontS}"
+                                           Foreground="{StaticResource InkFaint}" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                        <ItemsPresenter/>
+                    </StackPanel>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ============================ SCROLLBARS ============================ -->
+
+    <Style x:Key="ScrollThumb" TargetType="{x:Type Thumb}">
+        <Setter Property="IsTabStop" Value="False"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type Thumb}">
+                    <Border x:Name="T" Background="#FFC7CCD1" CornerRadius="5" Margin="2"/>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="T" Property="Background" Value="#FFA9B1B8"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="ScrollLine" TargetType="{x:Type RepeatButton}">
+        <Setter Property="IsTabStop" Value="False"/>
+        <Setter Property="Focusable" Value="False"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type RepeatButton}">
+                    <Border Background="Transparent"/>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="{x:Type ScrollBar}">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Width" Value="12"/>
+        <Setter Property="MinWidth" Value="12"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type ScrollBar}">
+                    <Grid Background="Transparent">
+                        <Track x:Name="PART_Track" IsDirectionReversed="True">
+                            <Track.DecreaseRepeatButton>
+                                <RepeatButton Style="{StaticResource ScrollLine}" Command="ScrollBar.PageUpCommand"/>
+                            </Track.DecreaseRepeatButton>
+                            <Track.Thumb>
+                                <Thumb Style="{StaticResource ScrollThumb}"/>
+                            </Track.Thumb>
+                            <Track.IncreaseRepeatButton>
+                                <RepeatButton Style="{StaticResource ScrollLine}" Command="ScrollBar.PageDownCommand"/>
+                            </Track.IncreaseRepeatButton>
+                        </Track>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="Orientation" Value="Horizontal">
+                <Setter Property="Width" Value="Auto"/>
+                <Setter Property="MinWidth" Value="0"/>
+                <Setter Property="Height" Value="12"/>
+                <Setter Property="MinHeight" Value="12"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="{x:Type ScrollBar}">
+                            <Grid Background="Transparent">
+                                <Track x:Name="PART_Track" IsDirectionReversed="False">
+                                    <Track.DecreaseRepeatButton>
+                                        <RepeatButton Style="{StaticResource ScrollLine}" Command="ScrollBar.PageLeftCommand"/>
+                                    </Track.DecreaseRepeatButton>
+                                    <Track.Thumb>
+                                        <Thumb Style="{StaticResource ScrollThumb}"/>
+                                    </Track.Thumb>
+                                    <Track.IncreaseRepeatButton>
+                                        <RepeatButton Style="{StaticResource ScrollLine}" Command="ScrollBar.PageRightCommand"/>
+                                    </Track.IncreaseRepeatButton>
+                                </Track>
+                            </Grid>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- ============================ ODDS AND ENDS ============================ -->
+
+    <Style TargetType="{x:Type Separator}">
+        <Setter Property="Background" Value="{StaticResource Line}"/>
+        <Setter Property="Height" Value="1"/>
+        <Setter Property="Margin" Value="0,12"/>
+    </Style>
+
+    <!-- Status pill. Put next to a step heading and bind its text to the
+         count so each tab says whether it has data. -->
+    <Style x:Key="StatusPill" TargetType="{x:Type Border}">
+        <Setter Property="Background" Value="{StaticResource AccentWash}"/>
+        <Setter Property="CornerRadius" Value="20"/>
+        <Setter Property="Padding" Value="9,2"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+
+    <!-- Footer strip holding Close / Report / the primary action. -->
+    <Style x:Key="ActionBar" TargetType="{x:Type Border}">
+        <Setter Property="Background" Value="{StaticResource Surface}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
+        <Setter Property="BorderThickness" Value="0,1,0,0"/>
+        <Setter Property="Padding" Value="16,11"/>
+    </Style>
+
+</ResourceDictionary>

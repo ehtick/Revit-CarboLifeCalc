@@ -122,6 +122,59 @@ namespace CarboCircle.UI
                 txt_WidthTolerance.Text = settings.widthRange.ToString(); //in mm
                 txt_MinOffcutLength.Text = settings.minOffcutLength.ToString(); //in mm
                 chk_AllowCrossFamily.IsChecked = settings.allowCrossFamilySubstitution;
+
+                //Setting .Text above raises TextChanged, which refreshes these anyway. Called
+                //explicitly so the state does not depend on that: if a box already held the
+                //same string, WPF raises nothing and the notes would keep a previous verdict.
+                refreshCutoffWarnings();
+            }
+        }
+
+        private void txt_Cutoff_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            refreshCutoffWarnings();
+        }
+
+        /// <summary>
+        /// Shows or hides the note under each cut-off row as the value is typed.
+        ///
+        /// Advisory only - nothing is clamped or rejected. The same note, off the same
+        /// constants, appears on the main window, so a value lowered here cannot slip past a
+        /// warning the other window would have raised.
+        /// </summary>
+        private void refreshCutoffWarnings()
+        {
+            setCutoffWarning(txt_CutoffValue, txt_CutoffValueWarning,
+                carboCircleSettings.SteelCutoffAdvisoryMin);
+
+            setCutoffWarning(txt_WoodCutoff, txt_WoodCutoffWarning,
+                carboCircleSettings.TimberCutoffAdvisoryMin);
+        }
+
+        private static void setCutoffWarning(System.Windows.Controls.TextBox box,
+            System.Windows.Controls.TextBlock note, double advisoryMin)
+        {
+            //Called from TextChanged, which can fire while the tree is still being built.
+            if (box == null || note == null)
+                return;
+
+            double value;
+
+            //Nothing to say about a box that is empty or half-typed. Only a value that parses
+            //and comes out low is a decision worth flagging.
+            bool parsed = double.TryParse((box.Text ?? "").Replace(',', '.'),
+                System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture, out value);
+
+            if (parsed && value < advisoryMin)
+            {
+                note.Text = carboCircleSettings.CutoffAdvisoryMessage
+                    + " (below " + advisoryMin.ToString("N0") + " mm).";
+                note.Visibility = System.Windows.Visibility.Visible;
+            }
+            else
+            {
+                note.Visibility = System.Windows.Visibility.Collapsed;
             }
         }
 

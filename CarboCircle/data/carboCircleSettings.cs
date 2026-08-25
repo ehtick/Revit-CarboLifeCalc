@@ -91,6 +91,27 @@ namespace CarboCircle.data
         public double timberCutoffLength { get; set; }
 
         /// <summary>
+        /// Below these allowances the ends cannot be released by ordinary means, so the
+        /// figure only holds if a specialist deconstruction method is actually procured.
+        ///
+        /// Advisory, not a limit. A lower allowance is a legitimate thing to model - it is
+        /// what makes the case for the specialist method in the first place - so nothing here
+        /// clamps or rejects the value. The two windows that edit these lengths say so on
+        /// screen instead.
+        ///
+        /// Const rather than a setting: the numbers describe what site plant can do, not what
+        /// this project has chosen, and both windows have to agree on them or a value that
+        /// warned in one place would pass silently in the other.
+        /// </summary>
+        public const double SteelCutoffAdvisoryMin = 500;
+
+        /// <summary>Timber counterpart of <see cref="SteelCutoffAdvisoryMin"/>, in mm.</summary>
+        public const double TimberCutoffAdvisoryMin = 250;
+
+        /// <summary>What both windows show when an allowance falls below its advisory minimum.</summary>
+        public const string CutoffAdvisoryMessage = "Reduced value requires specialist demolition";
+
+        /// <summary>
         /// Concrete volume lost in deconstruction, in %.
         /// </summary>
         public int VolumeLoss { get; set; }

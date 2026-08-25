@@ -1,849 +1,865 @@
-﻿<Window x:Class="CarboCircle.UI.CarboCircleMain"
-             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-             xmlns:local="clr-namespace:CarboCircle.UI"
-             mc:Ignorable="d" 
-             Title="CarboCircle : Reuse Materials"
-             Background="#FFFFFF"
-             FontFamily="Segoe UI"
-             FontWeight="Normal"
-             FontSize="12"
-             Width="1320" Height="820"
-             MinWidth="1000" MinHeight="640"
-             WindowStartupLocation="CenterScreen"
-             d:DesignHeight="600" d:DesignWidth="900" d:Height="600" d:Width="900" d:MinHeight="600" d:MinWidth="900" Loaded="Window_Loaded" Closing="Window_Closing">
+<Window x:Class="CarboCircle.UI.CarboCircleMain"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="CarboCircle : Reuse Materials"
+        Background="#FFF4F5F6"
+        FontFamily="Segoe UI"
+        FontSize="13"
+        Foreground="#FF1F2933"
+        TextOptions.TextFormattingMode="Display"
+        UseLayoutRounding="True"
+        Height="820" Width="1320"
+        MinHeight="640" MinWidth="1000"
+        WindowStartupLocation="CenterScreen"
+        Loaded="Window_Loaded" Closing="Window_Closing">
+
+    <!-- ====================================================================
+         CarboCircleMain.xaml
+
+         The window reads as four numbered steps: set up, look at what is
+         available, look at what is needed, then find the opportunities.
+         Everything that used to be scattered across the Overview tab and
+         the two import tabs is in that order now.
+
+         The previous layout is kept verbatim in UI\Legacy\CarboCircleMain.xaml
+         (excluded from the build in CarboCircle.csproj). Copying it back over
+         this file restores the old window; nothing else has to change.
+
+         Every x:Name and every handler here matches CarboCircleMain.xaml.cs
+         as it stands - the code-behind is untouched. In particular
+         tab_Main.SelectedIndex 1 and 2, which btn_GotoMine and btn_GotoProject
+         set, still land on Available stock and Required respectively.
+         ==================================================================== -->
+
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary
-                    Source="MyStyles.xaml">
-                </ResourceDictionary>
-
+                <ResourceDictionary Source="CarboCircleTheme.xaml"/>
             </ResourceDictionary.MergedDictionaries>
 
-            <!-- ══════════════════════════════════════════════════════════════════════════ -->
-            <!-- MATCH CATEGORY COLOURS                                                     -->
-            <!--                                                                            -->
-            <!-- One colour per class from carboCircleMatchRules, so the engineer can see     -->
-            <!-- what kind of result each row is without reading it.                          -->
-            <!--                                                                            -->
-            <!-- None of them is the house red. Red is the chrome in this window - the title,  -->
-            <!-- the tab rule, every column header, every button hover - so a red row would    -->
-            <!-- read as furniture rather than as a category, and it would collide with the    -->
-            <!-- "not from reused" swatch that ships red for the Revit model colouring.        -->
-            <!--                                                                            -->
-            <!-- Local to this window rather than in MyStyles, because MyStyles is merged by   -->
-            <!-- the settings window too and these would mean nothing there.                  -->
-            <!-- ══════════════════════════════════════════════════════════════════════════ -->
-
-            <!-- 100% match: the same section. Settled - stop thinking about it. -->
-            <SolidColorBrush x:Key="MatchExactEdge" Color="#2E7D32"/>
-            <SolidColorBrush x:Key="MatchExactFill" Color="#EDF7ED"/>
-
-            <!-- Structurally good enough: arithmetic was done for you. Read the reason. -->
-            <SolidColorBrush x:Key="MatchAdequateEdge" Color="#B58900"/>
-            <SolidColorBrush x:Key="MatchAdequateFill" Color="#FBF4E0"/>
-
-            <!-- Different shape family: a human decision is required. -->
-            <SolidColorBrush x:Key="MatchCrossEdge" Color="#D2691E"/>
-            <SolidColorBrush x:Key="MatchCrossFill" Color="#FBEDE2"/>
-
-            <!-- From an offcut: a different kind of good news - material that was going to be scrap. -->
-            <SolidColorBrush x:Key="MatchOffcutEdge" Color="#1565C0"/>
-            <SolidColorBrush x:Key="MatchOffcutFill" Color="#E8F1FB"/>
-
-            <!-- No match: the work still to do. Neutral, not alarming, and not the chrome red. -->
-            <SolidColorBrush x:Key="MatchNoneEdge" Color="#546E7A"/>
-            <SolidColorBrush x:Key="MatchNoneFill" Color="#F2F4F5"/>
-
-            <!--
-                The category stripe.
-
-                This lives in a cell template rather than in the row background, and that is the
-                whole trick. A colour set on ListViewItem.Background is repainted by the theme
-                template IsMouseOver and IsSelected triggers - and selection is unavoidable
-                here, because the Select Pair button works off the selected row. Anything inside
-                a GridViewColumn.CellTemplate sits within the row presenter, where those triggers
-                do not reach, so the colour survives being hovered and selected.
-            -->
-            <Style x:Key="MatchStripe" TargetType="{x:Type Border}">
-                <!--
-                    Solid, in the saturated colour. The pale fills are for the row tint; a
-                    stripe painted in one of those is indistinguishable from white at this size,
-                    which defeats the point of having it.
-                -->
-                <Setter Property="Width"  Value="5"/>
-                <Setter Property="Height" Value="15"/>
-                <Setter Property="HorizontalAlignment" Value="Left"/>
-                <Setter Property="VerticalAlignment"   Value="Center"/>
-                <Setter Property="BorderThickness"     Value="0"/>
-                <Setter Property="SnapsToDevicePixels" Value="True"/>
-                <Setter Property="Background" Value="{StaticResource MatchNoneEdge}"/>
-                <Style.Triggers>
-                    <DataTrigger Binding="{Binding matchRank}" Value="1">
-                        <Setter Property="Background" Value="{StaticResource MatchExactEdge}"/>
-                    </DataTrigger>
-                    <DataTrigger Binding="{Binding matchRank}" Value="2">
-                        <Setter Property="Background" Value="{StaticResource MatchAdequateEdge}"/>
-                    </DataTrigger>
-                    <DataTrigger Binding="{Binding matchRank}" Value="3">
-                        <Setter Property="Background" Value="{StaticResource MatchCrossEdge}"/>
-                    </DataTrigger>
-                    <DataTrigger Binding="{Binding matchRank}" Value="4">
-                        <Setter Property="Background" Value="{StaticResource MatchOffcutEdge}"/>
-                    </DataTrigger>
-                </Style.Triggers>
-            </Style>
-
-            <!--
-                A tint on the row as well, so a whole group reads as a block at a glance. Keyed,
-                never implicit: MyStyles already styles ListView implicitly, and a second
-                implicit style for one type throws when the dictionary loads.
-
-                No Template setter, deliberately. The theme ListViewItem template does bind
-                {TemplateBinding Background}, so a plain Setter reaches it, and keeping the
-                template means hover and selection keep behaving the way the rest of Revit does.
-                The stripe above is what carries the category once a row is selected.
-            -->
-            <Style x:Key="MatchRowStyle" TargetType="{x:Type ListViewItem}">
-                <Setter Property="Padding" Value="2,1"/>
-                <!--
-                    The reason column will always be too narrow for the whole sentence, and it
-                    is the most useful thing on the row, so the full text is on the row itself.
-                -->
-                <Setter Property="ToolTip" Value="{Binding description}"/>
-                <Style.Triggers>
-                    <DataTrigger Binding="{Binding matchRank}" Value="1">
-                        <Setter Property="Background" Value="{StaticResource MatchExactFill}"/>
-                    </DataTrigger>
-                    <DataTrigger Binding="{Binding matchRank}" Value="2">
-                        <Setter Property="Background" Value="{StaticResource MatchAdequateFill}"/>
-                    </DataTrigger>
-                    <DataTrigger Binding="{Binding matchRank}" Value="3">
-                        <Setter Property="Background" Value="{StaticResource MatchCrossFill}"/>
-                    </DataTrigger>
-                    <DataTrigger Binding="{Binding matchRank}" Value="4">
-                        <Setter Property="Background" Value="{StaticResource MatchOffcutFill}"/>
-                    </DataTrigger>
-                    <DataTrigger Binding="{Binding matchRank}" Value="5">
-                        <Setter Property="Background" Value="{StaticResource MatchNoneFill}"/>
-                    </DataTrigger>
-                    <!--
-                        Last, so it wins. A DataTrigger here outranks the theme template
-                        IsSelected trigger, which would otherwise leave the selected row tinted
-                        exactly like its neighbours - on the one grid where selecting a row is
-                        the whole point of the Select Pair button.
-                    -->
-                    <Trigger Property="IsSelected" Value="True">
-                        <Setter Property="Background" Value="{StaticResource BorderPinkBrush}"/>
-                        <Setter Property="BorderBrush" Value="{StaticResource PrimaryAccentBrush}"/>
-                        <Setter Property="BorderThickness" Value="1"/>
-                        <Setter Property="FontWeight" Value="SemiBold"/>
-                    </Trigger>
-                </Style.Triggers>
-            </Style>
-
-            <!--
-                Group header: the category, the count, and nothing else. One line, because this
-                grid sits in a short viewport shared with two other lists and every header costs
-                a row of it.
-            -->
-            <Style x:Key="MatchGroupHeader" TargetType="{x:Type GroupItem}">
-                <Setter Property="Template">
-                    <Setter.Value>
-                        <ControlTemplate TargetType="{x:Type GroupItem}">
-                            <StackPanel>
-                                <Border Background="#F7F7F7"
-                                        BorderBrush="{StaticResource ControlBorderBrush}"
-                                        BorderThickness="0,1,0,1"
-                                        Padding="6,3">
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="{Binding Name}"
-                                                   FontFamily="Segoe UI" FontSize="11" FontWeight="SemiBold"
-                                                   Foreground="{StaticResource TextDarkBrush}"/>
-                                        <TextBlock Text="{Binding ItemCount, StringFormat=' ({0})'}"
-                                                   FontFamily="Segoe UI" FontSize="11"
-                                                   Foreground="{StaticResource SubtleBrush}"/>
-                                    </StackPanel>
-                                </Border>
-                                <ItemsPresenter/>
-                            </StackPanel>
-                        </ControlTemplate>
-                    </Setter.Value>
-                </Setter>
-            </Style>
-
-            <!-- One legend entry: a swatch and what it means. -->
-            <Style x:Key="LegendSwatch" TargetType="{x:Type Border}">
-                <Setter Property="Width"  Value="5"/>
-                <Setter Property="Height" Value="11"/>
-                <Setter Property="BorderThickness" Value="0"/>
+            <!-- Numbered step badge used in the tab headers. -->
+            <Style x:Key="StepBadge" TargetType="Border">
+                <Setter Property="Width" Value="20"/>
+                <Setter Property="Height" Value="20"/>
+                <Setter Property="CornerRadius" Value="10"/>
+                <Setter Property="Background" Value="{StaticResource LineSoft}"/>
+                <Setter Property="Margin" Value="0,0,9,0"/>
                 <Setter Property="VerticalAlignment" Value="Center"/>
-                <Setter Property="Margin" Value="10,0,4,0"/>
-                <Setter Property="SnapsToDevicePixels" Value="True"/>
+            </Style>
+            <Style x:Key="StepBadgeText" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="11"/>
+                <Setter Property="FontWeight" Value="Bold"/>
+                <Setter Property="Foreground" Value="{StaticResource InkMuted}"/>
+                <Setter Property="HorizontalAlignment" Value="Center"/>
+                <Setter Property="VerticalAlignment" Value="Center"/>
+            </Style>
+            <Style x:Key="BigBadge" TargetType="Border" BasedOn="{StaticResource StepBadge}">
+                <Setter Property="Width" Value="22"/>
+                <Setter Property="Height" Value="22"/>
+                <Setter Property="CornerRadius" Value="11"/>
+                <Setter Property="Background" Value="{StaticResource Ink}"/>
+                <Setter Property="Margin" Value="0,0,10,0"/>
+            </Style>
+            <Style x:Key="BigBadgeText" TargetType="TextBlock" BasedOn="{StaticResource StepBadgeText}">
+                <Setter Property="FontSize" Value="12"/>
+                <Setter Property="Foreground" Value="White"/>
             </Style>
 
-            <Style x:Key="LegendText" TargetType="{x:Type TextBlock}">
-                <Setter Property="FontFamily" Value="Segoe UI"/>
-                <Setter Property="FontSize"   Value="10"/>
-                <Setter Property="Foreground" Value="{StaticResource SubtleBrush}"/>
+            <!-- Caption strip that sits directly on top of a grid. -->
+            <Style x:Key="ListTitleBar" TargetType="Border">
+                <Setter Property="Background" Value="{StaticResource Surface}"/>
+                <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
+                <Setter Property="BorderThickness" Value="1,1,1,0"/>
+                <Setter Property="CornerRadius" Value="6,6,0,0"/>
+                <Setter Property="Padding" Value="16,10"/>
+            </Style>
+            <Style x:Key="ListTitleText" TargetType="TextBlock">
+                <Setter Property="FontWeight" Value="SemiBold"/>
                 <Setter Property="VerticalAlignment" Value="Center"/>
+                <Setter Property="TextWrapping" Value="NoWrap"/>
+            </Style>
+
+            <!--
+                Grids sit under a title bar, so they carry no top margin and the
+                columns need to be virtualised: the mined and leftover lists can
+                run to thousands of rows.
+            -->
+            <Style x:Key="DataGridList" TargetType="ListView" BasedOn="{StaticResource {x:Type ListView}}">
+                <Setter Property="Margin" Value="0"/>
+                <Setter Property="ScrollViewer.CanContentScroll" Value="True"/>
+                <Setter Property="VirtualizingPanel.IsVirtualizing" Value="True"/>
+                <Setter Property="VirtualizingPanel.VirtualizationMode" Value="Recycling"/>
+                <Setter Property="VirtualizingPanel.IsVirtualizingWhenGrouping" Value="True"/>
+            </Style>
+
+            <!-- Small button that lives inside a title bar rather than on the action bar. -->
+            <Style x:Key="BarButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                <Setter Property="MinHeight" Value="26"/>
+                <Setter Property="MinWidth" Value="104"/>
+                <Setter Property="Padding" Value="10,0"/>
+                <Setter Property="FontSize" Value="12"/>
             </Style>
         </ResourceDictionary>
     </Window.Resources>
+
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="2"/>
-            <RowDefinition Height="35"/>
-            <RowDefinition Height="2"/>
             <RowDefinition Height="*"/>
-
-            <RowDefinition Height="30"/>
-            <RowDefinition Height="2"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="5"/>
-            <ColumnDefinition Width="*"/>
-            <ColumnDefinition Width="5"/>
-        </Grid.ColumnDefinitions>
 
-        <Label Grid.Column="1" Grid.Row="1" Grid.ColumnSpan="2" Padding="5,0,5,0" Style="{StaticResource WindowTitleStyle}">Carbo Circle : Reuse Materials</Label>
+        <TabControl x:Name="tab_Main" Grid.Row="0">
 
+            <!-- ============================== 1. SET UP ============================== -->
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <Border Style="{StaticResource StepBadge}">
+                            <TextBlock Text="1" Style="{StaticResource StepBadgeText}"/>
+                        </Border>
+                        <TextBlock Text="Set up" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </TabItem.Header>
 
-        <TabControl Name="tab_Main" Grid.Row="3" Grid.Column="1" Background="White" BorderBrush="Black" BorderThickness="0" Grid.ColumnSpan="2" Margin="5">
-            <TabItem Header="Overview">
-                <Grid Background="White">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="5"/>
-                        <RowDefinition Height="250"/>
-                        <RowDefinition Height="1*"/>
-                        <RowDefinition Height="5"/>
-                    </Grid.RowDefinitions>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="10"/>
-                        <ColumnDefinition Width="330" MinWidth="300"/>
-                        <ColumnDefinition Width="3*"/>
-                        <ColumnDefinition Width="10"/>
-                    </Grid.ColumnDefinitions>
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="20">
+                    <StackPanel>
 
-                    <Grid Background="White"  Grid.Column="1" Grid.Row="1" >
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="5"/>
-                            <RowDefinition Height="30"/>
-                            <RowDefinition Height="30"/>
-                            <RowDefinition Height="30"/>
-                            <RowDefinition Height="30"/>
-                            <RowDefinition Height="60"/>
-                            <RowDefinition Height="60"/>
-                            <RowDefinition Height="30"/>
-                            <RowDefinition Height="30"/>
-                            <RowDefinition Height="30"/>
-                            <RowDefinition Height="5"/>
-                        </Grid.RowDefinitions>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="5"/>
-                            <ColumnDefinition Width="225"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="5"/>
-                        </Grid.ColumnDefinitions>
-                        <Label Grid.Column="1" Grid.Row="1" Grid.ColumnSpan="2" Style="{StaticResource formBoldTitleStyle}">Steps to complete</Label>
-
-                        <Label Grid.Column="1" Grid.Row="2" Grid.ColumnSpan="1" Margin="10,0,0,0" Style="{StaticResource formBoldTitleStyle}">1. Mine materials</Label>
-                        <Label Grid.Column="1" Grid.Row="3" Grid.ColumnSpan="1" Margin="10,0,0,0"  Style="{StaticResource formBoldTitleStyle}">2. Load your project</Label>
-                        <Label Grid.Column="1" Grid.Row="4" Grid.ColumnSpan="1" Margin="10,0,0,0"  Style="{StaticResource formBoldTitleStyle}">3. Find Opportunities</Label>
-
-                        <!-- MinWidth rather than Width, so a caption can never be clipped: the
-                             button grows to fit its text at any dpi or font scale. -->
-                        <Button Name="btn_GotoMine" Grid.Row="2" Grid.Column="2" Margin="0,2,0,2" HorizontalAlignment="Left" VerticalAlignment="Top" MinWidth="72" Height="27" Padding="12,3" Background="White" Style="{StaticResource ButtonStyle}" IsEnabled="True" Click="btn_GotoMine_Click" >Go-></Button>
-                        <Button Name="btn_GotoProject" Grid.Row="3" Grid.Column="2" Margin="0,2,0,2" HorizontalAlignment="Left" VerticalAlignment="Top" MinWidth="72" Height="27" Padding="12,3" Background="White" Style="{StaticResource ButtonStyle}" IsEnabled="True" Click="btn_GotoProject_Click" >Go-></Button>
-                        <Button Name="btn_Go" Grid.Row="4" Grid.Column="2" Margin="0,2,0,2" HorizontalAlignment="Left" VerticalAlignment="Bottom" MinWidth="72" Height="27" Padding="12,3" Background="White" Style="{StaticResource ButtonStyle}" IsEnabled="True" Click="btn_Go_Click">Go-></Button>
-
-
-                        <Label Grid.Column="1" Margin="30,-8,5,0" Grid.Row="5" Height="30" VerticalAlignment="Top" Style="{StaticResource formTitleStyle}">Imperfect Matches</Label>
-
-                        <Label Grid.Column="1" Margin="35,8,5,0" Grid.Row="5" Height="28" VerticalAlignment="Top" Style="{StaticResource formTextStyle}">Beam Depth Tolerance (+):</Label>
-                        <TextBox Name="txt_SteelBeamDepthTolerance" Grid.Row="5" Margin="40,32,0,0" Width="150" HorizontalAlignment="Left" Height="28" VerticalAlignment="Top" Style="{StaticResource flatTextBox}" Grid.Column="1" TextChanged="txt_ParseTextSettings_TextChanged"/>
-                        <Label Grid.Column="1" Margin="196,32,0,0" Grid.Row="5" Height="28" VerticalAlignment="Top" HorizontalAlignment="Left" Style="{StaticResource formTextStyle}">mm</Label>
-
-                        <Label Grid.Column="1" Margin="35,58,5,0" Grid.Row="5" Height="28" VerticalAlignment="Top" Style="{StaticResource formTextStyle}" Grid.RowSpan="2">Strength Tolerance (+):</Label>
-                        <TextBox Name="txt_BeamStrengthTolerance" Grid.Row="6" Margin="40,22,0,0" Width="150" HorizontalAlignment="Left" Height="28" VerticalAlignment="Top" Style="{StaticResource flatTextBox}" Grid.Column="1" TextChanged="txt_ParseTextSettings_TextChanged"/>
-                        <Label Grid.Column="1" Margin="196,22,0,0" Grid.Row="6" Height="28" VerticalAlignment="Top" HorizontalAlignment="Left" Style="{StaticResource formTextStyle}">%</Label>
-
-
-
-                    </Grid>
-
-                    <!-- No Style here on purpose: the GroupBox style in MyStyles carries the
-                         header template, and a Control-targeted style applied by hand would
-                         replace it. -->
-                    <GroupBox Grid.Column="1" Margin="0,0,0,0" Grid.Row="2" Header="Visualise">
-                        <Grid Background="White"  Grid.Column="1" Grid.Row="1" >
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="5"/>
-                                <RowDefinition Height="25"/>
-                                <RowDefinition Height="25"/>
-                                <RowDefinition Height="25"/>
-                                <RowDefinition Height="25"/>
-                                <RowDefinition Height="25"/>
-                                <RowDefinition Height="25"/>
-                                <RowDefinition Height="5"/>
-                                <RowDefinition Height="30"/>
-                                <RowDefinition Height="*"/>
-                            </Grid.RowDefinitions>
+                        <Grid Margin="0,0,0,16">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="5"/>
-                                <ColumnDefinition Width="3*"/>
-                                <ColumnDefinition Width="1*"/>
-                                <ColumnDefinition Width="5"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="16"/>
+                                <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
-                            <!--Colours-->
-                            <Label Grid.Column="1" Grid.Row="1" Style="{StaticResource formTitleStyle}">Colour Profile</Label>
-                            <Label Grid.Column="1" Margin="5,0,5,0" Grid.Row="2" Height="28" VerticalAlignment="Top" Style="{StaticResource formTextStyle}">Existing Structure Reused:</Label>
-                            <Label Grid.Column="1" Margin="5,0,5,0" Grid.Row="3" Height="28" VerticalAlignment="Top" Style="{StaticResource formTextStyle}">Existing Structure NOT Reused:</Label>
-                            <Label Grid.Column="1" Margin="5,0,5,0" Grid.Row="4" Height="28" VerticalAlignment="Top" Style="{StaticResource formTextStyle}">New Structure From Reused:</Label>
-                            <Label Grid.Column="1" Margin="5,0,5,0" Grid.Row="5" Height="28" VerticalAlignment="Top" Style="{StaticResource formTextStyle}">New Structure NOT From Reused:</Label>
-                            <Label Grid.Column="1" Margin="5,0,5,0" Grid.Row="6" Height="28" VerticalAlignment="Top" Style="{StaticResource formTextStyle}">Potential Reusable Mass Materials:</Label>
 
-                            <Button Name="btn_ColourMinedReused" Grid.Column="2" Grid.Row="2" Margin="0,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" Width="50" Height="15" Background="DarkSlateBlue" Style="{StaticResource ColourSwatchStyle}" IsEnabled="True" Click="btn_ColourMinedReused_Click" ></Button>
-                            <Button Name="btn_ColourMinedNotReused" Grid.Column="2"  Grid.Row="3" Margin="0,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" Width="50" Height="15" Background="White" Style="{StaticResource ColourSwatchStyle}" IsEnabled="True" Click="btn_ColourMinedNotReused_Click" ></Button>
-                            <Button Name="btn_ColourRequiredReused" Grid.Column="2"  Grid.Row="4" Margin="0,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" Width="50" Height="16" Background="DarkSeaGreen" Style="{StaticResource ColourSwatchStyle}" IsEnabled="True" Click="btn_ColourRequiredReused_Click"></Button>
-                            <Button Name="btn_ColourRequiredNotReused" Grid.Column="2"  Grid.Row="5" Margin="0,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" Width="50" Height="15" Background="red" Style="{StaticResource ColourSwatchStyle}" IsEnabled="True" Click="btn_ColourRequiredNotReused_Click" ></Button>
-                            <Button Name="btn_ColourMassReusable" Grid.Column="2"  Grid.Row="6" Margin="0,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" Width="50" Height="15" Background="red" Style="{StaticResource ColourSwatchStyle}" IsEnabled="True" Click="btn_ColourMassReusable_Click" ></Button>
+                            <!-- What is available -->
+                            <Border Grid.Column="0" Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                        <Border Style="{StaticResource BigBadge}">
+                                            <TextBlock Text="1" Style="{StaticResource BigBadgeText}"/>
+                                        </Border>
+                                        <TextBlock Text="What is available" Style="{StaticResource SectionTitle}"/>
+                                    </StackPanel>
 
-                            <Button x:Name="btn_Visualise" Grid.Row="8" Width="120" Height="25" Grid.Column="1" Margin="0,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Style="{StaticResource ButtonStyle}" Click="btn_Visualise_Click"  Content="Colour in Revit"/>
+                                    <TextBlock Foreground="{StaticResource InkMuted}" Margin="0,0,0,16"
+                                               Text="Members and volumes recovered from the existing structure. Pull them from the model, or bring in a survey from CSV."/>
 
+                                    <TextBlock Text="EXTRACTION METHOD" Style="{StaticResource FieldLabel}"/>
+                                    <ComboBox x:Name="cbb_MineSetting" Margin="0,0,0,12"/>
 
+                                    <Grid Margin="0,0,0,12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Button Grid.Column="0" x:Name="btn_ImportmaterialsRevit"
+                                                Style="{StaticResource CircleStrongButton}"
+                                                Content="Read from model"
+                                                Click="btn_ImportmaterialsRevit_Click"/>
+                                        <Button Grid.Column="1" x:Name="btn_ImportmaterialsCSV"
+                                                Content="Import CSV" MinWidth="96"
+                                                Click="btn_ImportmaterialsCSV_Click"/>
+                                        <Button Grid.Column="2" x:Name="btn_ExportMinedCSV"
+                                                Content="Export" MinWidth="76" Margin="0"
+                                                Click="btn_ExportMinedToCSV"/>
+                                    </Grid>
+
+                                    <!-- Content and style are both set from setMineOk(): red until elements arrive,
+                                         then green carrying the totals. -->
+                                    <Button x:Name="btn_GotoMine"
+                                            Style="{StaticResource CircleStepButton}"
+                                            Content="Nothing recovered yet" Margin="0"
+                                            Click="btn_GotoMine_Click"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- What is needed -->
+                            <Border Grid.Column="2" Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                        <Border Style="{StaticResource BigBadge}">
+                                            <TextBlock Text="2" Style="{StaticResource BigBadgeText}"/>
+                                        </Border>
+                                        <TextBlock Text="What is needed" Style="{StaticResource SectionTitle}"/>
+                                    </StackPanel>
+
+                                    <TextBlock Foreground="{StaticResource InkMuted}" Margin="0,0,0,16"
+                                               Text="The proposed frame. Every requirement here is something CarboCircle will try to satisfy from the recovered stock."/>
+
+                                    <TextBlock Text="EXTRACTION METHOD" Style="{StaticResource FieldLabel}"/>
+                                    <ComboBox x:Name="cbb_ImportProjectSetting" Margin="0,0,0,12"/>
+
+                                    <Grid Margin="0,0,0,12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Button Grid.Column="0" x:Name="btn_ImportProjectRevit"
+                                                Style="{StaticResource CircleStrongButton}"
+                                                Content="Read from model"
+                                                Click="btn_ImportProjectRevit_Click"/>
+                                        <Button Grid.Column="1" x:Name="btn_ImportProjectCSV"
+                                                Content="Import CSV" MinWidth="96"
+                                                Click="btn_ImportProjectCSV_Click"/>
+                                        <Button Grid.Column="2" x:Name="btn_ExportProjectData"
+                                                Content="Export" MinWidth="76" Margin="0"
+                                                Click="btn_ExportProjectData_Click"/>
+                                    </Grid>
+
+                                    <!-- Content and style are both set from setRequiredOk(): red until elements
+                                         arrive, then green carrying the totals. -->
+                                    <Button x:Name="btn_GotoProject"
+                                            Style="{StaticResource CircleStepButton}"
+                                            Content="Nothing loaded yet" Margin="0"
+                                            Click="btn_GotoProject_Click"/>
+                                </StackPanel>
+                            </Border>
                         </Grid>
 
+                        <!-- How closely to match -->
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                                    <Border Style="{StaticResource BigBadge}">
+                                        <TextBlock Text="3" Style="{StaticResource BigBadgeText}"/>
+                                    </Border>
+                                    <TextBlock Text="How closely to match" Style="{StaticResource SectionTitle}"/>
+                                </StackPanel>
 
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="200"/>
+                                        <ColumnDefinition Width="24"/>
+                                        <ColumnDefinition Width="200"/>
+                                        <ColumnDefinition Width="32"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
 
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="STRENGTH TOLERANCE (%)" Style="{StaticResource FieldLabel}"/>
+                                        <TextBox x:Name="txt_BeamStrengthTolerance"
+                                                 TextChanged="txt_ParseTextSettings_TextChanged"/>
+                                        <TextBlock Style="{StaticResource HelpText}"
+                                                   Text="A reused member may be this much weaker than the one it replaces."/>
+                                    </StackPanel>
 
-                    </GroupBox>
+                                    <StackPanel Grid.Column="2">
+                                        <TextBlock Text="DEPTH TOLERANCE (MM)" Style="{StaticResource FieldLabel}"/>
+                                        <TextBox x:Name="txt_SteelBeamDepthTolerance"
+                                                 TextChanged="txt_ParseTextSettings_TextChanged"/>
+                                        <TextBlock Style="{StaticResource HelpText}"
+                                                   Text="Allowed deviation from the required section depth."/>
+                                    </StackPanel>
 
-                    <Grid Background="White" Grid.Row="1" Grid.Column="2" Grid.RowSpan="2">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="5"/>
-                            <RowDefinition Height="30"/>
-                            <RowDefinition Height="4*"/>
-                            <RowDefinition Height="32"/>
-                            <RowDefinition Height="32"/>
-                            <RowDefinition Height="2*"/>
-                            <RowDefinition Height="30"/>
-                            <RowDefinition Height="2*"/>
-                            <RowDefinition Height="5"/>
-                        </Grid.RowDefinitions>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="5"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="5"/>
-                        </Grid.ColumnDefinitions>
-                        <Label Grid.Column="1" Grid.Row="1" Grid.ColumnSpan="2" Style="{StaticResource formTitleStyle}">Reusable Beams and Columns:</Label>
+                                    <StackPanel Grid.Column="4">
+                                        <TextBlock Text="VIEW COLOURS" Style="{StaticResource FieldLabel}"/>
+                                        <WrapPanel>
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,18,8">
+                                                <Button x:Name="btn_ColourMinedReused"
+                                                        Style="{StaticResource CircleSwatchButton}"
+                                                        Click="btn_ColourMinedReused_Click"/>
+                                                <TextBlock Text="Mined, reused" VerticalAlignment="Center"
+                                                           Foreground="{StaticResource InkMuted}"/>
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,18,8">
+                                                <Button x:Name="btn_ColourMinedNotReused"
+                                                        Style="{StaticResource CircleSwatchButton}"
+                                                        Click="btn_ColourMinedNotReused_Click"/>
+                                                <TextBlock Text="Mined, not reused" VerticalAlignment="Center"
+                                                           Foreground="{StaticResource InkMuted}"/>
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,18,8">
+                                                <Button x:Name="btn_ColourRequiredReused"
+                                                        Style="{StaticResource CircleSwatchButton}"
+                                                        Click="btn_ColourRequiredReused_Click"/>
+                                                <TextBlock Text="New, from reuse" VerticalAlignment="Center"
+                                                           Foreground="{StaticResource InkMuted}"/>
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,18,8">
+                                                <Button x:Name="btn_ColourRequiredNotReused"
+                                                        Style="{StaticResource CircleSwatchButton}"
+                                                        Click="btn_ColourRequiredNotReused_Click"/>
+                                                <TextBlock Text="New, not from reuse" VerticalAlignment="Center"
+                                                           Foreground="{StaticResource InkMuted}"/>
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,18,8">
+                                                <Button x:Name="btn_ColourMassReusable"
+                                                        Style="{StaticResource CircleSwatchButton}"
+                                                        Click="btn_ColourMassReusable_Click"/>
+                                                <TextBlock Text="Reusable mass" VerticalAlignment="Center"
+                                                           Foreground="{StaticResource InkMuted}"/>
+                                            </StackPanel>
+                                        </WrapPanel>
+                                    </StackPanel>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
 
-                        <ListView Name="liv_MatchedFraming" Grid.Column="1" Grid.Row="2" Margin="0,0,5,0" FontFamily="Segoe UI" FontSize="10" Background="White" Grid.ColumnSpan="2"
-                                  ItemContainerStyle="{StaticResource MatchRowStyle}"
-                                  ScrollViewer.CanContentScroll="True"
-                                  VirtualizingPanel.IsVirtualizing="True"
-                                  VirtualizingPanel.VirtualizationMode="Recycling"
-                                  VirtualizingPanel.IsVirtualizingWhenGrouping="True">
-                            <!--
-                                Grouped and coloured by match category. The grouping itself is
-                                applied in code-behind after ItemsSource is set - see
-                                applyMatchGrouping in CarboCircleMain.xaml.cs - because the list
-                                is rebuilt on every run and a view configured before the source
-                                exists has nothing to configure.
-                            -->
-                            <ListView.GroupStyle>
-                                <GroupStyle ContainerStyle="{StaticResource MatchGroupHeader}"/>
-                            </ListView.GroupStyle>
-                            <ListView.View>
-                                <GridView AllowsColumnReorder="False">
-                                    <!--
-                                        The category, as a colour. In a CellTemplate rather than
-                                        on the row, so it is still visible when the row is
-                                        selected - which it has to be for Select Pair to work.
-                                    -->
-                                    <GridViewColumn Header="" Width="14">
-                                        <GridViewColumn.CellTemplate>
-                                            <DataTemplate>
-                                                <Border Style="{StaticResource MatchStripe}" ToolTip="{Binding matchCategory}"/>
-                                            </DataTemplate>
-                                        </GridViewColumn.CellTemplate>
-                                    </GridViewColumn>
-                                    <GridViewColumn Header="Element" Width="140" DisplayMemberBinding="{Binding Path=required_Name}"/>
-                                    <GridViewColumn Header="Id" Width="75" DisplayMemberBinding="{Binding Path=required_id}"/>
-                                    <GridViewColumn Header="Length" Width="60" DisplayMemberBinding="{Binding Path=required_length, StringFormat=N2}" TextBlock.TextAlignment="Right"/>
-                                    <GridViewColumn Header="StandardName" Width="0" DisplayMemberBinding="{Binding Path=required_standardName}"/>
+                        <!-- What deconstruction takes -->
+                        <Border Style="{StaticResource Card}" Margin="0,16,0,0">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                    <Border Style="{StaticResource BigBadge}">
+                                        <TextBlock Text="4" Style="{StaticResource BigBadgeText}"/>
+                                    </Border>
+                                    <TextBlock Text="What deconstruction takes" Style="{StaticResource SectionTitle}"/>
+                                </StackPanel>
 
-                                    <GridViewColumn Header="Substituted With" Width="140" DisplayMemberBinding="{Binding Path=mined_Name}"/>
-                                    <GridViewColumn Header="Mined Id" Width="75" DisplayMemberBinding="{Binding Path=mined_id}"/>
-                                    <GridViewColumn Header="Usable Length" Width="95" DisplayMemberBinding="{Binding Path=mined_netLength, StringFormat=N2}" TextBlock.TextAlignment="Right"/>
-                                    <GridViewColumn Header="StandardName" Width="0" DisplayMemberBinding="{Binding Path=mined_standardName}"/>
+                                <TextBlock Foreground="{StaticResource InkMuted}" Margin="0,0,0,14"
+                                           Text="Length lost releasing an existing member, per end. Taken off both ends of everything on the mined side, and charged again on each new end a cut creates. Proposed members are never reduced."/>
 
-                                    <!--
-                                        Capacity used: how much of the substitute is actually
-                                        working. 100% is an exact fit, lower means the member is
-                                        stronger than it needs to be. Bounded, unlike the old
-                                        unbounded score that ran to 500 and could outrank an
-                                        exact match.
-                                    -->
-                                    <!--
-                                        Named for what it is. "Capacity Used" reads as a design
-                                        utilisation, which this is not - it is the ratio of the
-                                        two elastic section moduli, and it says nothing about
-                                        loads, shear or buckling.
-                                    -->
-                                    <GridViewColumn Header="Wel Used" Width="80" DisplayMemberBinding="{Binding Path=match_Score, StringFormat={}{0:N0}%}" TextBlock.TextAlignment="Right"/>
-                                    <GridViewColumn Header="Reason" Width="620" DisplayMemberBinding="{Binding Path=description}"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="200"/>
+                                        <ColumnDefinition Width="24"/>
+                                        <ColumnDefinition Width="200"/>
+                                        <ColumnDefinition Width="32"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
 
-                                </GridView>
-                            </ListView.View>
-                        </ListView>
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="STEEL, EACH END (MM)" Style="{StaticResource FieldLabel}"/>
+                                        <TextBox x:Name="txt_SteelCutoffLength"
+                                                 TextChanged="txt_ParseTextSettings_TextChanged"/>
+                                        <TextBlock Style="{StaticResource HelpText}" Text="Usually 600 mm."/>
+                                    </StackPanel>
 
-                        <!--
-                            The legend. Sits beside Select Pair in row 3, which was otherwise
-                            empty to the right of the button, so no row had to be inserted into
-                            a grid whose spans already overlap. Wrapped, because this window has
-                            no minimum size and can be dragged narrow.
-                        -->
-                        <WrapPanel Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2"
-                                   Margin="130,0,5,0" VerticalAlignment="Center" Orientation="Horizontal">
-                            <Border Style="{StaticResource LegendSwatch}" Background="{StaticResource MatchExactEdge}"/>
-                            <TextBlock Style="{StaticResource LegendText}" Text="100% match"/>
-                            <Border Style="{StaticResource LegendSwatch}" Background="{StaticResource MatchAdequateEdge}"/>
-                            <TextBlock Style="{StaticResource LegendText}" Text="Structurally good enough"/>
-                            <Border Style="{StaticResource LegendSwatch}" Background="{StaticResource MatchCrossEdge}"/>
-                            <TextBlock Style="{StaticResource LegendText}" Text="Different shape - check"/>
-                            <Border Style="{StaticResource LegendSwatch}" Background="{StaticResource MatchOffcutEdge}"/>
-                            <TextBlock Style="{StaticResource LegendText}" Text="From an offcut"/>
-                            <Border Style="{StaticResource LegendSwatch}" Background="{StaticResource MatchNoneEdge}"/>
-                            <TextBlock Style="{StaticResource LegendText}" Text="No match"/>
-                        </WrapPanel>
+                                    <StackPanel Grid.Column="2">
+                                        <TextBlock Text="TIMBER, EACH END (MM)" Style="{StaticResource FieldLabel}"/>
+                                        <TextBox x:Name="txt_TimberCutoffLength"
+                                                 TextChanged="txt_ParseTextSettings_TextChanged"/>
+                                        <TextBlock Style="{StaticResource HelpText}" Text="Usually 300 mm."/>
+                                    </StackPanel>
 
-                        <Button x:Name="btn_Select" Grid.Row="3" MinWidth="130" Height="27" Padding="14,3" Grid.Column="1" Margin="0,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" Style="{StaticResource ButtonStyle}"  Click="btn_Select_Click" Content="Select Pair" />
+                                    <StackPanel Grid.Column="4">
+                                        <TextBlock Style="{StaticResource HelpText}" Margin="0,16,0,0"
+                                                   Text="Lowering an allowance recovers usable length, but only if the deconstruction method on site can release the ends that cleanly. Concrete and masonry losses are volume percentages rather than lengths, and stay in Advanced settings."/>
+                                    </StackPanel>
+                                </Grid>
 
-                        <Label Grid.Column="1" Grid.Row="4" Grid.ColumnSpan="2" Style="{StaticResource formTitleStyle}" Margin="0,0,0,0" Grid.RowSpan="3">Reusable Mass Materials:</Label>
+                                <!--
+                                    Both notes sit under the whole row rather than under their own
+                                    field. At 200 px the message wraps to three lines, which pushes
+                                    the two columns out of step with each other and moves the card
+                                    below this one every time a digit is typed.
 
-                        <ListView Name="liv_MatchedVolumes" Grid.Column="1" Grid.Row="5" Margin="0,0,5,0" FontFamily="Segoe UI" FontSize="10" Background="White" Grid.ColumnSpan="2" Grid.RowSpan="1">
-                            <ListView.View>
-                                <GridView AllowsColumnReorder="False">
-                                    <GridViewColumn Header="Id" Width="70" DisplayMemberBinding="{Binding Path=id}"/>
-                                    <GridViewColumn Header="Category" Width="130" DisplayMemberBinding="{Binding Path=category}"/>
-                                    <GridViewColumn Header="Name" Width="180" DisplayMemberBinding="{Binding Path=name}"/>
-                                    <GridViewColumn Header="Material" Width="160"  DisplayMemberBinding="{Binding Path=materialName}" />
-                                    <GridViewColumn Header="Class" Width="90" DisplayMemberBinding="{Binding Path=materialClass}"/>
+                                    Shown by refreshCutoffWarnings() when a value falls below its
+                                    advisory minimum in carboCircleSettings.
+                                -->
+                                <Border x:Name="wrn_SteelCutoff" Style="{StaticResource WarnNote}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Style="{StaticResource WarnText}" FontWeight="Bold"
+                                                   Text="Steel:" Margin="0,0,6,0"/>
+                                        <TextBlock x:Name="txt_SteelCutoffWarning"
+                                                   Style="{StaticResource WarnText}"/>
+                                    </StackPanel>
+                                </Border>
 
-                                    <GridViewColumn Header="Volume" Width="90" DisplayMemberBinding="{Binding Path=volume, StringFormat=N3}" TextBlock.TextAlignment="Right"/>
-                                    <GridViewColumn Header="Usable Volume" Width="105" DisplayMemberBinding="{Binding Path=netVolume, StringFormat=N3}" TextBlock.TextAlignment="Right"/>
+                                <Border x:Name="wrn_TimberCutoff" Style="{StaticResource WarnNote}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Style="{StaticResource WarnText}" FontWeight="Bold"
+                                                   Text="Timber:" Margin="0,0,6,0"/>
+                                        <TextBlock x:Name="txt_TimberCutoffWarning"
+                                                   Style="{StaticResource WarnText}"/>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </Border>
 
-                                </GridView>
-                            </ListView.View>
-                        </ListView>
-
-                        <Label Grid.Column="1" Grid.Row="6" Grid.ColumnSpan="2" Style="{StaticResource formTitleStyle}" Margin="0,0,0,0" Grid.RowSpan="1">Leftovers:</Label>
-
-                        <ListView Name="liv_LeftOverData" Grid.Column="1" Grid.Row="7" Margin="0,0,5,0" FontFamily="Segoe UI" FontSize="9" Background="White" Grid.ColumnSpan="2" Grid.RowSpan="2"
-                                  ScrollViewer.CanContentScroll="True"
-                                  VirtualizingPanel.IsVirtualizing="True"
-                                  VirtualizingPanel.VirtualizationMode="Recycling"
-                                  VirtualizingPanel.IsVirtualizingWhenGrouping="True">
-                            <!--
-                                Grouped into remnants and whole members nobody wanted - two
-                                different kinds of leftover that call for different action. The
-                                GroupStyle has to be declared here: without it WPF leaves
-                                IsGrouping false and the grouping applied in code-behind does
-                                nothing at all, silently.
-                            -->
-                            <ListView.GroupStyle>
-                                <GroupStyle ContainerStyle="{StaticResource MatchGroupHeader}"/>
-                            </ListView.GroupStyle>
-                            <ListView.View>
-                                <GridView AllowsColumnReorder="False">
-                                    <GridViewColumn Header="Id" Width="70" DisplayMemberBinding="{Binding Path=id}"/>
-                                    <GridViewColumn Header="Category" Width="130" DisplayMemberBinding="{Binding Path=category}"/>
-
-                                    <GridViewColumn Header="Name" Width="180" DisplayMemberBinding="{Binding Path=name}"/>
-                                    <GridViewColumn Header="Material" Width="160"  DisplayMemberBinding="{Binding Path=materialName}" />
-                                    <GridViewColumn Header="Class" Width="90" DisplayMemberBinding="{Binding Path=materialClass}"/>
-
-                                    <GridViewColumn Header="Length" Width="85" DisplayMemberBinding="{Binding Path=length, StringFormat=N3}" TextBlock.TextAlignment="Right"/>
-                                    <GridViewColumn Header="Usable Length" Width="105" DisplayMemberBinding="{Binding Path=netLength, StringFormat=N3}" TextBlock.TextAlignment="Right"/>
-
-                                    <!--
-                                        The engine writes why a piece ended up here into grade -
-                                        "offcut too short to be worth reusing", "section not
-                                        recognised". It was a hidden zero-width column, so the
-                                        reason was computed and then never shown to anyone.
-                                    -->
-                                    <GridViewColumn Header="Note" Width="220" DisplayMemberBinding="{Binding Path=grade}"/>
-                                    <GridViewColumn Header="Condition" Width="0" DisplayMemberBinding="{Binding Path=quality}" TextBlock.TextAlignment="Right"/>
-                                    <GridViewColumn Header="GUID" Width="0" DisplayMemberBinding="{Binding Path=GUID}"/>
-
-                                    <GridViewColumn Header="Section" Width="150" DisplayMemberBinding="{Binding Path=standardName}"/>
-                                    <GridViewColumn Header="Family" Width="70" DisplayMemberBinding="{Binding Path=standardCategory}"/>
-                                    <GridViewColumn Header="Depth" Width="0" DisplayMemberBinding="{Binding Path=standardDepth}"/>
-
-                                    <GridViewColumn Header="Iy" Width="0" DisplayMemberBinding="{Binding Path=Iy}"/>
-                                    <GridViewColumn Header="Wely" Width="0" DisplayMemberBinding="{Binding Path=Wy}"/>
-                                    <GridViewColumn Header="MatchGUID" Width="0" DisplayMemberBinding="{Binding Path=matchGUID}"/>
-                                    <GridViewColumn Header="humanId" Width="75" DisplayMemberBinding="{Binding Path=humanId}"/>
-
-
-                                </GridView>
-                            </ListView.View>
-                        </ListView>
-
-                    </Grid>
-
-
-                </Grid>
+                    </StackPanel>
+                </ScrollViewer>
             </TabItem>
-            <TabItem Header="Mine Materials">
-                <Grid Background="White">
+
+            <!-- ========================= 2. AVAILABLE STOCK ========================= -->
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <Border Style="{StaticResource StepBadge}">
+                            <TextBlock Text="2" Style="{StaticResource StepBadgeText}"/>
+                        </Border>
+                        <TextBlock Text="Available stock" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </TabItem.Header>
+
+                <Grid Margin="20">
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="2"/>
-                        <RowDefinition Height="1*"/>
-                        <RowDefinition Height="2"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="2*" MinHeight="180"/>
+                        <RowDefinition Height="16"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*" MinHeight="120"/>
                     </Grid.RowDefinitions>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="5"/>
-                        <ColumnDefinition Width="1*"/>
-                        <ColumnDefinition Width="2*"/>
-                        <ColumnDefinition Width="5"/>
-                    </Grid.ColumnDefinitions>
 
-                    <Grid Background="White" Grid.Row="1" Grid.Column="1">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="5"/>
-                            <RowDefinition Height="250"/>
-                            <RowDefinition Height="0"/>
-                            <RowDefinition Height="*"/>
-                            <RowDefinition Height="5"/>
-                        </Grid.RowDefinitions>
-
-                        <Grid Background="White"  Grid.Column="1" Grid.Row="1" >
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="5"/>
-                                <RowDefinition Height="30"/>
-                                <RowDefinition Height="5"/>
-                                <RowDefinition Height="30"/>
-                                <RowDefinition Height="30"/>
-                                <RowDefinition Height="30"/>
-                                <RowDefinition Height="30"/>
-                                <RowDefinition Height="*"/>
-                                <RowDefinition Height="30"/>
-                            </Grid.RowDefinitions>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="5"/>
-                                <ColumnDefinition Width="200"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="5"/>
-                            </Grid.ColumnDefinitions>
-                            <Label Grid.Column="1" Grid.Row="1" Grid.ColumnSpan="2" Style="{StaticResource formTitleStyle}">Mine Data From:</Label>
-
-                            <Label Grid.Column="1" Grid.Row="2" Grid.ColumnSpan="1" Margin="10,0,0,0" Style="{StaticResource formTitleStyle}" Visibility="Hidden">Active Revit view:</Label>
-
-                            <Label Grid.Column="1" Grid.Row="3" Grid.ColumnSpan="1" Margin="10,-5,0,0" Style="{StaticResource formTextStyle}">Elements to consider:</Label>
-                            <Label Grid.Column="1" Grid.Row="3" Grid.ColumnSpan="1" Margin="10,8,0,0" Style="{StaticResource formGreyText}">When importing elements look only here</Label>
-
-                            <ComboBox Name="cbb_MineSetting" Grid.Column="1" Grid.Row="4" Margin="10,0,10,0" Height="25"  VerticalAlignment="Top" Style="{StaticResource ComboBoxFlatStyle}">
-                            </ComboBox>
-
-                            <Label Grid.Column="1" Grid.Row="5" Grid.ColumnSpan="1" Margin="10,0,0,0"  Style="{StaticResource formTitleStyle}">A text document (CSV)</Label>
-                            <Label IsEnabled="False" Grid.Column="1" Grid.Row="6" Grid.ColumnSpan="1" Margin="10,0,0,0"  Style="{StaticResource formTitleStyle}">From an online URL:</Label>
-
-                            <Button x:Name="btn_ImportmaterialsRevit" Grid.Row="4" Grid.Column="2" Margin="0,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" Width="75" Height="25" Style="{StaticResource ButtonStyle}"  Content="Mine Revit" Click="btn_ImportmaterialsRevit_Click"/>
-                            <Button x:Name="btn_ImportmaterialsCSV" Grid.Row="5" Grid.Column="2" Margin="0,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" Width="75" Height="25" Style="{StaticResource ButtonStyle}"  Content="Import CSV" Click="btn_ImportmaterialsCSV_Click"/>
-                            <Button x:Name="btn_ImportmaterialsWeb" IsEnabled="False" Grid.Row="6" Grid.Column="2" Margin="0,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" Width="75" Height="25" Style="{StaticResource ButtonStyle}"  Content="Mine Web"/>
-
-                            <Button x:Name="btn_MineSettings" Grid.Row="8" Grid.Column="1" Margin="0,2,5,0" HorizontalAlignment="Left" VerticalAlignment="Top" Width="125" Height="25" Style="{StaticResource ButtonStyle}" Click="btn_MineSettings_Click"  Content="Advanced Settings"/>
-
-
-
+                    <Border Grid.Row="0" Style="{StaticResource ListTitleBar}">
+                        <Grid>
+                            <TextBlock Text="Members recovered from the existing structure"
+                                       Style="{StaticResource ListTitleText}" HorizontalAlignment="Left"/>
+                            <Button Content="Export to CSV" HorizontalAlignment="Right" Margin="0"
+                                    Style="{StaticResource BarButton}"
+                                    Click="btn_ExportMinedToCSV"/>
                         </Grid>
+                    </Border>
 
+                    <ListView Grid.Row="1" x:Name="liv_MinedData" Style="{StaticResource DataGridList}">
+                        <ListView.View>
+                            <GridView AllowsColumnReorder="False">
+                                <GridViewColumn Header="NAME" Width="180">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding name}" Style="{StaticResource Cell}" FontWeight="Medium"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="CATEGORY" Width="130">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding category}" Style="{StaticResource CellQuiet}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="SECTION" Width="150">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding standardName}" Style="{StaticResource Cell}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="MATERIAL" Width="150">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding materialName}" Style="{StaticResource CellQuiet}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="CLASS" Width="90">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding materialClass}" Style="{StaticResource CellQuiet}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="LENGTH" Width="85">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding length, StringFormat=N3}" Style="{StaticResource CellNumeric}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="USABLE LENGTH" Width="122">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding netLength, StringFormat=N3}" Style="{StaticResource CellNumeric}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="GRADE" Width="90">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding grade}" Style="{StaticResource CellQuiet}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="CONDITION" Width="98">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding quality}" Style="{StaticResource CellNumeric}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="FAMILY" Width="130">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding standardCategory}" Style="{StaticResource CellQuiet}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="DEPTH" Width="70">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding standardDepth}" Style="{StaticResource CellNumeric}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="WIDTH" Width="70">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding standardWidth}" Style="{StaticResource CellNumeric}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="IY" Width="80">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding Iy}" Style="{StaticResource CellNumeric}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="WELY" Width="80">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding Wy}" Style="{StaticResource CellNumeric}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="ID" Width="75">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding id}" Style="{StaticResource CellQuiet}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="HUMAN ID" Width="95">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding humanId}" Style="{StaticResource CellQuiet}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="GUID" Width="90">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding GUID}" Style="{StaticResource CellQuiet}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="MATCH GUID" Width="105">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding matchGUID}" Style="{StaticResource CellQuiet}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                            </GridView>
+                        </ListView.View>
+                    </ListView>
 
-                        <Grid Grid.Column="1" Grid.Row="3">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="5"/>
-                                <RowDefinition Height="30"/>
-                                <RowDefinition Height="30"/>
-                                <RowDefinition Height="30"/>
-                                <RowDefinition Height="30"/>
-                                <RowDefinition Height="30"/>
-                                <RowDefinition Height="30"/>
-                                <RowDefinition Height="52"/>
-                                <RowDefinition Height="52"/>
-                                <RowDefinition Height="30"/>
-                                <RowDefinition Height="30"/>
-                                <RowDefinition Height="30"/>
+                    <Border Grid.Row="3" Style="{StaticResource ListTitleBar}">
+                        <TextBlock Text="Bulk volumes" Style="{StaticResource ListTitleText}"/>
+                    </Border>
 
-                                <RowDefinition Height="*"/>
-
-                            </Grid.RowDefinitions>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-
-                            <Label Grid.Column="3" Grid.Row="1" Grid.ColumnSpan="2" Style="{StaticResource formTitleStyle}" Visibility="Hidden">Tools:</Label>
-
-
-                        </Grid>
-
-
-
-
-                    </Grid>
-
-                    <Grid Background="White" Grid.Row="1" Grid.Column="2" Grid.RowSpan="2">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="5"/>
-                            <RowDefinition Height="30"/>
-                            <RowDefinition Height="4*"/>
-                            <RowDefinition Height="30"/>
-                            <RowDefinition Height="2*"/>
-                            <RowDefinition Height="30"/>
-                            <RowDefinition Height="5"/>
-                        </Grid.RowDefinitions>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="5"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="5"/>
-                        </Grid.ColumnDefinitions>
-                        <Label Grid.Column="1" Grid.Row="1" Grid.ColumnSpan="2" Style="{StaticResource formTitleStyle}">Mined Beams and Columns:</Label>
-
-                        <ListView Name="liv_MinedData" Grid.Column="1" Grid.Row="2" Margin="0,0,0,0" Background="White">
-                            <ListView.View>
-                                <GridView AllowsColumnReorder="False">
-                                    <GridViewColumn Header="Id" Width="70" DisplayMemberBinding="{Binding Path=id}"/>
-                                    <GridViewColumn Header="Category" Width="130" DisplayMemberBinding="{Binding Path=category}"/>
-
-                                    <GridViewColumn Header="Name" Width="180" DisplayMemberBinding="{Binding Path=name}"/>
-                                    <GridViewColumn Header="Material" Width="160"  DisplayMemberBinding="{Binding Path=materialName}" />
-                                    <GridViewColumn Header="Class" Width="90" DisplayMemberBinding="{Binding Path=materialClass}"/>
-
-                                    <GridViewColumn Header="Length" Width="85" DisplayMemberBinding="{Binding Path=length, StringFormat=N3}" TextBlock.TextAlignment="Right"/>
-                                    <GridViewColumn Header="Usable Length" Width="105" DisplayMemberBinding="{Binding Path=netLength, StringFormat=N3}" TextBlock.TextAlignment="Right"/>
-
-                                    <GridViewColumn Header="Grade" Width="0" DisplayMemberBinding="{Binding Path=grade}" TextBlock.TextAlignment="Right"/>
-                                    <GridViewColumn Header="Condition" Width="0" DisplayMemberBinding="{Binding Path=quality}" TextBlock.TextAlignment="Right"/>
-                                    <GridViewColumn Header="GUID" Width="0" DisplayMemberBinding="{Binding Path=GUID}"/>
-
-                                    <GridViewColumn Header="Section" Width="150" DisplayMemberBinding="{Binding Path=standardName}"/>
-                                    <GridViewColumn Header="Family" Width="70" DisplayMemberBinding="{Binding Path=standardCategory}"/>
-                                    <GridViewColumn Header="Depth" Width="50" DisplayMemberBinding="{Binding Path=standardDepth}"/>
-                                    <GridViewColumn Header="Width" Width="50" DisplayMemberBinding="{Binding Path=standardWidth}"/>
-
-                                    <GridViewColumn Header="Iy" Width="0" DisplayMemberBinding="{Binding Path=Iy}"/>
-                                    <GridViewColumn Header="Wely" Width="0" DisplayMemberBinding="{Binding Path=Wy}"/>
-                                    <GridViewColumn Header="MatchGUID" Width="0" DisplayMemberBinding="{Binding Path=matchGUID}"/>
-                                    <GridViewColumn Header="humanId" Width="75" DisplayMemberBinding="{Binding Path=humanId}"/>
-
-
-                                </GridView>
-                            </ListView.View>
-                        </ListView>
-                        <Label Grid.Column="1" Grid.Row="3" Grid.ColumnSpan="2" Style="{StaticResource formTitleStyle}">Mined Mass Materials:</Label>
-
-                        <ListView Name="liv_MinedMassObjects" Grid.Column="1" Grid.Row="4" Margin="0,0,0,0" FontFamily="Segoe UI" FontSize="9" Background="White">
-                            <ListView.View>
-                                <GridView AllowsColumnReorder="False">
-                                    <GridViewColumn Header="Id" Width="70" DisplayMemberBinding="{Binding Path=id}"/>
-                                    <GridViewColumn Header="Category" Width="130" DisplayMemberBinding="{Binding Path=category}"/>
-                                    <GridViewColumn Header="Name" Width="180" DisplayMemberBinding="{Binding Path=name}"/>
-                                    <GridViewColumn Header="Material" Width="160"  DisplayMemberBinding="{Binding Path=materialName}" />
-                                    <GridViewColumn Header="Class" Width="90" DisplayMemberBinding="{Binding Path=materialClass}"/>
-
-                                    <GridViewColumn Header="Volume" Width="90" DisplayMemberBinding="{Binding Path=volume, StringFormat=N3}" TextBlock.TextAlignment="Right"/>
-                                    <GridViewColumn Header="Net Volume" Width="75" DisplayMemberBinding="{Binding Path=netVolume, StringFormat=N3}" TextBlock.TextAlignment="Right"/>
-
-                                </GridView>
-                            </ListView.View>
-                        </ListView>
-
-                        <Button x:Name="btn_ExportData" Grid.Row="5" Grid.Column="1" Margin="0,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" Width="90" Height="28" Style="{StaticResource ButtonStyle}"  Content="Export to CSV" Click="btn_ExportMinedToCSV"/>
-
-
-                    </Grid>
+                    <ListView Grid.Row="4" x:Name="liv_MinedMassObjects" Style="{StaticResource DataGridList}">
+                        <ListView.View>
+                            <GridView AllowsColumnReorder="False">
+                                <GridViewColumn Header="NAME" Width="200">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding name}" Style="{StaticResource Cell}" FontWeight="Medium"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="CATEGORY" Width="150">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding category}" Style="{StaticResource CellQuiet}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="MATERIAL" Width="180">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding materialName}" Style="{StaticResource Cell}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="CLASS" Width="100">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding materialClass}" Style="{StaticResource CellQuiet}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="VOLUME" Width="110">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding volume, StringFormat=N3}" Style="{StaticResource CellNumeric}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="NET VOLUME" Width="118">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding netVolume, StringFormat=N3}" Style="{StaticResource CellNumeric}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="ID" Width="75">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding id}" Style="{StaticResource CellQuiet}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                            </GridView>
+                        </ListView.View>
+                    </ListView>
                 </Grid>
             </TabItem>
 
-            <TabItem Header="Your Project">
-                <Grid Background="White">
+            <!-- ============================= 3. REQUIRED ============================= -->
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <Border Style="{StaticResource StepBadge}">
+                            <TextBlock Text="3" Style="{StaticResource StepBadgeText}"/>
+                        </Border>
+                        <TextBlock Text="Required" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </TabItem.Header>
+
+                <Grid Margin="20">
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="2"/>
-                        <RowDefinition Height="1*"/>
-                        <RowDefinition Height="2"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="2*" MinHeight="180"/>
+                        <RowDefinition Height="16"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*" MinHeight="120"/>
                     </Grid.RowDefinitions>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="5"/>
-                        <ColumnDefinition Width="1*"/>
-                        <ColumnDefinition Width="2*"/>
-                        <ColumnDefinition Width="5"/>
-                    </Grid.ColumnDefinitions>
 
-                    <Grid Background="White" Grid.Row="1" Grid.Column="1">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="5"/>
-                            <RowDefinition Height="250"/>
-                            <RowDefinition Height="0"/>
-                            <RowDefinition Height="*"/>
-                            <RowDefinition Height="5"/>
-                        </Grid.RowDefinitions>
-                        <Grid Background="White"  Grid.Column="1" Grid.Row="1" >
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="5"/>
-                                <RowDefinition Height="30"/>
-                                <RowDefinition Height="5"/>
-                                <RowDefinition Height="30"/>
-                                <RowDefinition Height="30"/>
-                                <RowDefinition Height="30"/>
-                                <RowDefinition Height="30"/>
-                                <RowDefinition Height="*"/>
-                                <RowDefinition Height="30"/>
-                            </Grid.RowDefinitions>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="5"/>
-                                <ColumnDefinition Width="200"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="5"/>
-                            </Grid.ColumnDefinitions>
-                            <Label Grid.Column="1" Grid.Row="1" Grid.ColumnSpan="2" Style="{StaticResource formTitleStyle}" >Get Project Data From:</Label>
-
-                            <Label Grid.Column="1" Grid.Row="2" Grid.ColumnSpan="1" Margin="10,0,0,0" Style="{StaticResource formTitleStyle}" Visibility="Hidden" >Active Revit view:</Label>
-
-                            <Label Grid.Column="1" Grid.Row="3" Grid.ColumnSpan="1" Margin="10,-5,0,0" Style="{StaticResource formTextStyle}">Elements to consider:</Label>
-                            <Label Grid.Column="1" Grid.Row="3" Grid.ColumnSpan="1" Margin="10,8,0,0" Style="{StaticResource formGreyText}">When importing elements look only here</Label>
-
-                            <ComboBox Name="cbb_ImportProjectSetting" Grid.Column="1" Grid.Row="4" Margin="10,0,10,0" Height="25" VerticalAlignment="Top" Style="{StaticResource ComboBoxFlatStyle}" >
-                            </ComboBox>
-
-                            <Label Grid.Column="1" Grid.Row="5" Grid.ColumnSpan="1" Margin="10,0,0,0"  Style="{StaticResource formTitleStyle}">A text document (CSV)</Label>
-                            <Label IsEnabled="False" Visibility="Visible" Grid.Column="1" Grid.Row="6" Grid.ColumnSpan="1" Margin="10,0,0,0"  Style="{StaticResource formTitleStyle}">From an online URL:</Label>
-
-                            <Button x:Name="btn_ImportProjectRevit" Grid.Row="4" Grid.Column="2" Margin="0,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" Width="75" Height="25" Style="{StaticResource ButtonStyle}"  Content="Import Revit" Click="btn_ImportProjectRevit_Click"/>
-                            <Button x:Name="btn_ImportProjectCSV" Grid.Row="5" Grid.Column="2" Margin="0,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" Width="75" Height="25" Style="{StaticResource ButtonStyle}"  Content="Import CSV" Click="btn_ImportProjectCSV_Click"/>
-                            <Button IsEnabled="False" x:Name="btn_ExportProject" Visibility="Visible" Grid.Row="6" Grid.Column="2" Margin="0,0,5,0" HorizontalAlignment="Right" VerticalAlignment="Center" Width="75" Height="25" Style="{StaticResource ButtonStyle}"  Content="Export CSV"/>
-
-                            <Button x:Name="btn_ImportProjectSettings" Grid.Row="9" Grid.Column="1" Margin="0,2,5,0" HorizontalAlignment="Left" VerticalAlignment="Top" Width="125" Height="25" Style="{StaticResource ButtonStyle}"  Content="Advanced Settings" Click="btn_MineSettings_Click"/>
-
+                    <Border Grid.Row="0" Style="{StaticResource ListTitleBar}">
+                        <Grid>
+                            <TextBlock Text="Members required by the proposed frame"
+                                       Style="{StaticResource ListTitleText}" HorizontalAlignment="Left"/>
+                            <Button Content="Export to CSV" HorizontalAlignment="Right" Margin="0"
+                                    Style="{StaticResource BarButton}"
+                                    Click="btn_ExportProjectData_Click"/>
                         </Grid>
-                        <Grid Grid.Column="1" Grid.Row="3">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="5"/>
-                                <RowDefinition Height="30"/>
-                                <RowDefinition Height="30"/>
-                                <RowDefinition Height="*"/>
+                    </Border>
 
-                            </Grid.RowDefinitions>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
+                    <ListView Grid.Row="1" x:Name="liv_requiredMaterialList" Style="{StaticResource DataGridList}">
+                        <ListView.View>
+                            <GridView AllowsColumnReorder="False">
+                                <GridViewColumn Header="NAME" Width="180">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding name}" Style="{StaticResource Cell}" FontWeight="Medium"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="CATEGORY" Width="130">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding category}" Style="{StaticResource CellQuiet}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <!-- SECTION is standardName and FAMILY is standardCategory, the same
+                                     way round as the two grids above. The previous window had these
+                                     two headers swapped on this grid only. -->
+                                <GridViewColumn Header="SECTION" Width="150">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding standardName}" Style="{StaticResource Cell}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="MATERIAL" Width="150">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding materialName}" Style="{StaticResource CellQuiet}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="CLASS" Width="90">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding materialClass}" Style="{StaticResource CellQuiet}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="LENGTH" Width="85">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding length, StringFormat=N3}" Style="{StaticResource CellNumeric}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="GRADE" Width="90">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding grade}" Style="{StaticResource CellQuiet}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="CONDITION" Width="98">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding quality}" Style="{StaticResource CellNumeric}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="FAMILY" Width="130">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding standardCategory}" Style="{StaticResource CellQuiet}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="DEPTH" Width="70">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding standardDepth}" Style="{StaticResource CellNumeric}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="WIDTH" Width="70">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding standardWidth}" Style="{StaticResource CellNumeric}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="IY" Width="80">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding Iy}" Style="{StaticResource CellNumeric}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="WELY" Width="80">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding Wy}" Style="{StaticResource CellNumeric}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="ID" Width="75">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding id}" Style="{StaticResource CellQuiet}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="GUID" Width="90">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding GUID}" Style="{StaticResource CellQuiet}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="MATCH GUID" Width="105">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding matchGUID}" Style="{StaticResource CellQuiet}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                            </GridView>
+                        </ListView.View>
+                    </ListView>
 
+                    <Border Grid.Row="3" Style="{StaticResource ListTitleBar}">
+                        <TextBlock Text="Bulk volumes required" Style="{StaticResource ListTitleText}"/>
+                    </Border>
 
-                            <Label Grid.Column="1" Grid.Row="1" Grid.ColumnSpan="2" Style="{StaticResource formTitleStyle}" Content="Revit Import Settings:"/>
-
-
-
-
-
-                        </Grid>
-                    </Grid>
-
-                    <Grid Background="White" Grid.Row="1" Grid.Column="2" Grid.RowSpan="2">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="5"/>
-                            <RowDefinition Height="30"/>
-                            <RowDefinition Height="4*"/>
-                            <RowDefinition Height="30"/>
-                            <RowDefinition Height="2*"/>
-                            <RowDefinition Height="30"/>
-                            <RowDefinition Height="5"/>
-                        </Grid.RowDefinitions>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="5"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="5"/>
-                        </Grid.ColumnDefinitions>
-                        <Label Grid.Column="1" Grid.Row="1" Grid.ColumnSpan="2" Style="{StaticResource formTitleStyle}">Required Beams and Columns:</Label>
-
-                        <ListView Name="liv_requiredMaterialList" Grid.Column="1" Grid.Row="2" Grid.RowSpan="3" Margin="0,0,0,0" FontFamily="Segoe UI" FontSize="10" Background="White">
-                            <ListView.View>
-                                <GridView AllowsColumnReorder="False">
-                                    <GridViewColumn Header="Id" Width="70" DisplayMemberBinding="{Binding Path=id}"/>
-                                    <GridViewColumn Header="Category" Width="130" DisplayMemberBinding="{Binding Path=category}"/>
-                                    <GridViewColumn Header="Name" Width="180" DisplayMemberBinding="{Binding Path=name}"/>
-                                    <GridViewColumn Header="Material" Width="160" DisplayMemberBinding="{Binding Path=materialName}"/>
-                                    <GridViewColumn Header="Class" Width="90" DisplayMemberBinding="{Binding Path=materialClass}"/>
-
-                                    <GridViewColumn Header="Length" Width="85" DisplayMemberBinding="{Binding Path=length, StringFormat=N3}" TextBlock.TextAlignment="Right"/>
-                                    <GridViewColumn Header="Grade" Width="75" DisplayMemberBinding="{Binding Path=grade}" TextBlock.TextAlignment="Right"/>
-                                    <GridViewColumn Header="Condition" Width="0" DisplayMemberBinding="{Binding Path=quality}" TextBlock.TextAlignment="Right"/>
-                                    <GridViewColumn Header="GUID" Width="0" DisplayMemberBinding="{Binding Path=GUID}"/>
-
-                                    <GridViewColumn Header="Section" Width="150" DisplayMemberBinding="{Binding Path=standardCategory}"/>
-                                    <GridViewColumn Header="Family" Width="70" DisplayMemberBinding="{Binding Path=standardName}"/>
-                                    <GridViewColumn Header="Depth" Width="50" DisplayMemberBinding="{Binding Path=standardDepth}"/>
-                                    <GridViewColumn Header="Width" Width="50" DisplayMemberBinding="{Binding Path=standardWidth}"/>
-
-                                    <GridViewColumn Header="Iy" Width="75" DisplayMemberBinding="{Binding Path=Iy}"/>
-                                    <GridViewColumn Header="Wely" Width="75" DisplayMemberBinding="{Binding Path=Wy}"/>
-                                    <GridViewColumn Header="MatchGUID" Width="0" DisplayMemberBinding="{Binding Path=matchGUID}"/>
-
-                                </GridView>
-                            </ListView.View>
-                        </ListView>
-                        <Label Grid.Column="1" Grid.Row="3" Grid.ColumnSpan="2" Style="{StaticResource formTitleStyle}" Visibility="Hidden">Required Volume Materials:</Label>
-
-                        <ListView Name="liv_RequiredMassObjects" Visibility="Hidden" Grid.Column="1" Grid.Row="4" Margin="0,0,0,0" FontFamily="Segoe UI" FontSize="10" Background="White">
-                            <ListView.View>
-                                <GridView AllowsColumnReorder="False">
-                                    <GridViewColumn Header="Id" Width="70" DisplayMemberBinding="{Binding Path=id}"/>
-                                    <GridViewColumn Header="Category" Width="130" DisplayMemberBinding="{Binding Path=category}"/>
-                                    <GridViewColumn Header="Name" Width="180" DisplayMemberBinding="{Binding Path=name}"/>
-                                    <GridViewColumn Header="Material" Width="160"  DisplayMemberBinding="{Binding Path=materialName}" />
-                                    <GridViewColumn Header="Volume" Width="90"  DisplayMemberBinding="{Binding Path=volume}" />
-
-                                </GridView>
-                            </ListView.View>
-                        </ListView>
-
-                        <Button x:Name="btn_ExportProjectData" Grid.Row="5" Grid.Column="1" Margin="0,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" Width="90" Height="28" Style="{StaticResource ButtonStyle}" Click="btn_ExportProjectData_Click"  Content="Export to CSV"/>
-
-                    </Grid>
+                    <ListView Grid.Row="4" x:Name="liv_RequiredMassObjects" Style="{StaticResource DataGridList}">
+                        <ListView.View>
+                            <GridView AllowsColumnReorder="False">
+                                <GridViewColumn Header="NAME" Width="200">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding name}" Style="{StaticResource Cell}" FontWeight="Medium"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="CATEGORY" Width="150">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding category}" Style="{StaticResource CellQuiet}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="MATERIAL" Width="180">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding materialName}" Style="{StaticResource Cell}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="VOLUME" Width="110">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding volume, StringFormat=N3}" Style="{StaticResource CellNumeric}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="ID" Width="75">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding id}" Style="{StaticResource CellQuiet}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                            </GridView>
+                        </ListView.View>
+                    </ListView>
                 </Grid>
             </TabItem>
 
+            <!-- =========================== 4. OPPORTUNITIES =========================== -->
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <Border Style="{StaticResource StepBadge}">
+                            <TextBlock Text="4" Style="{StaticResource StepBadgeText}"/>
+                        </Border>
+                        <TextBlock Text="Opportunities" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </TabItem.Header>
 
-            <TabItem Header="Report" Visibility="Visible">
-                <Grid Background="White">
+                <Grid Margin="20">
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="5"/>
-                        <RowDefinition Height="1*"/>
-                        <RowDefinition Height="1*"/>
-                        <RowDefinition Height="5"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="3*" MinHeight="180"/>
+                        <RowDefinition Height="14"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*" MinHeight="90"/>
+                        <RowDefinition Height="14"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="2*" MinHeight="110"/>
                     </Grid.RowDefinitions>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="5"/>
-                        <ColumnDefinition Width="1*"/>
-                        <ColumnDefinition Width="1*"/>
-                        <ColumnDefinition Width="5"/>
-                    </Grid.ColumnDefinitions>
-                    <Button x:Name="btn_ExportReport" Grid.Row="1" Width="150" Height="25" Grid.Column="1" Margin="0,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Style="{StaticResource ButtonStyle}" Click="btn_Report_Click"  Content="Export Fancy Report" IsEnabled="True"/>
-                    <Button x:Name="btn_GenerateReport" Grid.Row="1" Width="150" Height="25" Grid.Column="1" Margin="0,35,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Style="{StaticResource ButtonStyle}" Click="btn_GenerateReport_Click"  Content="Open in Carbo Life Calc" />
 
-                    <TextBox Name="txt_summary" Margin="5,5,4,0" Grid.Row="2" Grid.Column="1" VerticalAlignment="Top" Style="{StaticResource formGreyText}" TextWrapping="Wrap" BorderBrush="Transparent" Height="212">The Size (name) of a section size. As a default the Revit Type Name is used but you can override this by providing a type parameter.</TextBox>
+                    <Border Grid.Row="0" Style="{StaticResource ListTitleBar}">
+                        <StackPanel>
+                            <Grid>
+                                <TextBlock Text="Reusable beams and columns"
+                                           Style="{StaticResource ListTitleText}" HorizontalAlignment="Left"/>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                    <Button x:Name="btn_Select" Content="Select pair"
+                                            Style="{StaticResource BarButton}"
+                                            Click="btn_Select_Click"/>
+                                    <Button x:Name="btn_Visualise" Content="Colour the view"
+                                            Style="{StaticResource BarButton}" Margin="0"
+                                            Click="btn_Visualise_Click"/>
+                                </StackPanel>
+                            </Grid>
 
+                            <!-- The legend for the stripe in the first column. -->
+                            <WrapPanel Margin="0,9,0,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <Border Style="{StaticResource LegendSwatch}" Background="{StaticResource MatchExactEdge}"/>
+                                    <TextBlock Style="{StaticResource LegendText}" Text="100% match"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Border Style="{StaticResource LegendSwatch}" Background="{StaticResource MatchAdequateEdge}"/>
+                                    <TextBlock Style="{StaticResource LegendText}" Text="Structurally good enough"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Border Style="{StaticResource LegendSwatch}" Background="{StaticResource MatchCrossEdge}"/>
+                                    <TextBlock Style="{StaticResource LegendText}" Text="Different shape - check"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Border Style="{StaticResource LegendSwatch}" Background="{StaticResource MatchOffcutEdge}"/>
+                                    <TextBlock Style="{StaticResource LegendText}" Text="From an offcut"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Border Style="{StaticResource LegendSwatch}" Background="{StaticResource MatchNoneEdge}"/>
+                                    <TextBlock Style="{StaticResource LegendText}" Text="No match"/>
+                                </StackPanel>
+                            </WrapPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!--
+                        Grouped and coloured by match category. The grouping itself is applied in
+                        code-behind after ItemsSource is set - see applyMatchGrouping in
+                        CarboCircleMain.xaml.cs - because the list is rebuilt on every run and a
+                        view configured before the source exists has nothing to configure.
+
+                        The GroupStyle below has to be declared here: without it WPF leaves
+                        IsGrouping false and the grouping applied in code-behind does nothing at
+                        all, silently.
+                    -->
+                    <ListView Grid.Row="1" x:Name="liv_MatchedFraming"
+                              Style="{StaticResource DataGridList}"
+                              ItemContainerStyle="{StaticResource MatchRowStyle}">
+                        <ListView.GroupStyle>
+                            <GroupStyle/>
+                        </ListView.GroupStyle>
+                        <ListView.View>
+                            <GridView AllowsColumnReorder="False">
+                                <!-- The category, as a colour. In a CellTemplate rather than on the
+                                     row, so it is still visible when the row is selected - which it
+                                     has to be for Select pair to work. -->
+                                <GridViewColumn Header="" Width="26">
+                                    <GridViewColumn.CellTemplate><DataTemplate><Border Style="{StaticResource MatchStripe}" ToolTip="{Binding matchCategory}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="ELEMENT" Width="170">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding required_Name}" Style="{StaticResource Cell}" FontWeight="Medium"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="ID" Width="75">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding required_id}" Style="{StaticResource CellQuiet}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="LENGTH" Width="80">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding required_length, StringFormat=N2}" Style="{StaticResource CellNumeric}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="SUBSTITUTED WITH" Width="170">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding mined_Name}" Style="{StaticResource Cell}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="MINED ID" Width="80">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding mined_id}" Style="{StaticResource CellQuiet}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="USABLE LENGTH" Width="122">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding mined_netLength, StringFormat=N2}" Style="{StaticResource CellNumeric}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="OFFCUT" Width="85">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding offcut_netLength, StringFormat=N2}" Style="{StaticResource CellNumeric}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <!-- Named for what it is. "Capacity used" reads as a design
+                                     utilisation, which this is not - it is the ratio of the two
+                                     elastic section moduli, and it says nothing about loads, shear
+                                     or buckling. -->
+                                <GridViewColumn Header="WEL USED" Width="85">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding match_Score, StringFormat={}{0:N0}%}" Style="{StaticResource CellNumeric}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="MATCH" Width="150">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding matchCategory}" Style="{StaticResource CellQuiet}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="REASON" Width="520">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding description}" Style="{StaticResource CellQuiet}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                            </GridView>
+                        </ListView.View>
+                    </ListView>
+
+                    <Border Grid.Row="3" Style="{StaticResource ListTitleBar}">
+                        <TextBlock Text="Reusable mass materials" Style="{StaticResource ListTitleText}"/>
+                    </Border>
+
+                    <ListView Grid.Row="4" x:Name="liv_MatchedVolumes" Style="{StaticResource DataGridList}">
+                        <ListView.View>
+                            <GridView AllowsColumnReorder="False">
+                                <GridViewColumn Header="NAME" Width="200">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding name}" Style="{StaticResource Cell}" FontWeight="Medium"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="CATEGORY" Width="150">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding category}" Style="{StaticResource CellQuiet}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="MATERIAL" Width="180">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding materialName}" Style="{StaticResource Cell}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="CLASS" Width="100">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding materialClass}" Style="{StaticResource CellQuiet}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="VOLUME" Width="110">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding volume, StringFormat=N3}" Style="{StaticResource CellNumeric}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="USABLE VOLUME" Width="126">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding netVolume, StringFormat=N3}" Style="{StaticResource CellNumeric}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="ID" Width="75">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding id}" Style="{StaticResource CellQuiet}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                            </GridView>
+                        </ListView.View>
+                    </ListView>
+
+                    <Border Grid.Row="6" Style="{StaticResource ListTitleBar}">
+                        <TextBlock Text="Left over - offcuts and members nobody claimed"
+                                   Style="{StaticResource ListTitleText}"/>
+                    </Border>
+
+                    <!-- applyLeftOverGrouping() groups this one on sourceLabel; same note about
+                         the GroupStyle as the matched grid above. -->
+                    <ListView Grid.Row="7" x:Name="liv_LeftOverData" Style="{StaticResource DataGridList}">
+                        <ListView.GroupStyle>
+                            <GroupStyle/>
+                        </ListView.GroupStyle>
+                        <ListView.View>
+                            <GridView AllowsColumnReorder="False">
+                                <GridViewColumn Header="NAME" Width="180">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding name}" Style="{StaticResource Cell}" FontWeight="Medium"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="CATEGORY" Width="130">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding category}" Style="{StaticResource CellQuiet}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="SECTION" Width="150">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding standardName}" Style="{StaticResource Cell}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="MATERIAL" Width="150">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding materialName}" Style="{StaticResource CellQuiet}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="CLASS" Width="90">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding materialClass}" Style="{StaticResource CellQuiet}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="LENGTH" Width="85">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding length, StringFormat=N3}" Style="{StaticResource CellNumeric}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="USABLE LENGTH" Width="122">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding netLength, StringFormat=N3}" Style="{StaticResource CellNumeric}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="NOTE" Width="180">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding grade}" Style="{StaticResource CellQuiet}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="CONDITION" Width="98">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding quality}" Style="{StaticResource CellNumeric}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="FAMILY" Width="130">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding standardCategory}" Style="{StaticResource CellQuiet}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="DEPTH" Width="70">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding standardDepth}" Style="{StaticResource CellNumeric}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="IY" Width="80">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding Iy}" Style="{StaticResource CellNumeric}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="WELY" Width="80">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding Wy}" Style="{StaticResource CellNumeric}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="ID" Width="75">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding id}" Style="{StaticResource CellQuiet}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="HUMAN ID" Width="95">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding humanId}" Style="{StaticResource CellQuiet}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="GUID" Width="90">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding GUID}" Style="{StaticResource CellQuiet}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="MATCH GUID" Width="105">
+                                    <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding matchGUID}" Style="{StaticResource CellQuiet}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                            </GridView>
+                        </ListView.View>
+                    </ListView>
                 </Grid>
-
-
             </TabItem>
         </TabControl>
 
-        <Button x:Name="btn_Close" Grid.Row="4" Grid.Column="1" Margin="0,2,10,0" HorizontalAlignment="Right" VerticalAlignment="Top" MinWidth="90" Height="27" Padding="16,3" Style="{StaticResource ButtonStyle}"  Content="Close" Click="btn_Close_Click"/>
+        <!-- ============================== ACTION BAR ============================== -->
+        <Border Grid.Row="1" Style="{StaticResource ActionBar}">
+            <Grid>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                    <Button x:Name="btn_MineSettings" Content="Advanced settings" MinWidth="140"
+                            Click="btn_MineSettings_Click"/>
+                    <Button x:Name="btn_Report" Content="Export report" Click="btn_Report_Click"/>
+                    <Button x:Name="btn_GenerateReport" Content="Open in Carbo Life Calc"
+                            MinWidth="170" Click="btn_GenerateReport_Click"/>
+                </StackPanel>
 
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button x:Name="btn_Close" Content="Close" Click="btn_Close_Click"/>
+                    <Button x:Name="btn_Go" Content="Find opportunities" Margin="0"
+                            MinWidth="160" Style="{StaticResource CirclePrimaryButton}"
+                            Click="btn_Go_Click"/>
+                </StackPanel>
+            </Grid>
+        </Border>
     </Grid>
-
-
 </Window>

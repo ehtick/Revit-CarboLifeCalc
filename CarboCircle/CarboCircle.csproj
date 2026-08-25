@@ -22,6 +22,15 @@
     <Page Remove="db\**" />
   </ItemGroup>
   <ItemGroup>
+    <!-- UI\Legacy holds the pre-redesign CarboCircleMain.xaml, kept so the old window can be
+         restored by copying the file back over UI\CarboCircleMain.xaml. Excluded from the
+         build: a second Page compiling the same x:Class would be a duplicate definition. -->
+    <Compile Remove="UI\Legacy\**" />
+    <EmbeddedResource Remove="UI\Legacy\**" />
+    <None Remove="UI\Legacy\**" />
+    <Page Remove="UI\Legacy\**" />
+  </ItemGroup>
+  <ItemGroup>
     <None Remove="circledb\CarboCircleMasterSections.csv" />
     <None Remove="circledb\CarboCircleMasterSections.xlsx" />
     <None Remove="circledb\carboCircleMaterials.cxml" />

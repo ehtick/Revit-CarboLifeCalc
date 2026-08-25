@@ -47,6 +47,21 @@
                 <Setter Property="MinWidth"          Value="24"/>
             </Style>
 
+            <!--
+                Advisory note under a row whose value has consequences off this window.
+                Amber rather than the house red, which is the chrome on every screen here and
+                would read as furniture. Collapsed until the value earns it.
+            -->
+            <Style x:Key="RowWarning" TargetType="{x:Type TextBlock}">
+                <Setter Property="Foreground"   Value="#FF8A6800"/>
+                <Setter Property="FontFamily"   Value="Segoe UI"/>
+                <Setter Property="FontSize"     Value="10"/>
+                <Setter Property="FontWeight"   Value="SemiBold"/>
+                <Setter Property="TextWrapping" Value="Wrap"/>
+                <Setter Property="Margin"       Value="0,0,0,6"/>
+                <Setter Property="Visibility"   Value="Collapsed"/>
+            </Style>
+
             <Style x:Key="GroupNote" TargetType="{x:Type TextBlock}">
                 <Setter Property="Foreground"   Value="{StaticResource SubtleBrush}"/>
                 <Setter Property="FontFamily"   Value="Segoe UI"/>
@@ -147,6 +162,8 @@
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
 
                                 <Label   Grid.Row="0" Grid.Column="0" Style="{StaticResource RowCaption}"
@@ -154,32 +171,43 @@
                                          Content="Steel _members, cut off each end"/>
                                 <TextBox Grid.Row="0" Grid.Column="1" x:Name="txt_CutoffValue"
                                          Style="{StaticResource RowValue}"
+                                         TextChanged="txt_Cutoff_TextChanged"
                                          ToolTip="Length lost cutting a steel member free, per end. 600 mm is a common allowance."/>
                                 <Label   Grid.Row="0" Grid.Column="2" Style="{StaticResource RowUnit}" Content="mm"/>
 
-                                <Label   Grid.Row="1" Grid.Column="0" Style="{StaticResource RowCaption}"
-                                         Target="{Binding ElementName=txt_WoodCutoff}"
-                                         Content="_Timber members, cut off each end"/>
-                                <TextBox Grid.Row="1" Grid.Column="1" x:Name="txt_WoodCutoff"
-                                         Style="{StaticResource RowValue}"
-                                         ToolTip="Length lost cutting a timber member free, per end. 300 mm is a common allowance."/>
-                                <Label   Grid.Row="1" Grid.Column="2" Style="{StaticResource RowUnit}" Content="mm"/>
+                                <!-- Shown by refreshCutoffWarnings() below the advisory minimum. The
+                                     same note appears on the main window, off the same constants, so
+                                     lowering the value here cannot slip past it. -->
+                                <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3"
+                                           x:Name="txt_CutoffValueWarning" Style="{StaticResource RowWarning}"/>
 
                                 <Label   Grid.Row="2" Grid.Column="0" Style="{StaticResource RowCaption}"
+                                         Target="{Binding ElementName=txt_WoodCutoff}"
+                                         Content="_Timber members, cut off each end"/>
+                                <TextBox Grid.Row="2" Grid.Column="1" x:Name="txt_WoodCutoff"
+                                         Style="{StaticResource RowValue}"
+                                         TextChanged="txt_Cutoff_TextChanged"
+                                         ToolTip="Length lost cutting a timber member free, per end. 300 mm is a common allowance."/>
+                                <Label   Grid.Row="2" Grid.Column="2" Style="{StaticResource RowUnit}" Content="mm"/>
+
+                                <TextBlock Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3"
+                                           x:Name="txt_WoodCutoffWarning" Style="{StaticResource RowWarning}"/>
+
+                                <Label   Grid.Row="4" Grid.Column="0" Style="{StaticResource RowCaption}"
                                          Target="{Binding ElementName=txt_ConcreteLoss}"
                                          Content="_Concrete volume lost"/>
-                                <TextBox Grid.Row="2" Grid.Column="1" x:Name="txt_ConcreteLoss"
+                                <TextBox Grid.Row="4" Grid.Column="1" x:Name="txt_ConcreteLoss"
                                          Style="{StaticResource RowValue}"
                                          ToolTip="Share of a concrete volume lost in deconstruction. 25% is the usual figure. Enter 0 for no loss."/>
-                                <Label   Grid.Row="2" Grid.Column="2" Style="{StaticResource RowUnit}" Content="%"/>
+                                <Label   Grid.Row="4" Grid.Column="2" Style="{StaticResource RowUnit}" Content="%"/>
 
-                                <Label   Grid.Row="3" Grid.Column="0" Style="{StaticResource RowCaption}"
+                                <Label   Grid.Row="5" Grid.Column="0" Style="{StaticResource RowCaption}"
                                          Target="{Binding ElementName=txt_MasonryLoss}"
                                          Content="M_asonry volume lost"/>
-                                <TextBox Grid.Row="3" Grid.Column="1" x:Name="txt_MasonryLoss"
+                                <TextBox Grid.Row="5" Grid.Column="1" x:Name="txt_MasonryLoss"
                                          Style="{StaticResource RowValue}"
                                          ToolTip="Share of a masonry volume lost in deconstruction. 25% is the usual figure. Enter 0 for no loss."/>
-                                <Label   Grid.Row="3" Grid.Column="2" Style="{StaticResource RowUnit}" Content="%"/>
+                                <Label   Grid.Row="5" Grid.Column="2" Style="{StaticResource RowUnit}" Content="%"/>
                             </Grid>
                         </StackPanel>
                     </GroupBox>
