@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Reflection;
 using System.Xml.Serialization;
 
 namespace CarboLifeAPI.Data
@@ -305,6 +306,153 @@ namespace CarboLifeAPI.Data
             clone.materialSeqProperties = this.materialSeqProperties;
 
             return clone;
+        }
+
+        /// <summary>
+        /// A fully isolated copy of this material.
+        /// Clone() aliases the six mutable sub property objects straight back to this instance,
+        /// and CalculateTotals() calls .Calculate() on every one of them, so a caller holding a
+        /// Clone() of a database row still mutates the database. DeepClone copies them properly
+        /// and also carries ECI_Mix_Info, which Clone() silently drops.
+        /// </summary>
+        public CarboMaterial DeepClone()
+        {
+            CarboMaterial clone = new CarboMaterial();
+
+            clone.Id = this.Id;
+            clone.Name = this.Name;
+            clone.Description = this.Description;
+            clone.Category = this.Category;
+            clone.Density = this.Density;
+            clone.Grade = this.Grade;
+            clone.WasteFactor = this.WasteFactor;
+            clone.isLocked = this.isLocked;
+            clone.EPDurl = this.EPDurl;
+
+            //results
+            clone.ECI = this.ECI;
+            clone.ECI_A1A3 = this.ECI_A1A3;
+            clone.ECI_A4 = this.ECI_A4;
+            clone.ECI_A5 = this.ECI_A5;
+            clone.ECI_B1B5 = this.ECI_B1B5;
+            clone.ECI_C1C4 = this.ECI_C1C4;
+            clone.ECI_D = this.ECI_D;
+            clone.ECI_Mix = this.ECI_Mix;
+            clone.ECI_Seq = this.ECI_Seq;
+            clone.ECI_Mix_Info = this.ECI_Mix_Info;
+
+            clone.ECI_A1A3_Override = this.ECI_A1A3_Override;
+            clone.ECI_A4_Override = this.ECI_A4_Override;
+            clone.ECI_A5_Override = this.ECI_A5_Override;
+            clone.ECI_C1C4_Override = this.ECI_C1C4_Override;
+            clone.ECI_D_Override = this.ECI_D_Override;
+            clone.ECI_Seq_Override = this.ECI_Seq_Override;
+
+            //These six are the ones Clone() aliases, they must be real copies here.
+            clone.materialA1A3Properties = DeepCopyValue(this.materialA1A3Properties) as A1A3Element;
+            clone.materiaA4Properties = DeepCopyValue(this.materiaA4Properties) as CarboA4Properties;
+            clone.materialA5Properties = DeepCopyValue(this.materialA5Properties) as CarboA5Properties;
+            clone.materialC1C4Properties = DeepCopyValue(this.materialC1C4Properties) as CarboC1C4Properties;
+            clone.materialDProperties = DeepCopyValue(this.materialDProperties) as CarboDProperties;
+            clone.materialSeqProperties = DeepCopyValue(this.materialSeqProperties) as CarboSeqProperties;
+
+            //Never hand back a null sub property, CalculateTotals() dereferences all six.
+            if (clone.materialA1A3Properties == null) clone.materialA1A3Properties = new A1A3Element();
+            if (clone.materiaA4Properties == null) clone.materiaA4Properties = new CarboA4Properties();
+            if (clone.materialA5Properties == null) clone.materialA5Properties = new CarboA5Properties();
+            if (clone.materialC1C4Properties == null) clone.materialC1C4Properties = new CarboC1C4Properties();
+            if (clone.materialDProperties == null) clone.materialDProperties = new CarboDProperties();
+            if (clone.materialSeqProperties == null) clone.materialSeqProperties = new CarboSeqProperties();
+
+            return clone;
+        }
+
+        /// <summary>
+        /// Recursive value copy for the simple serialisable property classes hanging off a
+        /// material. Scalars are returned as is, everything else is rebuilt through its
+        /// parameterless constructor. Never throws.
+        /// </summary>
+        private static object DeepCopyValue(object source)
+        {
+            if (source == null)
+                return null;
+
+            Type t = source.GetType();
+
+            if (t.IsPrimitive || t.IsEnum || t == typeof(string) || t == typeof(decimal)
+                || t == typeof(DateTime) || t == typeof(Guid) || t == typeof(TimeSpan))
+                return source;
+
+            if (t.IsArray)
+            {
+                Array sourceArray = source as Array;
+                return sourceArray != null ? sourceArray.Clone() : source;
+            }
+
+            System.Collections.IList sourceList = source as System.Collections.IList;
+            if (sourceList != null)
+            {
+                System.Collections.IList newList = null;
+                try
+                {
+                    newList = Activator.CreateInstance(t) as System.Collections.IList;
+                }
+                catch
+                {
+                    newList = null;
+                }
+
+                if (newList == null)
+                    return source;
+
+                foreach (object item in sourceList)
+                    newList.Add(DeepCopyValue(item));
+
+                return newList;
+            }
+
+            object target;
+            try
+            {
+                target = Activator.CreateInstance(t);
+            }
+            catch
+            {
+                return source;
+            }
+
+            foreach (PropertyInfo p in t.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+            {
+                if (p.CanRead == false || p.CanWrite == false)
+                    continue;
+                if (p.GetIndexParameters().Length > 0)
+                    continue;
+
+                try
+                {
+                    p.SetValue(target, DeepCopyValue(p.GetValue(source, null)), null);
+                }
+                catch
+                {
+                    //A computed or read only shaped property is simply skipped.
+                }
+            }
+
+            foreach (FieldInfo f in t.GetFields(BindingFlags.Public | BindingFlags.Instance))
+            {
+                if (f.IsInitOnly)
+                    continue;
+
+                try
+                {
+                    f.SetValue(target, DeepCopyValue(f.GetValue(source)));
+                }
+                catch
+                {
+                }
+            }
+
+            return target;
         }
     }
 }

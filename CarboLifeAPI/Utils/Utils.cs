@@ -269,32 +269,35 @@ namespace CarboLifeAPI
             }
         }
 
+        /// <summary>
+        /// Clears the buffered match log. The old implementation deleted a file inside the
+        /// install directory, the buffer lives in memory now so there is nothing to delete.
+        /// </summary>
         public static void MatchLogDelete()
         {
-            string fileName = "db\\matchlog.txt";
-
-            string myPath = Utils.getAssemblyPath() + "\\" + fileName;
-            try 
-            { 
-               File.Delete(myPath); 
-            } 
-            catch 
-            { 
-            }
+            CarboMatchDiagnostics.Reset();
         }
 
-            public static void MatchLogWrite(string text)
+        /// <summary>
+        /// Appends one line to the buffered match log.
+        /// This used to open, append and close a StreamWriter once per database material per
+        /// lookup, with no try/catch, which is roughly 121,000 file operations for a 200 group
+        /// import against Okobaudat and an uncaught UnauthorizedAccessException on a read only
+        /// install. It is now off by default (CarboMatchDiagnostics.Enabled), buffered in
+        /// memory, and written exactly once by MatchLogFlush inside a try/catch.
+        /// </summary>
+        public static void MatchLogWrite(string text)
         {
-            
-            string fileName = "db\\matchlog.txt";
+            CarboMatchDiagnostics.Record(text);
+        }
 
-            string myPath = Utils.getAssemblyPath() + "\\" + fileName;
-
-            using (StreamWriter sw = File.AppendText(myPath))
-            {
-                sw.WriteLine(text);
-            }
-            
+        /// <summary>
+        /// Writes the buffered match log in one operation and empties the buffer.
+        /// Safe to call always, a no-op when logging is disabled, never throws.
+        /// </summary>
+        public static void MatchLogFlush()
+        {
+            CarboMatchDiagnostics.Flush();
         }
         [Obsolete]
         public static void WriteToLog(string text)

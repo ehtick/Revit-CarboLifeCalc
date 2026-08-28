@@ -37,6 +37,23 @@ namespace CarboLifeUI.UI
         private CarboColourPreset currentColourSettings;
         private CarboSettings carboSettings;
         public bool colour;
+
+        //Used for the graph
+        private readonly System.Windows.Threading.DispatcherTimer graphRefreshTimer = new System.Windows.Threading.DispatcherTimer();
+        private readonly HeatMapGraphOptions graphOptions = new HeatMapGraphOptions();
+
+        /// <summary>The rounded bounds the cutoff sliders run between.</summary>
+        private HeatMapNiceRange cutoffRange;
+        private double cutoffMin;
+        private double cutoffMax;
+
+        /// <summary>
+        /// Set while the controls are being populated, so their handlers do not filter against a half
+        /// updated state. Starts true: setting Slider.Value from XAML raises ValueChanged while the rest
+        /// of the window is still being built, and InitialiseGraph clears it once everything exists.
+        /// </summary>
+        private bool suspendGraphUpdates = true;
+
         public HeatMapCreator(CarboProject project)
         {
             carboProject = project;
@@ -44,6 +61,7 @@ namespace CarboLifeUI.UI
             colour = true;
             carboSettings.Load();
             InitializeComponent();
+            InitialiseGraph();
         }
 
         public HeatMapCreator()
@@ -54,6 +72,7 @@ namespace CarboLifeUI.UI
             carboSettings.Load();
 
             InitializeComponent();
+            InitialiseGraph();
         }
 
         private void btn_Show_Click(object sender, RoutedEventArgs e)
@@ -88,6 +107,9 @@ namespace CarboLifeUI.UI
             cbb_outofBounds.Items.Add("Colour");
             cbb_outofBounds.Items.Add("No Override");
             cbb_outofBounds.SelectedIndex = 0;
+
+            //The colour preset only exists from here on, so this is the first point the graph can be drawn.
+            QueueGraphRefresh();
         }
 
 
@@ -143,121 +165,146 @@ namespace CarboLifeUI.UI
             RefreshGraph();
         }
 
-        private void FilterPerList()
+        //************************************************************************************************
+        //GRAPH PLUMBING
+        //************************************************************************************************
+
+        /// <summary>
+        /// Wires up the debounce timer. Rebuilding the graph is not free, so a slider drag or a window
+        /// resize schedules one redraw instead of firing one per pixel of travel.
+        /// Must be called straight after InitializeComponent, from every constructor.
+        /// </summary>
+        private void InitialiseGraph()
         {
-            graphData.FilterNonVisible(visibleElements);
+            //Short enough that a drag still looks live, long enough to swallow the burst of events WPF
+            //raises within a single frame.
+            graphRefreshTimer.Interval = TimeSpan.FromMilliseconds(50);
+            graphRefreshTimer.Tick += GraphRefreshTimer_Tick;
+
+            //Every control exists from here on, so the handlers can safely do their work.
+            suspendGraphUpdates = false;
         }
 
-        private void FilterPerMaxMin()
+        private void GraphRefreshTimer_Tick(object sender, EventArgs e)
         {
-            try
-            {
-                //Values we'd need for all options:
-                double xMaxCutoff = Utils.ConvertMeToDouble(txt_CutoffMax.Text);
-                double xMinCutoff = Utils.ConvertMeToDouble(txt_CutoffMin.Text);
-
-                graphData.FilterMinMax(xMinCutoff, xMaxCutoff);
-            }
-            catch (Exception ex)
-            {
-                //System.Windows.Forms.MessageBox.Show(ex.Message);
-            }
+            graphRefreshTimer.Stop();
+            ApplyCutoffs();
+            RefreshGraph();
         }
 
         /// <summary>
-        /// This method loads new data from the carboproject
+        /// Asks for a redraw shortly from now. Repeated calls collapse into a single rebuild.
+        /// </summary>
+        private void QueueGraphRefresh()
+        {
+            if (suspendGraphUpdates)
+                return;
+
+            graphRefreshTimer.Stop();
+            graphRefreshTimer.Start();
+        }
+
+        private void FilterPerList()
+        {
+            if (graphData != null)
+                graphData.FilterNonVisible(visibleElements);
+        }
+
+        /// <summary>
+        /// Applies the current cutoffs to the dataset. This reads the slider values directly: sending them
+        /// through the text boxes lost precision to rounding and failed outright on a comma decimal locale,
+        /// where a formatted thousands separator parsed back as zero.
+        /// </summary>
+        private void ApplyCutoffs()
+        {
+            if (graphData == null)
+                return;
+
+            double low = Math.Min(cutoffMin, cutoffMax);
+            double high = Math.Max(cutoffMin, cutoffMax);
+
+            graphData.FilterMinMax(low, high);
+        }
+
+        /// <summary>
+        /// Collects a fresh dataset from the project for the selected heatmap type.
+        /// </summary>
+        private CarboGraphResult CollectGraphData()
+        {
+            if (carboProject == null)
+                return new CarboGraphResult();
+
+            if (rad_ByDensitykg.IsChecked == true)
+            {
+                //This will plot each element based on their material, the value is the embodied carbon (kgCo2/kg).
+                return CarboLifeAPI.HeatMapCollector.GetMaterialMassData(carboProject);
+            }
+            if (rad_ByDensitym.IsChecked == true)
+                return CarboLifeAPI.HeatMapCollector.GetMaterialVolumeData(carboProject);
+            if (rad_ByGroup.IsChecked == true)
+                return CarboLifeAPI.HeatMapCollector.GetPerGroupData(carboProject);
+            if (rad_ByElement.IsChecked == true)
+                return CarboLifeAPI.HeatMapCollector.GetPerElementData(carboProject);
+            if (rad_MaterialTotals.IsChecked == true)
+                return CarboLifeAPI.HeatMapCollector.GetMaterialTotalData(carboProject);
+
+            return new CarboGraphResult();
+        }
+
+        /// <summary>
+        /// This method loads new data from the carboproject and resets the cutoff sliders to it.
         /// </summary>
         private void UpdateDataSource()
         {
-            CarboGraphResult thisResult = new CarboGraphResult();
-            //Define the type of graph to make:
             try
             {
-                if (carboProject != null)
-                {
-                    if (rad_ByDensitykg.IsChecked == true)
-                    {
-                        //This will plot each element based on their material the X axis is the embodied carbon (kgCo2/kg) the Y axis it the weight or mass.
-                        thisResult = CarboLifeAPI.HeatMapCollector.GetMaterialMassData(carboProject);
-                    }
-                    else if (rad_ByDensitym.IsChecked == true)
-                    {
-                        thisResult = CarboLifeAPI.HeatMapCollector.GetMaterialVolumeData(carboProject);
-                    }
-                    else if (rad_ByGroup.IsChecked == true)
-                    {
-                        thisResult = CarboLifeAPI.HeatMapCollector.GetPerGroupData(carboProject);
-                    }
-                    else if (rad_ByElement.IsChecked == true)
-                    {
-                        thisResult = CarboLifeAPI.HeatMapCollector.GetPerElementData(carboProject);
-                    }
-                    else if (rad_MaterialTotals.IsChecked == true)
-                    {
-                        thisResult = CarboLifeAPI.HeatMapCollector.GetMaterialTotalData(carboProject);
-                    }
-                    else
-                    {
-
-                    }
-                }
-
-                graphData = thisResult;
+                graphData = CollectGraphData();
 
                 //Filter the project per visible elements, this only happends in the update source part;
                 FilterPerList();
 
-                //if data was collected make it the source and update the graph
-                //clear if no data
-                if (thisResult.entireProjectData.Count > 0)
+                if (graphData.entireProjectData.Count == 0)
                 {
-                    double maxValue = graphData.getMaxValue() + 1;
-                    double minValue = graphData.getMinValue() - 1;
-
-                    //Some Data checks:
-                    if (minValue > 0)
-                        minValue = 0;
-
-                    maxValue = Convert.ToInt32(maxValue);
-
-                    txt_CutoffMax.Text = maxValue.ToString();
-                    txt_CutoffMin.Text = minValue.ToString();
-
-                    sld_Max.Minimum = minValue;
-                    sld_Max.Maximum = maxValue;
-                    sld_Max.Value = maxValue;
-
-                    sld_Min.Minimum = minValue;
-                    sld_Min.Maximum = maxValue;
-                    sld_Min.Value = minValue;
-
-                    UpdateGraphData();
-                    RefreshGraph();
+                    if (cnv_Graph != null)
+                        cnv_Graph.Children.Clear();
+                    UpdateStatusLine();
+                    return;
                 }
-                else
-                    cnv_Graph.Children.Clear();
-            }
-            catch (Exception ex)
-            {
-                System.Windows.Forms.MessageBox.Show(ex.Message);
-            }
 
-}
-        private void UpdateGraphData()
-        {
-            try
-            {
-                if (cnv_Graph != null)
+                //Round the raw data range out to readable bounds. The old "+1 then cast to int" threw away
+                //every bit of resolution on the kgCO2/kg modes (a dataset topping out at 1.4 got a 0 to 2
+                //slider) and meant nothing at all on the kgCO2/m3 ones.
+                cutoffRange = HeatMapBarBuilder.GetNiceRange(graphData.getMinValue(), graphData.getMaxValue(), 20, false);
+
+                //Setting the bounds makes WPF coerce the values, which used to re-enter the handlers and
+                //filter against a half updated state.
+                suspendGraphUpdates = true;
+                try
                 {
-                    cnv_Graph.Visibility = Visibility.Hidden;
-                    cnv_Graph.Children.Clear();
-                    cnv_Graph.Visibility = Visibility.Visible;
+                    sld_Min.Minimum = cutoffRange.Min;
+                    sld_Min.Maximum = cutoffRange.Max;
+                    sld_Max.Minimum = cutoffRange.Min;
+                    sld_Max.Maximum = cutoffRange.Max;
 
-                    if (carboProject != null && graphData != null)
-                    {
-                        FilterPerMaxMin();
-                    }
+                    double step = cutoffRange.Step > 0 ? cutoffRange.Step : cutoffRange.Span / 20;
+                    sld_Min.SmallChange = step / 10;
+                    sld_Min.LargeChange = step;
+                    sld_Max.SmallChange = step / 10;
+                    sld_Max.LargeChange = step;
+
+                    cutoffMin = cutoffRange.Min;
+                    cutoffMax = cutoffRange.Max;
+                    sld_Min.Value = cutoffMin;
+                    sld_Max.Value = cutoffMax;
                 }
+                finally
+                {
+                    suspendGraphUpdates = false;
+                }
+
+                UpdateCutoffText();
+                ApplyCutoffs();
+                RefreshGraph();
             }
             catch (Exception ex)
             {
@@ -265,43 +312,39 @@ namespace CarboLifeUI.UI
             }
         }
 
-        //this method updates the graph based on current settings.
+        /// <summary>
+        /// Redraws the graph from the current data, cutoffs and colours.
+        /// </summary>
         private void RefreshGraph()
         {
             try
             {
-                if (cnv_Graph != null)
+                if (cnv_Graph == null)
+                    return;
+
+                cnv_Graph.Children.Clear();
+
+                if (graphData == null || currentColourSettings == null)
+                    return;
+
+                if (cnv_Graph.ActualWidth <= 0 || cnv_Graph.ActualHeight <= 0)
+                    return;
+
+                graphOptions.UseLogScale = chk_LogScale.IsChecked == true;
+
+                var result = CarboLifeAPI.HeatMapBarBuilder.GetBarGraph(graphData, cnv_Graph.ActualWidth, cnv_Graph.ActualHeight, currentColourSettings, graphOptions);
+
+                //Only ever replace the live dataset with something real.
+                if (result.Item1 != null)
+                    graphData = result.Item1;
+
+                if (result.Item2 != null)
                 {
-                    cnv_Graph.Visibility = Visibility.Hidden;
-                    cnv_Graph.Children.Clear();
-                    cnv_Graph.Visibility = Visibility.Visible;
-                    if (carboProject != null && graphData != null)
-                    {
-                        if (graphData.entireProjectData.Count > 0)
-                        {
-                            //to be set in a ui
-                            var result = CarboLifeAPI.HeatMapBarBuilder.GetBarGraph(graphData, cnv_Graph.ActualWidth, cnv_Graph.ActualHeight, currentColourSettings);
-
-                            graphData = result.Item1 as CarboGraphResult;
-                            List<UIElement> graph = result.Item2 as List<UIElement>;
-
-                            cnv_Graph.Children.Clear();
-                            if (graph != null && graph.Count > 0)
-                            {
-                                foreach (UIElement uielement in graph)
-                                {
-                                    cnv_Graph.Children.Add(uielement);
-                                }
-                            }
-                        }
-                    }
+                    foreach (UIElement uielement in result.Item2)
+                        cnv_Graph.Children.Add(uielement);
                 }
-                if (!Utils.IsEmpty(visibleElements))
-                    lbl_debug.Content = string.Format("Elements in projects {0}, selected: {1} " + Environment.NewLine + ", valid/filtered: {2} elements in selection/view: {3}",
-                        graphData.entireProjectData.Count,
-                        graphData.selectedData.Count,
-                        graphData.validData.Count,
-                        visibleElements.Count);
+
+                UpdateStatusLine();
             }
             catch (Exception ex)
             {
@@ -309,9 +352,81 @@ namespace CarboLifeUI.UI
             }
         }
 
-        private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
+        /// <summary>
+        /// Shows the cutoffs at the precision of the current range. Display only.
+        /// </summary>
+        private void UpdateCutoffText()
         {
+            if (cutoffRange == null)
+                return;
+
+            txt_CutoffMin.Text = cutoffRange.Format(cutoffMin);
+            txt_CutoffMax.Text = cutoffRange.Format(cutoffMax);
+        }
+
+        private void UpdateStatusLine()
+        {
+            if (graphData == null)
+            {
+                lbl_debug.Content = "Status: no data";
+                return;
+            }
+
+            string status = string.Format("{0:N0} in project, {1:N0} in view, {2:N0} in range, {3:N0} out of range",
+                graphData.entireProjectData.Count,
+                graphData.selectedData.Count,
+                graphData.validData.Count,
+                graphData.outOfBoundsMinData.Count + graphData.outOfBoundsMaxData.Count);
+
+            if (graphOptions.LogScaleUnavailable)
+                status += "  |  log scale needs values above zero";
+
+            lbl_debug.Content = status;
+        }
+
+        /// <summary>
+        /// Moves both cutoffs at once and redraws.
+        /// </summary>
+        private void SetCutoffs(double low, double high)
+        {
+            if (cutoffRange == null)
+                return;
+
+            low = Math.Max(cutoffRange.Min, Math.Min(low, cutoffRange.Max));
+            high = Math.Max(cutoffRange.Min, Math.Min(high, cutoffRange.Max));
+
+            if (high < low)
+            {
+                double swap = low;
+                low = high;
+                high = swap;
+            }
+
+            suspendGraphUpdates = true;
+            try
+            {
+                sld_Min.Value = low;
+                sld_Max.Value = high;
+                cutoffMin = sld_Min.Value;
+                cutoffMax = sld_Max.Value;
+            }
+            finally
+            {
+                suspendGraphUpdates = false;
+            }
+
+            UpdateCutoffText();
+            ApplyCutoffs();
             RefreshGraph();
+        }
+
+        /// <summary>
+        /// The canvas reports its new size once it has been laid out. The window's own SizeChanged fired
+        /// while the canvas still held its previous size, which left the graph a resize behind.
+        /// </summary>
+        private void cnv_Graph_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            QueueGraphRefresh();
         }
 
         private void Btn_Ok_Click(object sender, RoutedEventArgs e)
@@ -333,30 +448,74 @@ namespace CarboLifeUI.UI
 
         private void sld_Max_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
-            try
+            //The XAML sets Value on this slider, which raises ValueChanged while the window is still being
+            //built and the partner slider does not exist yet.
+            if (suspendGraphUpdates || sld_Max == null || sld_Min == null)
+                return;
+
+            //The two cutoffs were free to cross each other, which put every element out of range and left
+            //an empty canvas with nothing to explain it.
+            if (sld_Max.Value < sld_Min.Value)
             {
-                txt_CutoffMax.Text = Math.Round(sld_Max.Value, 3).ToString();
-                UpdateGraphData();
-                RefreshGraph();
+                suspendGraphUpdates = true;
+                sld_Max.Value = sld_Min.Value;
+                suspendGraphUpdates = false;
             }
-            catch (Exception ex)
-            {
-                //System.Windows.Forms.MessageBox.Show(ex.Message);
-            }
+
+            cutoffMax = sld_Max.Value;
+            UpdateCutoffText();
+            QueueGraphRefresh();
         }
 
         private void sld_Min_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
-            try
+            if (suspendGraphUpdates || sld_Min == null || sld_Max == null)
+                return;
+
+            if (sld_Min.Value > sld_Max.Value)
             {
-                txt_CutoffMin.Text = Math.Round(sld_Min.Value, 3).ToString();
-                UpdateGraphData();
-                RefreshGraph();
+                suspendGraphUpdates = true;
+                sld_Min.Value = sld_Max.Value;
+                suspendGraphUpdates = false;
             }
-            catch (Exception ex)
+
+            cutoffMin = sld_Min.Value;
+            UpdateCutoffText();
+            QueueGraphRefresh();
+        }
+
+        private void chk_LogScale_Click(object sender, RoutedEventArgs e)
+        {
+            RefreshGraph();
+        }
+
+        /// <summary>
+        /// Pulls the cutoffs in to the 2nd and 98th percentile. An embodied carbon distribution nearly always
+        /// has a long tail, and a single outlier is enough to flatten every other bar into the baseline.
+        /// </summary>
+        private void btn_FitRange_Click(object sender, RoutedEventArgs e)
+        {
+            if (graphData == null || cutoffRange == null)
+                return;
+
+            double low = graphData.GetPercentile(2);
+            double high = graphData.GetPercentile(98);
+
+            if (high <= low)
             {
-                System.Windows.Forms.MessageBox.Show(ex.Message);
+                low = cutoffRange.Min;
+                high = cutoffRange.Max;
             }
+
+            SetCutoffs(low, high);
+        }
+
+        private void btn_FullRange_Click(object sender, RoutedEventArgs e)
+        {
+            if (cutoffRange == null)
+                return;
+
+            SetCutoffs(cutoffRange.Min, cutoffRange.Max);
         }
 
         private void btn_TestFunction(object sender, RoutedEventArgs e)
@@ -376,8 +535,6 @@ namespace CarboLifeUI.UI
             visibleElements = listOfIds;
 
             UpdateDataSource();
-            UpdateGraphData();
-            RefreshGraph();
         }
 
         private System.Drawing.Color GetColor(System.Windows.Media.Brush startColour)
@@ -450,11 +607,12 @@ namespace CarboLifeUI.UI
                 {
                     for (int i = 0; i < carboSettings.colourPresets.Count; i++)
                     {
-                        CarboColourPreset cps = carboSettings.colourPresets[i];
-
-                        if (cps.name == cbb_colours.Text)
+                        if (carboSettings.colourPresets[i].name == cbb_colours.Text)
                         {
-                            cps = currentColourSettings;
+                            //Write back into the list. Assigning the loop variable only rebound the local
+                            //copy, so saving over an existing preset silently did nothing.
+                            currentColourSettings.name = cbb_colours.Text;
+                            carboSettings.colourPresets[i] = currentColourSettings;
                             found = true;
                         }
                     }
@@ -489,11 +647,17 @@ namespace CarboLifeUI.UI
                         carboSettings.colourPresets.Add(new CarboColourPreset());
                     }
 
+                    //Clear first: the list used to be appended to, so every call duplicated every preset.
+                    string previous = cbb_colours.Text;
+                    cbb_colours.Items.Clear();
+
                     foreach (CarboColourPreset ccp in carboSettings.colourPresets)
                     {
                         cbb_colours.Items.Add(ccp.name);
                     }
-                    cbb_colours.SelectedIndex = 0;
+
+                    int index = cbb_colours.Items.IndexOf(previous);
+                    cbb_colours.SelectedIndex = index >= 0 ? index : 0;
                 }
             }
             catch (Exception ex)
@@ -545,7 +709,6 @@ namespace CarboLifeUI.UI
 
                 //Refresh the graph
                 btn_Low.Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(pickedColour.A, pickedColour.R, pickedColour.G, pickedColour.B));
-                UpdateGraphData();
                 RefreshGraph();
             }
             catch (Exception ex)
@@ -568,7 +731,6 @@ namespace CarboLifeUI.UI
                 //Refresh the graph
                 btn_Mid.Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(pickedColour.A, pickedColour.R, pickedColour.G, pickedColour.B));
 
-                UpdateGraphData();
                 RefreshGraph();
             }
             catch (Exception ex)
@@ -591,7 +753,6 @@ namespace CarboLifeUI.UI
                 //Refresh the graph
                 btn_High.Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(pickedColour.A, pickedColour.R, pickedColour.G, pickedColour.B));
 
-                UpdateGraphData();
                 RefreshGraph();
             }
             catch (Exception ex)
@@ -614,7 +775,6 @@ namespace CarboLifeUI.UI
                 //Refresh the graph
                 btn_MinOut.Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(pickedColour.A, pickedColour.R, pickedColour.G, pickedColour.B));
 
-                UpdateGraphData();
                 RefreshGraph();
             }
             catch (Exception ex)
@@ -637,7 +797,6 @@ namespace CarboLifeUI.UI
                 //Refresh the graph
                 btn_MaxOut.Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(pickedColour.A, pickedColour.R, pickedColour.G, pickedColour.B));
 
-                UpdateGraphData();
                 RefreshGraph();
             }
             catch (Exception ex)

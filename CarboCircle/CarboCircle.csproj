@@ -1,7 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFrameworks>net48;net8.0-windows</TargetFrameworks>
-    <DebugEngines>{351668CC-8477-4fbf-BFE3-5F1006E4DB1F}</DebugEngines>
+    <!-- The net48 host (Revit 2023-2024) debugs on the Desktop CLR engine, the net8.0-windows host (Revit 2025) on CoreCLR. -->
+    <DebugEngines Condition="'$(TargetFramework)' == 'net48'">{351668CC-8477-4fbf-BFE3-5F1006E4DB1F}</DebugEngines>
+    <DebugEngines Condition="'$(TargetFramework)' == 'net8.0-windows'">{FB0D4648-F776-4980-95F3-9A3AE0F3D2CB}</DebugEngines>
     <OutputType>Library</OutputType>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <UseWindowsForms>true</UseWindowsForms>

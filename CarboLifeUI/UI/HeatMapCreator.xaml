@@ -4,7 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              mc:Ignorable="d" 
-             d:DesignHeight="900" d:DesignWidth="800" MinWidth="800" MinHeight="900" Width="500" Height="900"  Loaded="Window_Loaded" Background="WhiteSmoke" SizeChanged="Window_SizeChanged" Icon="pack://application:,,,/CarboLifeUI;component/Resources/ico_clcwindow.ico">
+             d:DesignHeight="900" d:DesignWidth="800" MinWidth="800" MinHeight="900" Width="800" Height="900"  Loaded="Window_Loaded" Background="WhiteSmoke" Icon="pack://application:,,,/CarboLifeUI;component/Resources/ico_clcwindow.ico">
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -114,11 +114,20 @@
 
                             <Label Grid.Row="2" Grid.Column="2" Margin="0,0,0,0" Height="27" VerticalAlignment="Top" Style="{StaticResource baseStyle}" Content="Cutoff Max:"/>
                             <TextBox x:Name="txt_CutoffMax" Grid.Row="2" Grid.Column="3" Margin="0,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" Width="80" Height="25" Style="{StaticResource flatTextBox}" IsEnabled="False">9999</TextBox>
-                            <Slider x:Name="sld_Max" Grid.Row="2" Grid.Column="4" Margin="5,5,5,5" Value="1" Maximum="1" ValueChanged="sld_Max_ValueChanged"></Slider>
+                            <Slider x:Name="sld_Max" Grid.Row="2" Grid.Column="4" Margin="5,5,5,5" Value="1" Maximum="1" ValueChanged="sld_Max_ValueChanged"
+                                    ToolTip="Elements above this value are treated as out of scope. Cannot be dragged below the minimum cutoff."></Slider>
 
                             <Label Grid.Row="1" Grid.Column="2" Margin="0,0,0,0" Height="27" VerticalAlignment="Top" Style="{StaticResource baseStyle}" Content="Cutoff Min:"/>
                             <TextBox x:Name="txt_CutoffMin" Grid.Row="1" Grid.Column="3" Margin="0,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" Width="80" Height="25" Style="{StaticResource flatTextBox}" IsEnabled="False" >0</TextBox>
-                            <Slider x:Name="sld_Min" Grid.Row="1" Grid.Column="4" Margin="5,5,5,5" Maximum="1" ValueChanged="sld_Min_ValueChanged"></Slider>
+                            <Slider x:Name="sld_Min" Grid.Row="1" Grid.Column="4" Margin="5,5,5,5" Maximum="1" ValueChanged="sld_Min_ValueChanged"
+                                    ToolTip="Elements below this value are treated as out of scope. Cannot be dragged above the maximum cutoff."></Slider>
+
+                            <CheckBox x:Name="chk_LogScale" Grid.Row="5" Grid.Column="2" Margin="0,0,0,0" VerticalAlignment="Center" FontSize="12" FontFamily="Segoe UI" Content="Log scale" Click="chk_LogScale_Click"
+                                      ToolTip="Plot the value axis logarithmically. Keeps a skewed distribution readable when one element dwarfs the rest. Needs values above zero."/>
+                            <Button x:Name="btn_FitRange" Grid.Row="5" Grid.Column="3" Margin="0,0,5,0" HorizontalAlignment="Stretch" VerticalAlignment="Center" Height="25" Style="{StaticResource ButtonStyle}" Content="Auto Range" Click="btn_FitRange_Click"
+                                    ToolTip="Set the cutoffs to the 2nd and 98th percentile, so the extreme tail stops flattening the rest of the graph."/>
+                            <Button x:Name="btn_FullRange" Grid.Row="5" Grid.Column="4" Margin="0,0,5,0" HorizontalAlignment="Stretch" VerticalAlignment="Center" Height="25" Style="{StaticResource ButtonStyle}" Content="Full Range" Click="btn_FullRange_Click"
+                                    ToolTip="Reset the cutoffs so every element is in scope."/>
 
                             <Label Grid.Row="3" Grid.Column="2" Margin="0,0,0,0" Height="27" VerticalAlignment="Top" Style="{StaticResource baseStyle}" Content="Out of scope elements:"/>
                             <ComboBox x:Name="cbb_outofBounds" Grid.Row="3" Grid.Column="3" Grid.ColumnSpan="2" Margin="0,0,0,0"  Style="{StaticResource ComboBoxFlatStyle}" ></ComboBox>
@@ -132,7 +141,7 @@
                         </Grid>
 
 
-                        <Canvas Name="cnv_Graph" Grid.Column="1" Grid.Row="3" Grid.ColumnSpan="1" Margin="5" Background="White" Visibility="Visible"></Canvas>
+                        <Canvas Name="cnv_Graph" Grid.Column="1" Grid.Row="3" Grid.ColumnSpan="1" Margin="5" Background="White" Visibility="Visible" ClipToBounds="True" SizeChanged="cnv_Graph_SizeChanged"></Canvas>
 
                         <Button Name="btn_Low" Grid.Row="4" Grid.Column="1" Margin="35,00,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" Width="50" Height="30" Style="{StaticResource baseStyle}" Background="Lime"  IsEnabled="True" Click="btn_Low_Click">Low</Button>
                         <Button Name="btn_Mid" Grid.Row="4" Grid.Column="1" Margin="0,0,0,5" HorizontalAlignment="Center" VerticalAlignment="Bottom" Width="50" Height="30" Style="{StaticResource baseStyle}" Background="Orange" IsEnabled="True" Click="btn_Mid_Click" >Mid</Button>

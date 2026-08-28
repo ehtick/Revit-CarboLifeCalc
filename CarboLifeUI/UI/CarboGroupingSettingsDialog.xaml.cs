@@ -759,14 +759,23 @@ namespace CarboLifeUI.UI
 
         private void btn_ImportSettings_Click(object sender, RoutedEventArgs e)
         {
-            //save the settings to current (this is a requirement)
+            //Save what is on screen first, so nothing typed here is lost if the import is
+            //abandoned. SaveSettings writes the whole settings file; the extra
+            //importSettings.SerializeXML() that used to sit here wrote a CarboGroupSettings
+            //document straight over it, so cancelling the file dialog below left the settings
+            //file unreadable and every setting reset on the next launch.
             SaveSettings();
-            importSettings.SerializeXML();
 
             string pathNewFile = importSettings.ImportSettingsFile();
+
+            //Cancelled, or nothing usable picked: leave the current settings exactly as they are.
+            if (string.IsNullOrEmpty(pathNewFile) || !File.Exists(pathNewFile))
+                return;
+
             string path = PathUtils.getSettingsFilePath();
 
-            PathUtils.OverrideSettingsFile(pathNewFile, path); 
+            if (PathUtils.OverrideSettingsFile(pathNewFile, path) == false)
+                return;
 
             System.Windows.MessageBox.Show("Settings imported. Restart CarboLifeCalculator to load the settings.");
 

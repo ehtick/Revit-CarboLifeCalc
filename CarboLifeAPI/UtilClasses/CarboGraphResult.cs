@@ -95,9 +95,10 @@ namespace CarboLifeAPI
                     throw new Exception("Could not collect visible or selected elements from the given dataset");
 
                 //We will now collect the elements with said id:
-                validData.Clear();
+                //Every list this filter owns is rebuilt, so calling it twice cannot double up the results.
                 validData = new List<CarboValues>();
                 notSelectedData = new List<CarboValues>();
+                selectedData = new List<CarboValues>();
 
                 foreach (CarboValues cv in entireProjectData)
                 {
@@ -144,7 +145,11 @@ namespace CarboLifeAPI
 
                 foreach(CarboValues cv in selectedData)
                 {
-                    if (cv.Value < min) // too low
+                    //A value that is not a number (a zero volume element divided out, for instance) compares
+                    //false against everything, so it would otherwise slip through as valid and wreck the scale.
+                    if (double.IsNaN(cv.Value))
+                        outOfBoundsMaxData.Add(cv);
+                    else if (cv.Value < min) // too low
                         outOfBoundsMinData.Add(cv);
                     else if (cv.Value > max) // too high
                         outOfBoundsMaxData.Add(cv);
@@ -165,71 +170,101 @@ namespace CarboLifeAPI
             }
         }
 
+        /// <summary>
+        /// The highest value in the data the cutoffs apply to.
+        /// </summary>
+        /// <remarks>
+        /// This reads the set the min/max filter works on, never validData. Reading the already filtered
+        /// set would make the range shrink a little further on every pass, so the cutoff sliders could
+        /// only ever be narrowed and never widened again.
+        /// </remarks>
         public double getMaxValue()
         {
-            //First we need to make sure the list is sorted;
-            //If the project was just loaded the valid data has no data, the selected dataset will then be used;
-            List<CarboValues> SortedList = new List<CarboValues>();
+            IList<CarboValues> source = GetUnfilteredData();
 
-            try
-            {
-                if (validData.Count > 0 && selectedData.Count > 0)
-                {
-                    //
-                    SortedList = validData.OrderBy(o => o.Value).ToList();
-                }
-                else if (validData.Count < 0 && selectedData.Count > 0)
-                {
-                    SortedList = selectedData.OrderBy(o => o.Value).ToList();
-                }
-                else
-                {
-                    SortedList = entireProjectData.OrderBy(o => o.Value).ToList();
-                }
-
-                if (SortedList.Count > 0)
-                    return (SortedList[SortedList.Count - 1].Value);
-                else
-                    return 9999;
-            }
-            catch (Exception ex)
-            {
-                //MessageBox.Show(ex.Message);
+            if (source.Count == 0)
                 return 9999;
+
+            double result = double.NegativeInfinity;
+            foreach (CarboValues cv in source)
+            {
+                if (double.IsNaN(cv.Value) || double.IsInfinity(cv.Value))
+                    continue;
+                if (cv.Value > result)
+                    result = cv.Value;
             }
+
+            return double.IsNegativeInfinity(result) ? 9999 : result;
         }
 
+        /// <summary>
+        /// The lowest value in the data the cutoffs apply to. See <see cref="getMaxValue"/>.
+        /// </summary>
         public double getMinValue()
         {
-            //First we need to make sure the list is sorted;
-            //If the project was just loaded the valid data has no data, the selected dataset will then be used;
-            List<CarboValues> SortedList = new List<CarboValues>();
-            try
-            {
-                if (validData.Count > 0)
-                {
-                    SortedList = validData.OrderBy(o => o.Value).ToList();
-                }
-                else if (validData.Count > 0 && selectedData.Count > 0)
-                {
-                    SortedList = selectedData.OrderBy(o => o.Value).ToList();
-                }
-                else
-                {
-                    SortedList = entireProjectData.OrderBy(o => o.Value).ToList();
-                }
+            IList<CarboValues> source = GetUnfilteredData();
 
-                if (SortedList.Count > 0)
-                    return (SortedList[0].Value);
-                else
-                    return -99999;
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message);
+            if (source.Count == 0)
                 return -99999;
+
+            double result = double.PositiveInfinity;
+            foreach (CarboValues cv in source)
+            {
+                if (double.IsNaN(cv.Value) || double.IsInfinity(cv.Value))
+                    continue;
+                if (cv.Value < result)
+                    result = cv.Value;
             }
 
+            return double.IsPositiveInfinity(result) ? -99999 : result;
+        }
+
+        /// <summary>
+        /// Returns the value at the given percentile of the unfiltered data, which gives a sensible
+        /// starting cutoff for a heavily skewed distribution where a single outlier flattens everything else.
+        /// </summary>
+        /// <param name="percentile">Where to sample, from 0 to 100.</param>
+        public double GetPercentile(double percentile)
+        {
+            List<double> sorted = new List<double>();
+            foreach (CarboValues cv in GetUnfilteredData())
+            {
+                if (!double.IsNaN(cv.Value) && !double.IsInfinity(cv.Value))
+                    sorted.Add(cv.Value);
+            }
+
+            if (sorted.Count == 0)
+                return 0;
+
+            sorted.Sort();
+
+            if (percentile <= 0) return sorted[0];
+            if (percentile >= 100) return sorted[sorted.Count - 1];
+
+            double position = (percentile / 100.0) * (sorted.Count - 1);
+            int lower = (int)Math.Floor(position);
+            int upper = (int)Math.Ceiling(position);
+
+            if (upper >= sorted.Count) upper = sorted.Count - 1;
+            if (lower == upper)
+                return sorted[lower];
+
+            return sorted[lower] + (sorted[upper] - sorted[lower]) * (position - lower);
+        }
+
+        /// <summary>
+        /// The elements the cutoffs are applied to: the visible selection when it has been established,
+        /// the whole project otherwise.
+        /// </summary>
+        private IList<CarboValues> GetUnfilteredData()
+        {
+            if (selectedData != null && selectedData.Count > 0)
+                return selectedData;
+
+            if (entireProjectData != null)
+                return entireProjectData;
+
+            return new List<CarboValues>();
         }
 
         public List<double> GetUniqueValues()

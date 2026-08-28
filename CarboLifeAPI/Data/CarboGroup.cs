@@ -537,12 +537,10 @@ namespace CarboLifeAPI.Data
                             }
                             else
                             {
-                                ce.Calculate(Material);
-
                                 Volume += ce.Volume;
 
                                 //Calculate the Volume Totals;
-                                //Calculate the real volume based on a correction if required. 
+                                //Calculate the real volume based on a correction if required.
                                 double ElWasteFact = 1 + (Waste / 100);
 
                                 if (Utils.isValidExpression(Correction) == true)
@@ -562,10 +560,12 @@ namespace CarboLifeAPI.Data
 
                                 }
 
-
-
-
-
+                                //Calculate last: it derives the element's mass and EC from Volume_Total,
+                                //so it has to run after the waste, correction and B4 factors are in.
+                                //Called before them it used the value left over from the previous
+                                //calculation, which left every element at zero on a fresh import and one
+                                //pass behind after any change to the group.
+                                ce.Calculate(Material);
                             }
                         }
                     }

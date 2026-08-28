@@ -915,9 +915,11 @@ namespace CarboLifeUI.UI
             //bubbles, so a menu item click would run its own handler and then this one again.
             e.Handled = true;
 
-            if(CarboLifeProject.RevitImportSettings == null)
+            //DeSerializeXML is an instance method, so calling it on the reference that was just
+            //found to be null threw a NullReferenceException instead of recovering the settings.
+            if (CarboLifeProject.RevitImportSettings == null)
             {
-                CarboLifeProject.RevitImportSettings = CarboLifeProject.RevitImportSettings.DeSerializeXML();
+                CarboLifeProject.RevitImportSettings = new CarboGroupSettings().DeSerializeXML();
             }
 
             MaterialConcreteMapper concreteMapper = new MaterialConcreteMapper(CarboLifeProject.RevitImportSettings);
@@ -936,7 +938,12 @@ namespace CarboLifeUI.UI
                     CarboLifeProject.CalculateProject();
                     refreshData();
                 }
-                catch (Exception ex) { }
+                catch (Exception ex)
+                {
+                    //Swallowed silently before, so a failed rebuild looked like a rebuild that
+                    //found nothing to do. Reported the same way as the connection groups below.
+                    MessageBox.Show(ex.Message);
+                }
             }
         }
 
@@ -948,9 +955,10 @@ namespace CarboLifeUI.UI
         {
             e.Handled = true;
 
+            //See Mnu_AutoRCGroups: this recovers the stored defaults instead of dereferencing null.
             if (CarboLifeProject.RevitImportSettings == null)
             {
-                CarboLifeProject.RevitImportSettings = CarboLifeProject.RevitImportSettings.DeSerializeXML();
+                CarboLifeProject.RevitImportSettings = new CarboGroupSettings().DeSerializeXML();
             }
 
             if (CarboLifeProject.RevitImportSettings.mapSteelConnections == false &&

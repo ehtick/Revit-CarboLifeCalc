@@ -469,14 +469,48 @@ namespace CarboLifeAPI.Data
                         materialCategory = ce.MaterialCategoryName;
 
                     //The materialname was given by the elements, the values now need to be matched with a own one.
-                    CarboMaterial closestGroupMaterial = materialData.getClosestMatch(cg.MaterialName, materialCategory, cg.Grade);
-                    string map = cg.MaterialName + "," + closestGroupMaterial.Name + "," + value.ToString() + Environment.NewLine;
+                    CarboMatchResult match = materialData.FindMatch(new CarboLookup()
+                    {
+                        Name = cg.MaterialName,
+                        MaterialClass = materialCategory,
+                        Grade = cg.Grade,
+                        ElementCategory = cg.Category,
+                        TemplateName = materialData.templateName
+                    });
+
+                    CarboMaterial closestGroupMaterial = match.Material;
+                    //The third column used to be a hard coded zero, it now carries the real
+                    //confidence so a low scoring group can be surfaced for review.
+                    value = match.Confidence;
+
+                    string map = cg.MaterialName + "," + closestGroupMaterial.Name + "," + value.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture) + Environment.NewLine;
                     mappingtable += map;
-                    //cg.MaterialName = closestGroupMaterial.Name;
-                    cg.setMaterial(closestGroupMaterial);
-                    cg.CalculateTotals();
+
+                    //An Unmatched result is the zero ECI sentinel, which exists to say "there is
+                    //no answer here", not to be applied. Writing it onto the group would price a
+                    //group of real geometry at zero carbon with nothing to show the user why, so
+                    //the group keeps whatever material it already had and is flagged instead.
+                    if (match.IsUnmatched == false)
+                    {
+                        //cg.MaterialName = closestGroupMaterial.Name;
+                        cg.setMaterial(closestGroupMaterial);
+                        cg.CalculateTotals();
+                    }
+
+                    //Anything the matcher is not confident about is surfaced on the group, so a
+                    //weak mapping is visible in the UI rather than silently folded into a total.
+                    if (match.IsReliable == false)
+                    {
+                        string flag = "[CHECK MATERIAL " + value.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)
+                                    + "] " + (match.Explanation ?? "");
+                        cg.Description = string.IsNullOrEmpty(cg.Description) ? flag : cg.Description + " " + flag;
+                    }
                 }
             }
+
+            //One buffered write for the whole import, instead of a file operation per candidate.
+            Utils.MatchLogFlush();
+
             return group;
         }
 

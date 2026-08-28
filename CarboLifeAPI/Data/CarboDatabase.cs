@@ -19,6 +19,14 @@ namespace CarboLifeAPI.Data
         [XmlArray("CarboMaterials"), XmlArrayItem(typeof(CarboMaterial), ElementName = "CarboMaterial")]
         public List<CarboMaterial> CarboMaterialList { get;  set; }
         public string templateName { get; set; }
+
+        /// <summary>
+        /// The match index. This is a PRIVATE field, so XmlSerializer never sees it and the
+        /// .cxml schema {CarboMaterials, templateName} is untouched. It self validates against
+        /// the material list on every lookup, see CarboMaterialMatcher.
+        /// </summary>
+        private CarboMaterialMatcher matcher;
+
         public List<CarboMaterial> getData()
         {
             return CarboMaterialList;
@@ -27,6 +35,7 @@ namespace CarboLifeAPI.Data
         public void setData(List<CarboMaterial> data)
         {
             CarboMaterialList = data;
+            InvalidateMatchIndex();
         }
 
         public CarboDatabase()
@@ -36,7 +45,22 @@ namespace CarboLifeAPI.Data
         }
 
         /// <summary>
-        /// Excact Match
+        /// Returns the matching engine for this database, creating it on first use.
+        /// </summary>
+        private CarboMaterialMatcher GetMatcher()
+        {
+            if (matcher == null)
+                matcher = new CarboMaterialMatcher(this);
+
+            return matcher;
+        }
+
+        /// <summary>
+        /// Excact Match.
+        /// The comparison is case insensitive on the trimmed name, a case sensitive compare here
+        /// is why a saved user mapping could silently stop applying.
+        /// Still returns the LIVE database object (the material editor edits it in place) and
+        /// still returns null when nothing matches.
         /// </summary>
         /// <param name="materialName"></param>
         /// <returns></returns>
@@ -44,10 +68,18 @@ namespace CarboLifeAPI.Data
         {
             CarboMaterial result = null;
 
+            if (materialName == null || this.CarboMaterialList == null)
+                return null;
+
+            string wanted = materialName.Trim();
+
             foreach (CarboMaterial cm in this.CarboMaterialList)
             {
+                if (cm == null || cm.Name == null)
+                    continue;
+
                 // string materialname = cm.Name;
-                if (cm.Name == materialName)
+                if (string.Equals(cm.Name.Trim(), wanted, StringComparison.OrdinalIgnoreCase))
                 {
                     result = cm;
                     break;
@@ -56,14 +88,90 @@ namespace CarboLifeAPI.Data
 
             return result;
         }
+        /// <summary>
+        /// This is the heart of the mapping feature, a suggested material name, a category and a grade can be provided, the function will return the closest match from the database.
+        /// The work is done by CarboMaterialMatcher, see CarboMaterialMatcher.cs.
+        /// This method NEVER returns null and ALWAYS returns a fresh deep clone, callers mutate
+        /// the result (CarboProject calls CalculateTotals() on it).
+        /// Argument 2 is triaged before use: a value that parses as a grade is routed to the
+        /// grade slot, a Revit ELEMENT category is routed to the form hint slot, anything else
+        /// is treated as a Revit MaterialClass. An unrecognised value contributes exactly zero.
+        /// When nothing scores above the low confidence threshold the best effort candidate is
+        /// still returned, see CarboMatchOptions.Policy. When the database is empty a sentinel
+        /// with Id == -1 and Name "(no match: X)" is returned.
+        /// </summary>
+        /// <param name="materialToLookup"></param>
+        /// <param name="RevitMaterialCategory"></param>
+        /// <param name="grade"></param>
+        /// <returns></returns>
         public CarboMaterial getClosestMatch(string materialToLookup, string RevitMaterialCategory = "", string grade = "")
+        {
+            CarboMatchResult result = FindMatch(materialToLookup, RevitMaterialCategory, grade);
+            return result.Material;
+        }
+
+        /// <summary>
+        /// Full match result: the clone plus confidence, tier, reason and runner up.
+        /// </summary>
+        public CarboMatchResult FindMatch(CarboLookup query)
+        {
+            return GetMatcher().FindMatch(query);
+        }
+
+        /// <summary>
+        /// Convenience overload, applies the same argument 2 triage as the legacy method.
+        /// </summary>
+        public CarboMatchResult FindMatch(string name, string revitMaterialClass, string grade)
+        {
+            return GetMatcher().FindMatch(name, revitMaterialClass, grade);
+        }
+
+        /// <summary>
+        /// Top N ranked candidates with their component breakdown, for a "did you mean" dialog.
+        /// Each returned Material is a deep clone.
+        /// </summary>
+        public List<CarboMatchCandidate> RankCandidates(CarboLookup query, int take)
+        {
+            return GetMatcher().RankCandidates(query, take);
+        }
+
+        /// <summary>
+        /// Injects the user's saved alias table so it can be consulted before any scoring runs.
+        /// Pass null to disable. Not serialised.
+        /// </summary>
+        public void SetAliasTable(CarboMapFile aliasMap)
+        {
+            GetMatcher().SetAliasTable(aliasMap);
+        }
+
+        /// <summary>
+        /// Forces the match index to rebuild. The index also self validates on every lookup
+        /// against list identity, Count and a content hash, so this is belt and braces, call it
+        /// after editing a live material row in place.
+        /// </summary>
+        public void InvalidateMatchIndex()
+        {
+            if (matcher != null)
+                matcher.Invalidate();
+        }
+
+        /// <summary>
+        /// Flushes the buffered match log exactly once. Safe to call always, a no-op when
+        /// CarboMatchDiagnostics.Enabled is false. Never throws.
+        /// </summary>
+        public static void FlushMatchLog()
+        {
+            CarboMatchDiagnostics.Flush();
+        }
+
+        public CarboMaterial getClosestMatchOldBackup(string materialToLookup, string RevitMaterialCategory = "", string grade = "")
         {
             int score = 0;
             int highscore = -50;
             int basescore = materialToLookup.Length;
 
             int gradebase = grade.Length;
-            
+
 
             CarboMaterial result = new CarboMaterial();
             //string[] wordsInMaterialToLookup = materialToLookup.Split(' ');
@@ -73,7 +181,7 @@ namespace CarboLifeAPI.Data
 
             Utils.MatchLogWrite("New Material: " + materialToLookup);
 
-            foreach(string str in wordsInMaterialToLookup)
+            foreach (string str in wordsInMaterialToLookup)
             {
                 Utils.MatchLogWrite(str);
             }
@@ -125,9 +233,9 @@ namespace CarboLifeAPI.Data
 
                         //Thif the material contains a word from the carbolist; get points
                         bool contains = materialName.IndexOf(lowerWord, StringComparison.OrdinalIgnoreCase) >= 0;
-                        
+
                         bool containsCategory1 = categoryName.IndexOf(lowerWord, StringComparison.OrdinalIgnoreCase) >= 0;
-                        
+
 
                         bool containsCategory2 = false;
                         if (RevitMaterialCategory != "")
@@ -140,8 +248,8 @@ namespace CarboLifeAPI.Data
                             wordsthatmatch += word + ":" + wordScore.ToString() + " ";
                         }
                         //else ///penalty if word does not exist in searched string
-                            //wordScore += -1 * (word.Length);
-                        
+                        //wordScore += -1 * (word.Length);
+
                         //Checks if the material category contains the word
                         if (containsCategory1 == true)
                         {
@@ -174,9 +282,10 @@ namespace CarboLifeAPI.Data
 
             }
             //The match
-            Utils.MatchLogWrite(materialToLookup + "," + result.Name.ToLower() + "," + "Match" + "," + " Dist" +  "," + "Grade" + "," + "WordsMatching" + "," + highscore);
+            Utils.MatchLogWrite(materialToLookup + "," + result.Name.ToLower() + "," + "Match" + "," + " Dist" + "," + "Grade" + "," + "WordsMatching" + "," + highscore);
             return result;
         }
+
         public List<string> getCategoryList()
         {
             List<string> result = new List<string>();
@@ -401,6 +510,7 @@ namespace CarboLifeAPI.Data
             if (exists == false)
             {
                 CarboMaterialList.Add(newMaterial);
+                InvalidateMatchIndex();
                 result = true;
             }
             else
@@ -456,6 +566,7 @@ namespace CarboLifeAPI.Data
                     {
                         name = CarboMaterialList[i].Name;
                         CarboMaterialList.RemoveAt(i);
+                        InvalidateMatchIndex();
                         ok = true;
                         break;
                     }
@@ -483,6 +594,7 @@ namespace CarboLifeAPI.Data
                     if (CarboMaterialList[i].Name == name)
                     {
                         CarboMaterialList.RemoveAt(i);
+                        InvalidateMatchIndex();
                         result = true;
                         break;
                     }
@@ -539,6 +651,9 @@ namespace CarboLifeAPI.Data
                 return false;
             }
 
+            //Rows were added or edited in place, the match index has to be rebuilt.
+            InvalidateMatchIndex();
+
             //success:
             return true;
         }
@@ -578,6 +693,7 @@ namespace CarboLifeAPI.Data
             if(deleteMaterials == true)
             {
                 this.CarboMaterialList.Clear();
+                InvalidateMatchIndex();
             }
 
             try
@@ -669,6 +785,9 @@ namespace CarboLifeAPI.Data
                 Utils.WriteToLog(ex.Message);
                 return false;
             }
+
+            //Rows were added or edited in place, the match index has to be rebuilt.
+            InvalidateMatchIndex();
 
             //success:
             return true;

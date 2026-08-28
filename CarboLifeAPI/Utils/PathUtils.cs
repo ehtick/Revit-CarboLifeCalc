@@ -8,6 +8,7 @@ using System.IO;
 using System.Reflection;
 using System.Drawing;
 using System.Windows;
+using System.Xml.Serialization;
 
 namespace CarboLifeAPI
 {
@@ -446,22 +447,59 @@ namespace CarboLifeAPI
         }
 
         /// <summary>
-        /// Copies a new file over the existing settings file path.
+        /// Copies a settings file a colleague shared over this machine's settings file.
+        ///
+        /// The incoming file is read as a CarboSettings first. Overwriting on the strength of the
+        /// .xml extension alone let any XML file replace the settings, and the failure only showed
+        /// up on the next launch as "settings could not be loaded" with everything back at
+        /// defaults - by which point the original was gone.
         /// </summary>
         /// <param name="newFilePath">The path selected by the user.</param>
         /// <param name="targetSettingsPath">The internal Revit settings path.</param>
-        public static void OverrideSettingsFile(string newFilePath, string targetSettingsPath)
+        /// <returns>True when the settings file was replaced.</returns>
+        public static bool OverrideSettingsFile(string newFilePath, string targetSettingsPath)
         {
-            if (string.IsNullOrEmpty(newFilePath) || !File.Exists(newFilePath)) return;
+            if (string.IsNullOrEmpty(newFilePath) || !File.Exists(newFilePath))
+                return false;
+
+            if (string.IsNullOrEmpty(targetSettingsPath))
+                return false;
+
+            //Reject the file before touching anything, so a wrong pick costs nothing.
+            try
+            {
+                XmlSerializer probe = new XmlSerializer(typeof(CarboSettings));
+
+                using (FileStream fs = new FileStream(newFilePath, FileMode.Open, FileAccess.Read))
+                {
+                    if (probe.Deserialize(fs) as CarboSettings == null)
+                        throw new InvalidOperationException("The file holds no settings.");
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("That file is not a Carbo Life Calculator settings file, so nothing has been changed." +
+                                Environment.NewLine + Environment.NewLine +
+                                Path.GetFileName(newFilePath) + Environment.NewLine + Environment.NewLine +
+                                "Details: " + (ex.InnerException != null ? ex.InnerException.Message : ex.Message),
+                                "Import Error",
+                                MessageBoxButton.OK,
+                                MessageBoxImage.Error);
+                return false;
+            }
 
             try
             {
                 // Ensure the directory for the target exists
                 string directory = Path.GetDirectoryName(targetSettingsPath);
-                if (!Directory.Exists(directory))
+                if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
                 {
                     Directory.CreateDirectory(directory);
                 }
+
+                //Keep the settings that are being replaced, so a bad import can be undone by hand.
+                if (File.Exists(targetSettingsPath))
+                    File.Copy(targetSettingsPath, targetSettingsPath + ".bak", true);
 
                 // Copy the new file over the old one (true = overwrite)
                 File.Copy(newFilePath, targetSettingsPath, true);
@@ -470,6 +508,7 @@ namespace CarboLifeAPI
                                 "Import Complete",
                                 MessageBoxButton.OK,
                                 MessageBoxImage.Information);
+                return true;
             }
             catch (Exception ex)
             {
@@ -477,6 +516,7 @@ namespace CarboLifeAPI
                                 "Import Error",
                                 MessageBoxButton.OK,
                                 MessageBoxImage.Error);
+                return false;
             }
         }
 

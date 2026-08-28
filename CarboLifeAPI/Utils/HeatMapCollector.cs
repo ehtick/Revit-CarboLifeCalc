@@ -85,6 +85,11 @@ namespace CarboLifeAPI
                 //This part collects the required data we need to build the graph later on.
                 foreach (CarboElement carboElement in bufferList)
                 {
+                    //An element without a volume has no carbon density: dividing anyway yields infinity,
+                    //which then sets the scale of the whole graph.
+                    if (carboElement.Volume <= 0)
+                        continue;
+
                     CarboValues value = new CarboValues();
                     value.Id = carboElement.Id;
                     value.Value = (carboElement.EC_Cumulative / carboElement.Volume);

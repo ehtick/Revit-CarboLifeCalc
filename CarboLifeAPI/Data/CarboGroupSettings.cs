@@ -130,34 +130,30 @@ namespace CarboLifeAPI.Data
             
         }
 
+        /// <summary>
+        /// Reads the default import settings back.
+        /// They are stored inside the application settings file as
+        /// CarboSettings.defaultCarboGroupSettings, so the file is read through CarboSettings.
+        /// Deserialising that file as a CarboGroupSettings of its own - which is what this did -
+        /// threw "&lt;CarboSettings&gt; was not expected" every single time and handed back blank
+        /// defaults, so any project relying on it lost its import settings.
+        /// </summary>
+        /// <returns>The stored defaults, or a fresh set when none could be read.</returns>
         public CarboGroupSettings DeSerializeXML()
         {
-            //All error handeling exists within getSettingsFilePath:
-            string importSettingsPath  = PathUtils.getSettingsFilePath();
-
-            if (File.Exists(importSettingsPath))
+            try
             {
-                try
-                {
-                    XmlSerializer ser = new XmlSerializer(typeof(CarboGroupSettings));
-                    CarboGroupSettings buffer;
+                CarboSettings settings = new CarboSettings().Load();
 
-                    using (FileStream fs = new FileStream(importSettingsPath, FileMode.Open))
-                    {
-                        buffer = ser.Deserialize(fs) as CarboGroupSettings;
-                    }
-                    return buffer;
-                }
-                catch (Exception ex)
-                {
-                    System.Windows.MessageBox.Show(ex.Message);
-                    return new CarboGroupSettings();
-                }
+                if (settings != null && settings.defaultCarboGroupSettings != null)
+                    return settings.defaultCarboGroupSettings;
             }
-            else
+            catch (Exception ex)
             {
-                return new CarboGroupSettings();
+                System.Windows.MessageBox.Show(ex.Message);
             }
+
+            return new CarboGroupSettings();
         }
 
         private List<CarboNumProperty> getCurrentRCMap()
@@ -193,36 +189,45 @@ namespace CarboLifeAPI.Data
 
         }
 
+        /// <summary>
+        /// Writes these import settings out.
+        ///
+        /// With a path, a standalone CarboGroupSettings document is written there.
+        /// Without one they are stored as the application default, inside CarboSettings, which is
+        /// where every reader looks for them. Passing no path used to serialise a
+        /// CarboGroupSettings document straight over CarboSettings.xml, which destroyed the
+        /// template path, the mapping path, the currency, the design life and the colour presets,
+        /// and left a file that CarboSettings could no longer read at all.
+        /// </summary>
+        /// <param name="path">Where to write a standalone file. Empty stores the application default.</param>
+        /// <returns>True when the settings were written.</returns>
         public bool SerializeXML(string path = "")
         {
-            string importSettingsPath = path;
-
-            if (path == "")
-            {
-                importSettingsPath = PathUtils.getSettingsFilePath();
-            }
-            else
-            {                 
-                importSettingsPath = path;
-            }
-
-            bool result = false;
             try
             {
+                if (string.IsNullOrEmpty(path))
+                {
+                    CarboSettings settings = new CarboSettings().Load();
+                    settings.defaultCarboGroupSettings = this;
+                    return settings.Save();
+                }
+
                 XmlSerializer ser = new XmlSerializer(typeof(CarboGroupSettings));
 
-                using (FileStream fs = new FileStream(importSettingsPath, FileMode.Create))
+                using (FileStream fs = new FileStream(path, FileMode.Create))
                 {
                     ser.Serialize(fs, this);
                 }
+
+                //Reported false on success before, so every caller that checked the result saw a
+                //write that had actually worked as a failure.
+                return true;
             }
             catch (Exception ex)
             {
                 System.Windows.MessageBox.Show(ex.Message);
                 return false;
             }
-
-            return result;
         }
 
         public void ReloadRCMap()

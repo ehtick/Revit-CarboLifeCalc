@@ -1,16 +1,75 @@
 ﻿<Window x:Class="CarboLifeRevit.HeatMapCreator"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-        mc:Ignorable="d" Name="HeatMapCreatorWin" 
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        mc:Ignorable="d" Name="HeatMapCreatorWin"
         Title="Heatmapper | Carbon Footprint Visualizer"
-        Height="850" Width="800" MinWidth="800" MinHeight="850"
-        Loaded="Window_Loaded" Background="#F4F4F4" SizeChanged="Window_SizeChanged" 
+        Height="940" Width="820" MinWidth="800" MinHeight="880"
+        Loaded="Window_Loaded" Background="#F4F4F4"
         Icon="pack://application:,,,/CarboLifeRevit;component/UI/ico_clcwindow.ico">
 
     <Window.Resources>
-        <ResourceDictionary Source="MyStyles.xaml"/>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="MyStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+
+            <!-- The shared ButtonStyle paints a fixed grey fill, so a primary action needs its own
+                 template. Same flat shape, filled with the CLC accent, so the main action on the tab
+                 reads as the main action. -->
+            <Style x:Key="PrimaryButtonStyle" TargetType="Button">
+                <Setter Property="Foreground" Value="White"/>
+                <Setter Property="FontFamily" Value="Segoe UI"/>
+                <Setter Property="FontSize" Value="12.5"/>
+                <Setter Property="FontWeight" Value="DemiBold"/>
+                <Setter Property="Padding" Value="10,0,10,2"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Bd" Background="#B21616" BorderBrush="#8E1111" BorderThickness="1" CornerRadius="3">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="#C81D1D"/>
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="#8E1111"/>
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter TargetName="Bd" Property="Background" Value="#CFCFCF"/>
+                                    <Setter TargetName="Bd" Property="BorderBrush" Value="#BEBEBE"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- Small grey capitals used to head every block on the form. -->
+            <Style x:Key="SectionHeader" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="10"/>
+                <Setter Property="FontWeight" Value="Bold"/>
+                <Setter Property="Foreground" Value="Gray"/>
+                <Setter Property="Margin" Value="0,0,0,10"/>
+            </Style>
+
+            <!-- Caption above an individual field. -->
+            <Style x:Key="FieldCaption" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="11"/>
+                <Setter Property="Foreground" Value="#777"/>
+                <Setter Property="Margin" Value="0,0,0,2"/>
+            </Style>
+
+            <!-- One swatch of the gradient strip. -->
+            <Style x:Key="SwatchButton" TargetType="Button">
+                <Setter Property="Height" Value="26"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="FontSize" Value="11"/>
+                <Setter Property="FontFamily" Value="Segoe UI"/>
+            </Style>
+        </ResourceDictionary>
     </Window.Resources>
 
     <Grid Margin="15">
@@ -32,19 +91,20 @@
                 </Grid.ColumnDefinitions>
                 <StackPanel Grid.Column="0" VerticalAlignment="Center">
                     <StackPanel Orientation="Horizontal" Margin="0,2">
-                        <TextBlock Text="Project Name: " FontWeight="SemiBold" Width="150"/>
+                        <TextBlock Text="Project Name: " FontWeight="SemiBold" Width="175"/>
                         <TextBlock Name="lbl_name" Text="VALUE" Foreground="#555"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,2">
-                        <TextBlock Text="Total Embodied Carbon: " FontWeight="SemiBold" Width="150"/>
+                        <TextBlock Text="Total Embodied Carbon: " FontWeight="SemiBold" Width="175"/>
                         <TextBlock Name="lbl_total" Text="VALUE" Foreground="#B21616" FontWeight="Bold"/>
                     </StackPanel>
-                    <TextBlock Name="lbl_debug" Text="Status: Idle" FontSize="10" Foreground="Gray" Margin="0,5,0,0"/>
                 </StackPanel>
 
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button Name="btn_Open" Content="Load Project..." Width="100" Height="30" Margin="5" Style="{StaticResource ButtonStyle}" Click="btn_Open_Click"/>
-                    <Button Name="btn_Edit" Content="Edit Project..." Width="100" Height="30" Margin="5" Style="{StaticResource ButtonStyle}" Click="btn_Edit_Click"/>
+                    <Button Name="btn_Open" Content="Load Project..." Width="100" Height="30" Margin="5" Style="{StaticResource ButtonStyle}" Click="btn_Open_Click"
+                            ToolTip="Open a saved Carbo Life Calc project file."/>
+                    <Button Name="btn_Edit" Content="Edit Project..." Width="100" Height="30" Margin="5" Style="{StaticResource ButtonStyle}" Click="btn_Edit_Click"
+                            ToolTip="Open the loaded project in the main Carbo Life Calc window."/>
                 </StackPanel>
             </Grid>
         </GroupBox>
@@ -52,31 +112,51 @@
         <TabControl Grid.Row="2" Background="Transparent" BorderThickness="0,1,0,0">
             <TabItem Header="Colour Mapping" Padding="10,5">
                 <Grid Background="White" Margin="0,10,0,0">
+                    <!-- The shared TabItem style sets Foreground="WhiteSmoke" on the TabItem itself to
+                         colour its selected header. Foreground is inherited, so it also reaches the tab's
+                         content and leaves a plain TextBlock almost invisible on white. Pinning a readable
+                         default here fixes the content without touching the header. -->
+                    <Grid.Resources>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="#222"/>
+                        </Style>
+                    </Grid.Resources>
+
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <Grid Grid.Row="0" Margin="15">
+                    <!--=========================================================================
+                        WHAT TO PLOT AND HOW TO SCALE IT
+                    ==========================================================================-->
+                    <Grid Grid.Row="0" Margin="15,15,15,10">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="1.2*"/>
-                            <ColumnDefinition Width="50"/>
+                            <ColumnDefinition Width="40"/>
                             <ColumnDefinition Width="2*"/>
                         </Grid.ColumnDefinitions>
 
                         <StackPanel Grid.Column="0">
-                            <TextBlock Text="HEATMAP TYPE" FontSize="10" FontWeight="Bold" Foreground="Gray" Margin="0,0,0,10"/>
-                            <RadioButton Name="rad_ByDensitykg" Content="By Material [kgCO₂/kg]" Margin="0,4" IsChecked="True" Click="rad_Control_Click" />
-                            <RadioButton Name="rad_ByDensitym" Content="By Material [kgCO₂/m³]" Margin="0,4" Click="rad_Control_Click" />
-                            <RadioButton Name="rad_ByGroup" Content="By Group [kgCO₂]" Margin="0,4" Click="rad_Control_Click" />
-                            <RadioButton Name="rad_ByElement" Content="By Element [kgCO₂]" Margin="0,4" Click="rad_Control_Click"/>
-                            <RadioButton Name="rad_MaterialTotals" Content="By Material Totals" Margin="0,4" Click="rad_Control_Click"/>
-                            <Button x:Name="btn_Update" Content="Refresh Mapping" Margin="0,15,0,0" Height="30" Style="{StaticResource ButtonStyle}" Click="btn_Update_Click"/>
+                            <TextBlock Text="HEATMAP TYPE" Style="{StaticResource SectionHeader}"/>
+                            <RadioButton Name="rad_ByDensitykg" Content="By Material [kgCO₂/kg]" Margin="0,3" IsChecked="True" Click="rad_Control_Click"
+                                         ToolTip="Carbon intensity of each element's material, per kilogram."/>
+                            <RadioButton Name="rad_ByDensitym" Content="By Material [kgCO₂/m³]" Margin="0,3" Click="rad_Control_Click"
+                                         ToolTip="Carbon intensity of each element's material, per cubic metre."/>
+                            <RadioButton Name="rad_ByGroup" Content="By Group [kgCO₂]" Margin="0,3" Click="rad_Control_Click"
+                                         ToolTip="Total embodied carbon of the group each element belongs to."/>
+                            <RadioButton Name="rad_ByElement" Content="By Element [kgCO₂]" Margin="0,3" Click="rad_Control_Click"
+                                         ToolTip="Embodied carbon of each individual element."/>
+                            <RadioButton Name="rad_MaterialTotals" Content="By Material Totals" Margin="0,3" Click="rad_Control_Click"
+                                         ToolTip="Total embodied carbon of each material across the whole project."/>
+                            <Button x:Name="btn_Update" Content="Refresh Mapping" Margin="0,14,0,0" HorizontalAlignment="Left" Width="150" Height="28" Style="{StaticResource ButtonStyle}" Click="btn_Update_Click"
+                                    ToolTip="Redraw the graph with the current settings."/>
                         </StackPanel>
 
                         <StackPanel Grid.Column="2">
-                            <TextBlock Text="FILTERS &amp; APPEARANCE" FontSize="10" FontWeight="Bold" Foreground="Gray" Margin="0,0,0,10"/>
+                            <TextBlock Text="FILTERS &amp; APPEARANCE" Style="{StaticResource SectionHeader}"/>
 
                             <Grid Margin="0,2">
                                 <Grid.ColumnDefinitions>
@@ -86,7 +166,8 @@
                                 </Grid.ColumnDefinitions>
                                 <TextBlock Text="Cutoff Max" VerticalAlignment="Center"/>
                                 <TextBox Name="txt_CutoffMax" Grid.Column="1" Text="9999" Style="{StaticResource flatTextBox}" IsEnabled="False"/>
-                                <Slider Name="sld_Max" Grid.Column="2" VerticalAlignment="Center" Margin="10,0" Maximum="1" Value="1" ValueChanged="sld_Max_ValueChanged"/>
+                                <Slider Name="sld_Max" Grid.Column="2" VerticalAlignment="Center" Margin="10,0" Maximum="1" Value="1" ValueChanged="sld_Max_ValueChanged"
+                                        ToolTip="Elements above this value are treated as out of scope. Cannot be dragged below the minimum cutoff."/>
                             </Grid>
 
                             <Grid Margin="0,2">
@@ -97,94 +178,198 @@
                                 </Grid.ColumnDefinitions>
                                 <TextBlock Text="Cutoff Min" VerticalAlignment="Center"/>
                                 <TextBox Name="txt_CutoffMin" Grid.Column="1" Text="0" Style="{StaticResource flatTextBox}" IsEnabled="False"/>
-                                <Slider Name="sld_Min" Grid.Column="2" VerticalAlignment="Center" Margin="10,0" Maximum="1" ValueChanged="sld_Min_ValueChanged"/>
+                                <Slider Name="sld_Min" Grid.Column="2" VerticalAlignment="Center" Margin="10,0" Maximum="1" ValueChanged="sld_Min_ValueChanged"
+                                        ToolTip="Elements below this value are treated as out of scope. Cannot be dragged above the maximum cutoff."/>
                             </Grid>
 
-                            <TextBlock Text="Out of Scope Style" Margin="0,10,0,2" FontSize="11" Foreground="#777"/>
-                            <ComboBox x:Name="cbb_outofBounds" Height="26" Style="{StaticResource ComboBoxFlatStyle}"/>
+                            <Grid Margin="0,8,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <CheckBox Name="chk_LogScale" Content="Log scale" VerticalAlignment="Center" Click="chk_LogScale_Click"
+                                          ToolTip="Plot the value axis logarithmically. Keeps a skewed distribution readable when one element dwarfs the rest. Needs values above zero."/>
+                                <Button Name="btn_FitRange" Grid.Column="2" Content="Auto Range" Width="88" Height="24" Style="{StaticResource ButtonStyle}" Click="btn_FitRange_Click"
+                                        ToolTip="Set the cutoffs to the 2nd and 98th percentile, so the extreme tail stops flattening the rest of the graph."/>
+                                <Button Name="btn_FullRange" Grid.Column="3" Content="Full Range" Width="88" Height="24" Margin="6,0,0,0" Style="{StaticResource ButtonStyle}" Click="btn_FullRange_Click"
+                                        ToolTip="Reset the cutoffs so every element is in scope."/>
+                            </Grid>
 
-                            <TextBlock Text="Colour Preset" Margin="0,10,0,2" FontSize="11" Foreground="#777"/>
-                            <Grid>
+                            <Grid Margin="0,12,0,0">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="40"/>
+                                    <ColumnDefinition Width="12"/>
+                                    <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
-                                <ComboBox x:Name="cbb_colours" Height="26" Style="{StaticResource ComboBoxFlatStyle}" DropDownClosed="cbb_colours_DropDownClosed"/>
-                                <Button Name="btn_SaveColours" Grid.Column="1" Content="Save" Margin="5,0,0,0" Style="{StaticResource ButtonStyle}" Click="btn_SaveColours_Click"/>
+
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="Out of scope elements" Style="{StaticResource FieldCaption}"/>
+                                    <ComboBox x:Name="cbb_outofBounds" Height="26" Style="{StaticResource ComboBoxFlatStyle}"
+                                              ToolTip="What to do with the elements that fall outside the cutoff range."/>
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="Colour preset" Style="{StaticResource FieldCaption}"/>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="46"/>
+                                        </Grid.ColumnDefinitions>
+                                        <ComboBox x:Name="cbb_colours" Height="26" Style="{StaticResource ComboBoxFlatStyle}" DropDownClosed="cbb_colours_DropDownClosed"
+                                                  ToolTip="Pick a saved gradient."/>
+                                        <Button Name="btn_SaveColours" Grid.Column="1" Content="Save" Height="26" Margin="6,0,0,0" Style="{StaticResource ButtonStyle}" Click="btn_SaveColours_Click"
+                                                ToolTip="Save the gradient below under the selected preset name."/>
+                                    </Grid>
+                                </StackPanel>
                             </Grid>
+
+                            <!-- The gradient belongs with the preset that stores it, not under the graph. -->
+                            <TextBlock Text="Colour gradient — click a swatch to change it" Style="{StaticResource FieldCaption}" Margin="0,12,0,3"/>
+                            <Border BorderBrush="#CCC" BorderThickness="1" HorizontalAlignment="Left">
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Name="btn_MinOut" Content="Out" Width="42" Background="CornflowerBlue" Foreground="White" Style="{StaticResource SwatchButton}" Click="btn_MinOut_Click"
+                                            ToolTip="Colour for elements below the minimum cutoff."/>
+                                    <Button Name="btn_Low" Content="Low" Width="56" Background="Lime" Style="{StaticResource SwatchButton}" Click="btn_Low_Click"
+                                            ToolTip="Colour at the bottom of the range."/>
+                                    <Button Name="btn_Mid" Content="Mid" Width="56" Background="Orange" Style="{StaticResource SwatchButton}" Click="btn_Mid_Click"
+                                            ToolTip="Colour halfway up the range."/>
+                                    <Button Name="btn_High" Content="High" Width="56" Background="Red" Style="{StaticResource SwatchButton}" Click="btn_High_Click"
+                                            ToolTip="Colour at the top of the range."/>
+                                    <Button Name="btn_MaxOut" Content="Out" Width="42" Background="Purple" Foreground="White" Style="{StaticResource SwatchButton}" Click="btn_MaxOut_Click"
+                                            ToolTip="Colour for elements above the maximum cutoff."/>
+                                </StackPanel>
+                            </Border>
                         </StackPanel>
                     </Grid>
 
-                    <Border Grid.Row="1" Margin="15,0" BorderBrush="#EEE" BorderThickness="1" Background="#FAFAFA">
-                        <Canvas Name="cnv_Graph" />
+                    <!--=========================================================================
+                        THE GRAPH
+                    ==========================================================================-->
+                    <Border Grid.Row="1" Margin="15,0" MinHeight="160" BorderBrush="#EEE" BorderThickness="1" Background="#FAFAFA">
+                        <Canvas Name="cnv_Graph" ClipToBounds="True" SizeChanged="cnv_Graph_SizeChanged" />
                     </Border>
 
-                    <Grid Grid.Row="2" Margin="15">
+                    <TextBlock Name="lbl_debug" Grid.Row="2" Text="Status: Idle" FontSize="10" Foreground="Gray" Margin="15,4,15,0" HorizontalAlignment="Right"/>
+
+                    <!--=========================================================================
+                        THE TWO THINGS THIS FORM CAN DO TO THE MODEL.
+                        Left is the main action, right is the one the user has to trigger separately.
+                    ==========================================================================-->
+                    <Grid Grid.Row="3" Margin="15,10,15,15">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
 
-                        <StackPanel Grid.Column="0">
-                            <CheckBox Name="chk_Legend" Content="Create / Update Legend" IsChecked="True" VerticalAlignment="Center"/>
-                            <TextBox Name="txt_LegendName" Width="180" Margin="0,5,0,0" Style="{StaticResource flatTextBox}" TextChanged="txt_LegendName_TextChanged"/>
-                        </StackPanel>
+                        <Border Grid.Column="0" Background="#FAFAFA" BorderBrush="#DDD" BorderThickness="1" CornerRadius="4" Padding="12,10">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
 
-                        <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <Button Name="btn_MinOut" Content="Out" Width="35" Height="30" Background="CornflowerBlue" Click="btn_MinOut_Click" Foreground="White" BorderThickness="0"/>
-                            <Button Name="btn_Low" Content="Low" Width="50" Height="30" Background="Lime" Click="btn_Low_Click" BorderThickness="0"/>
-                            <Button Name="btn_Mid" Content="Mid" Width="50" Height="30" Background="Orange" Click="btn_Mid_Click" BorderThickness="0"/>
-                            <Button Name="btn_High" Content="High" Width="50" Height="30" Background="Red" Click="btn_High_Click" BorderThickness="0"/>
-                            <Button Name="btn_MaxOut" Content="Out" Width="35" Height="30" Background="Purple" Click="btn_MaxOut_Click" Foreground="White" BorderThickness="0"/>
-                        </StackPanel>
+                                <TextBlock Text="APPLY TO THE ACTIVE VIEW" Style="{StaticResource SectionHeader}" Margin="0,0,0,2"/>
+                                <TextBlock Grid.Row="1" Text="Overrides the graphics of the elements in the current Revit view." FontSize="10" Foreground="#888" TextWrapping="Wrap" Margin="0,0,0,8"/>
 
-                        <StackPanel Grid.Column="2">
-                            <Button Name="btn_Apply" Content="Apply to Revit" Width="120" Height="30" Margin="0,0,0,5" Style="{StaticResource ButtonStyle}" Click="btn_Show_Click"/>
-                            <Button Name="btn_Clear" Content="Clear View" Width="120" Height="25" Click="Btn_Clear_Click"/>
-                        </StackPanel>
+                                <StackPanel Grid.Row="2" Orientation="Horizontal">
+                                    <Button Name="btn_Apply" Content="Apply Colours" Width="130" Height="32" Style="{StaticResource PrimaryButtonStyle}" Click="btn_Show_Click"
+                                            ToolTip="Colour the elements in the active Revit view using the graph above."/>
+                                    <Button Name="btn_Clear" Content="Clear Colours" Width="118" Height="32" Margin="8,0,0,0" Style="{StaticResource ButtonStyle}" Click="Btn_Clear_Click"
+                                            ToolTip="Remove the Carbo Life Calc colour overrides from the active view."/>
+                                </StackPanel>
+
+                                <Grid Grid.Row="3" Margin="0,10,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <CheckBox Name="chk_Legend" Content="Include colour legend:" IsChecked="True" VerticalAlignment="Center" Margin="0,0,8,0"
+                                              ToolTip="Create or update a legend view showing what each colour means. Happens as part of Apply Colours."/>
+                                    <TextBox Name="txt_LegendName" Grid.Column="1" Height="24" Style="{StaticResource flatTextBox}" TextChanged="txt_LegendName_TextChanged"
+                                             ToolTip="Name of the legend view to create or update."/>
+                                </Grid>
+                            </Grid>
+                        </Border>
+
+                        <Border Grid.Column="2" Background="#FFFCF2" BorderBrush="#FFE082" BorderThickness="1" CornerRadius="4" Padding="12,10">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Text="SEPARATE ACTION · RESULTS VIEW" FontSize="10" FontWeight="Bold" Foreground="#9A7B12" Margin="0,0,0,2"/>
+                                <TextBlock Grid.Row="1" Text="Not part of Apply Colours — press Create View yourself." FontSize="10" Foreground="#856404" TextWrapping="Wrap" Margin="0,0,0,8"/>
+
+                                <Grid Grid.Row="2">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox Name="txt_DashBoardName" Height="32" VerticalContentAlignment="Center" Style="{StaticResource flatTextBox}" TextChanged="txt_DashBoardName_TextChanged"
+                                             ToolTip="Name of the Revit view that will hold the results table."/>
+                                    <Button Name="btn_createDashBoard" Grid.Column="1" Content="Create View" Width="118" Height="32" Margin="8,0,0,0" Style="{StaticResource ButtonStyle}" Click="btn_createDashBoard_Click"
+                                            ToolTip="Create or update a Revit drafting view containing the calculation results."/>
+                                </Grid>
+
+                                <CheckBox Name="chk_Detailed" Grid.Row="3" Content="Detailed calculation breakdown" Margin="0,10,0,0"
+                                          ToolTip="Write the full per-group breakdown into the view instead of a summary."/>
+                            </Grid>
+                        </Border>
                     </Grid>
                 </Grid>
             </TabItem>
 
             <TabItem Header="Revit Parameter Sync" Padding="10,5">
-                <StackPanel Margin="20" Background="White">
-                    <TextBlock Text="PARAMETER SYNCHRONIZATION" FontSize="10" FontWeight="Bold" Foreground="Gray" Margin="0,0,0,15"/>
+                <Grid Background="White" Margin="0,10,0,0">
+                    <!-- See the note on the first tab: the inherited TabItem foreground would otherwise
+                         leave the plain labels here unreadable. -->
+                    <Grid.Resources>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="#222"/>
+                        </Style>
+                    </Grid.Resources>
 
-                    <Border Background="#FFF9E7" BorderBrush="#FFE082" BorderThickness="1" Padding="15" CornerRadius="4" Margin="0,0,0,20">
-                        <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="#856404">
-                            The total embodied carbon will be written to the selected parameter. 
-                            Note: The parameter must be a 'Number' type and an 'Instance' parameter in Revit.
-                        </TextBlock>
-                    </Border>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
 
-                    <Grid Margin="0,0,0,30">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Text="Target Parameter:" VerticalAlignment="Center" Margin="0,0,15,0"/>
-                        <TextBox Name="txt_Parameter" Grid.Column="1" Height="28" Style="{StaticResource flatTextBox}" TextChanged="txt_Parameter_TextChanged"/>
-                        <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="10,0,0,0">
-                            <Button Name="btn_Importvalues" Content="Sync Values" Width="100" Height="28" Style="{StaticResource ButtonStyle}" Click="btn_Importvalues_Click"/>
-                            <Button Name="btn_ClearValues" Content="Clear" Width="60" Height="28" Margin="5,0,0,0" Click="btn_ClearValues_Click"/>
-                        </StackPanel>
-                    </Grid>
+                    <StackPanel Margin="20">
+                        <TextBlock Text="PARAMETER SYNCHRONIZATION" Style="{StaticResource SectionHeader}" Margin="0,0,0,15"/>
 
-                    <TextBlock Text="DASHBOARD VIEWS" FontSize="10" FontWeight="Bold" Foreground="Gray" Margin="0,10,0,15"/>
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Text="New View Name:" VerticalAlignment="Center" Margin="0,0,15,0"/>
-                        <TextBox Name="txt_DashBoardName" Grid.Column="1" Height="28" Style="{StaticResource flatTextBox}" TextChanged="txt_DashBoardName_TextChanged"/>
-                        <Button Name="btn_createDashBoard" Grid.Column="2" Content="Create View" Width="100" Height="28" Margin="10,0,0,0" Style="{StaticResource ButtonStyle}" Click="btn_createDashBoard_Click"/>
-                    </Grid>
-                    <CheckBox Name="chk_Detailed" Content="Export Detailed Calculation Breakdown" Margin="115,10,0,0"/>
-                </StackPanel>
+                        <Border Background="#FFF9E7" BorderBrush="#FFE082" BorderThickness="1" Padding="15" CornerRadius="4" Margin="0,0,0,20">
+                            <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="#856404">
+                                The total embodied carbon will be written to the selected parameter.
+                                Note: The parameter must be a 'Number' type and an 'Instance' parameter in Revit.
+                            </TextBlock>
+                        </Border>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Target Parameter:" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                            <TextBox Name="txt_Parameter" Grid.Column="1" Height="28" Style="{StaticResource flatTextBox}" TextChanged="txt_Parameter_TextChanged"
+                                     ToolTip="Name of the instance parameter the embodied carbon is written to."/>
+                            <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="10,0,0,0">
+                                <Button Name="btn_Importvalues" Content="Sync Values" Width="100" Height="28" Style="{StaticResource ButtonStyle}" Click="btn_Importvalues_Click"
+                                        ToolTip="Write the embodied carbon of every element into the parameter above."/>
+                                <Button Name="btn_ClearValues" Content="Clear" Width="60" Height="28" Margin="5,0,0,0" Style="{StaticResource ButtonStyle}" Click="btn_ClearValues_Click"
+                                        ToolTip="Blank the parameter above on every element."/>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Grid>
             </TabItem>
         </TabControl>
 

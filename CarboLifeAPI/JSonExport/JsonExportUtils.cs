@@ -141,7 +141,8 @@ namespace CarboLifeAPI
 
                 foreach (CarboElement ce in elementList)
                 {
-                    CarboMaterial material = carboProject.CarboDatabase.getClosestMatch(ce.CarboMaterialName, ce.Grade);
+                    //Argument 2 is the Revit MaterialClass, not the grade, the grade has its own slot.
+                    CarboMaterial material = carboProject.CarboDatabase.getClosestMatch(ce.CarboMaterialName, ce.MaterialCategoryName, ce.Grade);
                     if (material != null)
                     {
                         JsCarboElement JsCe = ConvertoToJsCarboElement(ce, carboProject);

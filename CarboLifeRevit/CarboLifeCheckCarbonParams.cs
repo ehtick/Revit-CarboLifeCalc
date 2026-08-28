@@ -67,7 +67,7 @@ namespace CarboLifeRevit
                                 ElementBinding binding;
                                 
                                 // Check for the specific Instance Parameter by name
-                                if (def.Name == "CLC_EmbodiedCarbon" || def.Name == "CLC_IsSubstructure")
+                                if (def.Name == "CLC_EmbodiedCarbon" || def.Name == "CLC_IsSubstructure" || def.Name == "CLC_MaterialGrade")
                                 {
                                     // Create Instance Binding
                                     binding = uiApp.Application.Create.NewInstanceBinding(catSet);

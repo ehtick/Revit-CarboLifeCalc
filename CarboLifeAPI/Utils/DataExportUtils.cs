@@ -1242,7 +1242,10 @@ private static void CreateProjectCombinedExportCSV(List<CarboProject> projectLis
             foreach (CarboElement el in elementList)
             {
                 string resultString = "";
-                CarboMaterial material = carboLifeProject.CarboDatabase.getClosestMatch(el.CarboMaterialName, el.Category);
+                //Argument 2 is the Revit MaterialClass. el.Category is the Revit ELEMENT category
+                //("Walls", "Structural Framing"), which is a different concept and used to poison
+                //the match here.
+                CarboMaterial material = carboLifeProject.CarboDatabase.getClosestMatch(el.CarboMaterialName, el.MaterialCategoryName, el.Grade);
 
                 resultString += el.Id + ","; //0
                 resultString += CVSFormat(el.Category) + ","; //1
