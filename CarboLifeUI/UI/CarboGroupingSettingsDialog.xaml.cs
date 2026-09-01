@@ -290,25 +290,93 @@ namespace CarboLifeUI.UI
             if (AllowanceSettingsAreValid() == false)
                 return;
 
-            string result;
-            templateCollection.TryGetValue(cbb_Template.Text, out result);
-
-            if (File.Exists(result))
-            {
-                selectedTemplateFile = result;
-            }
-            else
-            {
-               System.Windows.MessageBox.Show("The selected template could not be found");
-            }
+            //An import with no material database behind it matches every material to a blank row
+            //and prices the whole model at zero. This used to warn and then import anyway, with
+            //selectedTemplateFile left empty. The dialog now stays open so the user can pick a
+            //template that exists.
+            if (TryResolveSelectedTemplate() == false)
+                return;
 
             dialogOk = MessageBoxResult.Yes;
             SaveSettings();
             this.Close();
         }
 
+        /// <summary>
+        /// Resolves the template chosen in the combo box to a file on disk.
+        /// Reports what is wrong and returns false when it cannot, leaving the dialog open.
+        /// </summary>
+        private bool TryResolveSelectedTemplate()
+        {
+            string chosen = cbb_Template.Text == null ? "" : cbb_Template.Text.Trim();
+
+            if (chosen.Length == 0)
+            {
+                System.Windows.MessageBox.Show(
+                    "No material template is selected." + Environment.NewLine + Environment.NewLine +
+                    "Pick one from the Template list before importing.",
+                    "Template required", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return false;
+            }
+
+            string result = null;
+
+            if (templateCollection != null)
+                templateCollection.TryGetValue(chosen, out result);
+
+            //The combo box holds file names; fall back to the usual resolution for a full path.
+            if (string.IsNullOrEmpty(result) || File.Exists(result) == false)
+                result = PathUtils.getTemplateFilePath(chosen);
+
+            if (string.IsNullOrEmpty(result) || File.Exists(result) == false)
+            {
+                System.Windows.MessageBox.Show(
+                    "The selected template could not be found:" + Environment.NewLine + Environment.NewLine +
+                    chosen + Environment.NewLine + Environment.NewLine +
+                    "Nothing has been imported. Pick a template that exists, or check the materials folder:" +
+                    Environment.NewLine + PathUtils.GetMaterialsDir(),
+                    "Template not found", MessageBoxButton.OK, MessageBoxImage.Error);
+                return false;
+            }
+
+            //A template that holds no materials is as useless as a missing one, and it fails
+            //silently rather than loudly, so it is caught here too.
+            try
+            {
+                CarboDatabase check = new CarboDatabase().DeSerializeXML(result);
+
+                if (check == null || check.CarboMaterialList == null || check.CarboMaterialList.Count == 0)
+                {
+                    System.Windows.MessageBox.Show(
+                        "The selected template contains no materials:" + Environment.NewLine + Environment.NewLine +
+                        result + Environment.NewLine + Environment.NewLine +
+                        "Nothing has been imported. Pick another template.",
+                        "Template empty", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show(
+                    "The selected template could not be read:" + Environment.NewLine + Environment.NewLine +
+                    result + Environment.NewLine + Environment.NewLine + ex.Message +
+                    Environment.NewLine + Environment.NewLine + "Nothing has been imported.",
+                    "Template unreadable", MessageBoxButton.OK, MessageBoxImage.Error);
+                return false;
+            }
+
+            selectedTemplateFile = result;
+            return true;
+        }
+
         private void Btn_OkClose_Click(object sender, RoutedEventArgs e)
         {
+            //Ok saves the same settings that Ok & Import does, so it validates them the same way.
+            //Without this an allowance could be saved switched on with no material behind it and
+            //only fail later, during an import started from somewhere else.
+            if (AllowanceSettingsAreValid() == false)
+                return;
+
             dialogOk = MessageBoxResult.OK;
             SaveSettings();
             this.Close();

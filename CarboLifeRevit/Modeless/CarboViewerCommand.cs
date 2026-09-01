@@ -54,6 +54,10 @@ namespace CarboLifeRevit
                     CarboProject buffer = new CarboProject();
                     projectToUpdate = buffer.DeSerializeXML(projectPath);
 
+                    //A damaged file comes back as null, having already reported the problem.
+                    if (projectToUpdate == null)
+                        return Result.Cancelled;
+
                     projectToUpdate.Audit();
                     projectToUpdate.CalculateProject();
 

@@ -54,6 +54,50 @@ namespace CarboLifeAPI
         */
 
         /// <summary>
+        /// True when a configured path cannot even be looked at right now, as opposed to simply
+        /// not being there.
+        ///
+        /// This is the difference between "the company share is offline, the VPN is down, the
+        /// drive letter is not mapped yet" and "the file was deleted or renamed". When the
+        /// containing folder is reachable and the file is not in it, the file is genuinely gone
+        /// and repointing at the local default is the right repair. When the folder cannot be
+        /// reached at all, repointing is the wrong repair: it silently and permanently detaches
+        /// the user from the shared template or mapping file over a momentary network blip.
+        /// </summary>
+        public static bool IsTemporarilyUnavailable(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+                return false;
+
+            try
+            {
+                if (File.Exists(path))
+                    return false;
+
+                string folder = Path.GetDirectoryName(path);
+
+                //No folder part means a bare filename, which is resolved locally anyway.
+                if (string.IsNullOrEmpty(folder))
+                    return false;
+
+                //Folder reachable, file not in it: really missing.
+                //Folder unreachable: cannot tell, so assume the location will come back.
+                return Directory.Exists(folder) == false;
+            }
+            catch
+            {
+                //A path we cannot even inspect is exactly the case this guards.
+                return true;
+            }
+        }
+
+        /// <summary>
+        /// Said once per session, not once per project: CheckFileLocations runs in every
+        /// CarboProject constructor.
+        /// </summary>
+        private static bool warnedAboutUnavailablePaths = false;
+
+        /// <summary>
         /// Sets and prepares the usermaterials and settings File
         /// Check Settings file
         /// Check Template file
@@ -93,7 +137,40 @@ namespace CarboLifeAPI
                 string expectedTemplatePath = settings.templatePath;
                 string expectedMappingPath = settings.mappingPath;
 
-                if (!(File.Exists(expectedTemplatePath)))
+                //A share that is merely offline must keep its stored path, see
+                //IsTemporarilyUnavailable. Falling back for this run is fine, rewriting the
+                //setting is not: the user would come back on the network still pointed at their
+                //own local copy, with no sign that anything had changed.
+                bool templateOffline = IsTemporarilyUnavailable(expectedTemplatePath);
+                bool mappingOffline = IsTemporarilyUnavailable(expectedMappingPath);
+
+                if (templateOffline || mappingOffline)
+                {
+                    string offlineLog = "";
+
+                    if (templateOffline)
+                        offlineLog += "Template file: " + expectedTemplatePath + Environment.NewLine;
+                    if (mappingOffline)
+                        offlineLog += "Mapping file: " + expectedMappingPath + Environment.NewLine;
+
+                    log += "Location unreachable, keeping the setting: " + Environment.NewLine + offlineLog;
+
+                    if (warnedAboutUnavailablePaths == false)
+                    {
+                        warnedAboutUnavailablePaths = true;
+
+                        MessageBox.Show(
+                            "A shared location set in your settings cannot be reached at the moment:" +
+                            Environment.NewLine + Environment.NewLine + offlineLog + Environment.NewLine +
+                            "The local copy is being used for now and your settings have been left alone, " +
+                            "so the shared file will be picked up again once the location is back." +
+                            Environment.NewLine + Environment.NewLine +
+                            "If this location is gone for good, point at a new one in Settings.",
+                            "Shared location unavailable", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    }
+                }
+
+                if (!(File.Exists(expectedTemplatePath)) && templateOffline == false)
                 {
                     //The selected tenplate file could not be found, refert back to default:
 
@@ -121,7 +198,7 @@ namespace CarboLifeAPI
                     log += "User Template file found at: " + expectedTemplatePath + Environment.NewLine;
                 }
 
-                if (!(File.Exists(expectedMappingPath)))
+                if (!(File.Exists(expectedMappingPath)) && mappingOffline == false)
                 {
                     if (File.Exists(defaultMappingPath))
                         //revert back to default
@@ -233,8 +310,11 @@ namespace CarboLifeAPI
 
                 if (resolved != null)
                 {
-                    // Heal the stored path if it had drifted
-                    if (!string.Equals(resolved, settings.templatePath, StringComparison.OrdinalIgnoreCase))
+                    // Heal the stored path if it had drifted, but never when the stored location
+                    // is only unreachable: writing the local fallback back into the settings there
+                    // detaches the user from the company share permanently, over a dropped VPN.
+                    if (!string.Equals(resolved, settings.templatePath, StringComparison.OrdinalIgnoreCase)
+                        && IsTemporarilyUnavailable(settings.templatePath) == false)
                     {
                         settings.templatePath = resolved;
                         settings.Save();

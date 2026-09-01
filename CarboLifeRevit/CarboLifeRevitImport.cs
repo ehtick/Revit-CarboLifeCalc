@@ -44,14 +44,26 @@ namespace CarboLifeRevit
                         CarboProject buffer = new CarboProject();
                         projectToUpdate = buffer.DeSerializeXML(updatePath);
 
-                        if (projectToUpdate != null)
-                            settings = projectToUpdate.RevitImportSettings;
+                        //DeSerializeXML reports the problem itself and hands back null rather than
+                        //throwing, so a damaged file never reached the catch below. updateFile
+                        //stayed true and the update path then dereferenced the null, which came
+                        //out as a second, misleading "an error occured" dialog with the real
+                        //cause already dismissed. Stop here instead: no import is better than an
+                        //import that quietly discards the file the user asked to update.
+                        if (projectToUpdate == null)
+                        {
+                            MessageBox.Show(
+                                "The selected Carbo Life Project file could not be read, so nothing has been imported." +
+                                Environment.NewLine + Environment.NewLine + updatePath + Environment.NewLine + Environment.NewLine +
+                                "Open the file on its own to check it, or start a new project instead of updating this one.",
+                                "File could not be read", MessageBoxButton.OK, MessageBoxImage.Error);
+                            return;
+                        }
+
+                        settings = projectToUpdate.RevitImportSettings;
                     }
                     catch (Exception ex)
                     {
-                        updateFile = false;
-                        projectToUpdate = new CarboProject();
-                        settings = projectToUpdate.RevitImportSettings;
                         MessageBox.Show("The selected Carbo Life Project file is invalid \n\nError details: " + ex.Message, "Error", MessageBoxButton.OK);
                         return;
                     }
@@ -93,6 +105,17 @@ namespace CarboLifeRevit
                                 myProject.mapAllMaterials();
                                 myProject.CalculateProject();
                             }
+                        }
+
+                        //Say once, here, which groups were given a material the matcher was not
+                        //sure about. Their carbon is already in the totals, and until now the
+                        //only trace was a "[CHECK MATERIAL]" prefix in the description text that
+                        //nothing read and nobody was told to look for.
+                        string materialReview = myProject.getMaterialReviewSummary();
+                        if (string.IsNullOrEmpty(materialReview) == false)
+                        {
+                            MessageBox.Show(materialReview, "Check these materials",
+                                            MessageBoxButton.OK, MessageBoxImage.Warning);
                         }
 
                         projectToOpen = myProject;

@@ -499,12 +499,15 @@ namespace CarboLifeAPI.Data
 
                     //Anything the matcher is not confident about is surfaced on the group, so a
                     //weak mapping is visible in the UI rather than silently folded into a total.
-                    if (match.IsReliable == false)
-                    {
-                        string flag = "[CHECK MATERIAL " + value.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)
-                                    + "] " + (match.Explanation ?? "");
-                        cg.Description = string.IsNullOrEmpty(cg.Description) ? flag : cg.Description + " " + flag;
-                    }
+                    //Recorded on the group itself as well as in the description text: the note
+                    //survives a save and reload, and CarboProject.getMaterialReviewSummary reads
+                    //it to tell the user once, at the end of an import, that there is something
+                    //to look at. The description alone was written and never read anywhere.
+                    //One call records the score, the review note and the note on the description,
+                    //and it is the same call the mapping file and the material mapper use later,
+                    //so a group re-decided afterwards cannot end up wearing two provenance notes.
+                    cg.SetMaterialProvenance(CarboMaterialSource.AutoMatched, match.Confidence,
+                        match.IsReliable ? "" : (match.Explanation ?? "Matched with low confidence."));
                 }
             }
 

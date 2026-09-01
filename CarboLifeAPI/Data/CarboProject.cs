@@ -184,12 +184,32 @@ namespace CarboLifeAPI.Data
             //UserPaths
             PathUtils.CheckFileLocations();
 
-            CarboSettings settings = new CarboSettings();
-            settings = settings.Load();
+            CarboSettings settings = new CarboSettings().Load();
 
-            RevitImportSettings = new CarboGroupSettings();
+            ApplyProjectDefaults(settings);
+
             CarboDatabase = new CarboDatabase();
             CarboDatabase = CarboDatabase.DeSerializeXML("");
+        }
+
+        /// <summary>
+        /// Every default a new project starts with, in one place.
+        ///
+        /// The two constructors used to carry their own copy of this list and they disagreed:
+        /// C1Factor was 35 here and 3.40 there, a ten fold difference in demolition carbon
+        /// decided purely by which overload the caller happened to use (3.40 is the value the
+        /// sample project and the shipped settings carry, so 35 was the stray one). calculateSeq
+        /// and A5Global differed too, and worst of all this overload built a fresh
+        /// CarboGroupSettings instead of reading the user's saved defaults, so a project created
+        /// through it silently ignored the company import settings the whole sharing feature
+        /// exists to distribute.
+        /// </summary>
+        private void ApplyProjectDefaults(CarboSettings settings)
+        {
+            //The import settings the user, or the company, has actually configured.
+            RevitImportSettings = settings.defaultCarboGroupSettings != null
+                ? settings.defaultCarboGroupSettings
+                : new CarboGroupSettings();
 
             groupList = new ObservableCollection<CarboGroup>();
             elementList = new ObservableCollection<CarboElement>();
@@ -200,26 +220,26 @@ namespace CarboLifeAPI.Data
             Number = "000000";
             Category = "Structure";
             Description = "New Project";
-            valueUnit = "£";
+            valueUnit = string.IsNullOrEmpty(settings.Currency) ? "£" : settings.Currency;
             Area = 1;
             AreaNew = 1;
             totalAreaIsNew = true;
+
             //C1 Global
             demoArea = 0;
             C1Global = 0;
-            C1Factor = 35; // kg CO₂e per m2
-            
+            C1Factor = 3.40; // kg CO₂e per m2
+
             //A Global
             A0Global = 1;
 
+            //Recomputed by CalculateProject from AreaNew and A5AreaFactor, so this is only a seed.
             A5Global = 0;
             A5AreaFactor = 20; //kg CO₂e per m2
+
             //Social
             SocialCost = 150;
-            //Other
 
-            //Totals
-            //Value = 0;
             //New projects don't need to be saved
             justSaved = true;
 
@@ -229,7 +249,7 @@ namespace CarboLifeAPI.Data
             calculateA5 = true;
             calculateB = false;
             calculateB67 = false;
-            calculateSeq = false;
+            calculateSeq = true;
             calculateC = true;
             calculateD = false;
             calculateAdd = false;
@@ -251,20 +271,23 @@ namespace CarboLifeAPI.Data
             //UserPaths
             PathUtils.CheckFileLocations();
 
-            CarboSettings settings = new CarboSettings();
-            settings = settings.Load();
+            CarboSettings settings = new CarboSettings().Load();
 
-            RevitImportSettings = settings.defaultCarboGroupSettings;
+            ApplyProjectDefaults(settings);
+
             CarboDatabase = new CarboDatabase();
-            if (selectedTemplateFile.EndsWith("cxml"))
+
+            string template = selectedTemplateFile ?? "";
+
+            if (template.EndsWith("cxml", StringComparison.OrdinalIgnoreCase))
             {
-                CarboDatabase = CarboDatabase.DeSerializeXML(selectedTemplateFile);
+                CarboDatabase = CarboDatabase.DeSerializeXML(template);
             }
-            else if (selectedTemplateFile.EndsWith("csv"))
+            else if (template.EndsWith("csv", StringComparison.OrdinalIgnoreCase))
             {
                 try
                 {
-                    List<CarboMaterial> materiallist = DataExportUtils.GetMaterialDatabaseFromCVSFile(selectedTemplateFile);
+                    List<CarboMaterial> materiallist = DataExportUtils.GetMaterialDatabaseFromCVSFile(template);
 
                     foreach (CarboMaterial cm in materiallist)
                     {
@@ -278,51 +301,19 @@ namespace CarboLifeAPI.Data
                 }
             }
 
-            groupList = new ObservableCollection<CarboGroup>();
-            elementList = new ObservableCollection<CarboElement>();
-            carboLevelList = new List<CarboLevel>();
-            energyProperties = new CarboEnergyProperties();
+            //No usable template was named, so fall back to the configured default rather than
+            //carrying on with an empty database. An empty database matches every material to a
+            //blank row, which prices the whole project at zero without saying anything.
+            //A database holding nothing but the built in material is still empty for this purpose.
+            if (CarboDatabase == null || CarboDatabase.CarboMaterialList == null
+                || CarboDatabase.CarboMaterialList.Count(m => m != null && m.IsSystemEmpty() == false) == 0)
+            {
+                CarboDatabase = new CarboDatabase().DeSerializeXML("");
+            }
 
-            Name = "New Project";
-            Number = "000000";
-            Category = "Structure";
-            Description = "New Project";
-            valueUnit = "£";
-            Area = 1;
-            AreaNew = 1;
-            totalAreaIsNew = true;
-
-            //C1 Global
-            demoArea = 0;
-            C1Global = 0;
-            C1Factor = 3.40; // kg CO₂e per m2
-            //A Global
-            A0Global = 1;
-
-            A5Global = 1;
-            A5AreaFactor = 20; //kg CO₂e per m2
-            //Social
-            SocialCost = 150;
-            //Other
-
-            //Totals
-            //Value = 0;
-            //New projects don't need to be saved
-            justSaved = true;
-
-            calculateA0 = true;
-            calculateA13 = true;
-            calculateA4 = true;
-            calculateA5 = true;
-            calculateB = false;
-            calculateB67 = false;
-            calculateSeq = true;
-            calculateC = true;
-            calculateD = false;
-            calculateAdd = false;
-            designLife = settings.defaultDesignLife;
-
-            calculateSubStructure = true;
+            //A CSV import builds the list by hand, so make sure the built in material is there too.
+            if (CarboDatabase != null)
+                CarboDatabase.EnsureSystemMaterials();
 
             UncertFact = RevitImportSettings.UncertaintyFactor;
 
@@ -689,7 +680,16 @@ namespace CarboLifeAPI.Data
         /// <summary>
         /// After creating a mapping list, you can use this method to update all map all the groups in a project.
         /// </summary>
-        public void mapAllMaterials()
+        /// <summary>
+        /// Applies carboMaterialMap to every imported group.
+        /// </summary>
+        /// <param name="source">
+        /// Who supplied the map. A map the user just built in the material mapper marks the groups
+        /// it covers as UserAssigned, the saved defaultmappingfile.xml marks them as MappingFile.
+        /// Either way the group stops being flagged for review: the material has been decided,
+        /// whatever the matcher's original guess scored.
+        /// </param>
+        public void mapAllMaterials(CarboMaterialSource source = CarboMaterialSource.MappingFile)
         {
             if (carboMaterialMap != null)
             {
@@ -699,6 +699,15 @@ namespace CarboLifeAPI.Data
                     {
                         try
                         {
+                            //Generated groups take their material from the import settings, not
+                            //from the mapping file, and they are rebuilt from those settings on
+                            //every run. Letting the map swap the material here left the group's
+                            //Correction still dividing by the OLD material's density - a
+                            //reinforcement group's correction is "*(kg per m3 / rebar density)" -
+                            //so the allowance silently came out at the wrong mass.
+                            if (gr.IsAutoGenerated() == true)
+                                continue;
+
                             //MApping only works where elements are imported from Revit and the group contains elements
                             if (gr.AllElements != null && gr.AllElements.Count > 0)
                             {
@@ -721,8 +730,15 @@ namespace CarboLifeAPI.Data
                                             gr.Density = cm.Density;
                                             gr.RefreshValuesFromElements();
                                             gr.CalculateTotals();
-                                            
+
                                         }
+
+                                        //Stamped whether or not the material actually changed. A
+                                        //map that names the material the matcher already guessed
+                                        //is a confirmation of that guess, and used to leave the
+                                        //group still wearing its "[CHECK MATERIAL 0.42] REVIEW"
+                                        //note purely because nothing needed swapping.
+                                        gr.SetMaterialProvenance(source, 1, "");
                                     }
                                 }
                             }
@@ -1420,7 +1436,17 @@ namespace CarboLifeAPI.Data
                             CarboElement ce = cg.AllElements[i];
                             ce.ECI = cg.ECI;
                             ce.Correction = cg.Correction;
-                            ce.EC = cg.ECI * ce.Mass;
+
+                            //Built from the same terms as CarboGroup's own EC line, so the
+                            //element carbon adds up to the group carbon. It used to be
+                            //cg.ECI * ce.Mass, which left out the B1-B7 in-use carbon and the
+                            //B4 replacement count, so the sum of the elements never reconciled
+                            //with the group total the report prints.
+                            //Group EC is in tonnes, an element carries kg.
+                            double inuseECI = cg.inUseProperties != null ? cg.inUseProperties.totalECI : 0;
+                            double replacements = cg.inUseProperties != null ? cg.inUseProperties.B4 : 1;
+
+                            ce.EC = (cg.ECI + inuseECI) * ce.Mass * replacements;
                         }
                     }
                 }
@@ -1658,7 +1684,15 @@ namespace CarboLifeAPI.Data
                 newElement.EC = cElement.ECI * cElement.Mass;
 
                 newElement.EC_Cumulative = cElement.EC;
-                newElement.Volume_Cumulative = cElement.Volume;
+
+                //Volume_Total, the adjusted volume, not Volume, the gross one.
+                //Every other member of the cumulative family is built from adjusted figures:
+                //Mass below accumulates cElement.Mass, which is density x Volume_Total, and
+                //EC_Cumulative accumulates the adjusted carbon. Seeding this one with the gross
+                //volume meant Mass_Cumulative / Volume_Cumulative did not come back to the
+                //density, and for an element split across groups the total was the gross volume
+                //of the first group plus the adjusted volume of the rest.
+                newElement.Volume_Cumulative = cElement.Volume_Total;
 
                 newElement.Mass = cElement.Mass;
 
@@ -1709,17 +1743,20 @@ namespace CarboLifeAPI.Data
             bool renumberGroupIds = false;
 
             //find error
+            //The id was added to the list BEFORE asking whether the list already held it, so the
+            //answer was always yes and every project had every group renumbered on every single
+            //load. Check first, then record.
             foreach(CarboGroup cg in groupList)
             {
                 int idToCheck = cg.Id;
-                ids.Add(idToCheck);
-                bool containsId = ids.Contains(idToCheck);
 
-                if(containsId == true)
+                if (ids.Contains(idToCheck) == true)
                 {
                     renumberGroupIds = true;
                     break;
                 }
+
+                ids.Add(idToCheck);
             }
             //Fix
             if(renumberGroupIds == true)
@@ -1900,6 +1937,10 @@ namespace CarboLifeAPI.Data
                         cg.MaterialName = NewMaterial.Name;
                         cg.Material = NewMaterial;
                         cg.Waste = NewMaterial.WasteFactor;
+
+                        //Picked by hand in the material selector, so this group is settled and
+                        //stops carrying the matcher's review note. Same reasoning as the mapper.
+                        cg.SetMaterialProvenance(CarboMaterialSource.UserAssigned, 1, "");
                     }
 
                     //Update all idential materials
@@ -1908,6 +1949,8 @@ namespace CarboLifeAPI.Data
                         cg.MaterialName = NewMaterial.Name;
                         cg.Material = NewMaterial;
                         cg.Waste = NewMaterial.WasteFactor;
+
+                        cg.SetMaterialProvenance(CarboMaterialSource.UserAssigned, 1, "");
                     }
                 }
             }
@@ -1988,6 +2031,12 @@ namespace CarboLifeAPI.Data
                     }
                     bufferproject.filePath = myPath;
                     bufferproject.UpgradeGroupOrigins();
+
+                    //A project carries its own copy of the material database, so an existing file
+                    //gets the built in "<Empty>" material here rather than only new ones having it.
+                    if (bufferproject.CarboDatabase != null)
+                        bufferproject.CarboDatabase.EnsureSystemMaterials();
+
                      return bufferproject;
                 }
                 catch (Exception ex)
@@ -2159,12 +2208,42 @@ namespace CarboLifeAPI.Data
             return removed;
         }
 
-        public void CreateReinforcementGroup()
+        /// <summary>
+        /// Rebuilds the reinforcement allowance groups and switches the allowance on. Asking for
+        /// them is the same intent as ticking the box at import, and recording it keeps them through
+        /// a later rebuild instead of the switch quietly dropping them again.
+        /// </summary>
+        /// <returns>How many groups were added</returns>
+        public int CreateReinforcementGroup()
         {
+            RevitImportSettings.mapReinforcement = true;
+
             CarboMaterial reinforcementMaterial = CarboDatabase.getClosestMatch(RevitImportSettings.RCMaterialName);
 
             //Delete all the previous reinforcement groups;
             RemoveAutoGroups(CarboGroupOrigin.Reinforcement);
+
+            //The reinforcement quantities are kg per m3 of concrete, and turning those into a
+            //volume of the reinforcement material means dividing by that material's density.
+            //Without one there is no conversion to make: the old code built "*(172/0)" and let
+            //the resulting Infinity run through TotalVolume, Mass, EC and the project total.
+            //108 of the 605 Okobaudat rows have no density, so this is reachable by choosing
+            //one of them in the import settings. Reported once here, not once per group.
+            if (reinforcementMaterial == null || reinforcementMaterial.Density <= 0)
+            {
+                MessageBox.Show(
+                    "The reinforcement material \"" +
+                    (reinforcementMaterial != null && string.IsNullOrEmpty(reinforcementMaterial.Name) == false
+                        ? reinforcementMaterial.Name
+                        : RevitImportSettings.RCMaterialName) +
+                    "\" has no density, so reinforcement quantities cannot be converted into a volume." +
+                    Environment.NewLine + Environment.NewLine +
+                    "No reinforcement groups were created. Choose a reinforcement material that has a density " +
+                    "in the import settings, or give that material a density in the database.",
+                    "Reinforcement", MessageBoxButton.OK, MessageBoxImage.Warning);
+
+                return 0;
+            }
 
             //the project should now be without automated groups
             //create the reinforcment groups
@@ -2190,8 +2269,7 @@ namespace CarboLifeAPI.Data
                 AddGroups(newRCGroups);
             }
 
-
-
+            return newRCGroups.Count;
         }
 
         private CarboGroup getRCGroup(CarboGroup grp, CarboMaterial reinforcementMaterial)
@@ -2233,6 +2311,16 @@ namespace CarboLifeAPI.Data
                 rcDensityProperty.Value = 100;
             }
 
+
+            //The correction turns kg of rebar per m3 of concrete into a volume of the
+            //reinforcement material, so it divides by that material's density. A material with
+            //no density cannot carry that conversion: the expression became "*(172/0)", which
+            //StringToFormula evaluates to Infinity rather than throwing, and the whole project
+            //total went infinite with nothing on screen to explain it. 108 of the 605 Okobaudat
+            //rows have a density of zero, so this is reachable by picking one in the settings.
+            //CreateReinforcementGroup reports this once, before the loop. Silent here.
+            if (reinforcementMaterial == null || reinforcementMaterial.Density <= 0)
+                return null;
 
             //correction, if a correction exists add it to the existing;
             //This builds an expression that gets parsed back by StringToFormula, so it must be invariant.
@@ -2288,7 +2376,8 @@ namespace CarboLifeAPI.Data
         }
 
         /// <summary>
-        /// Rebuilds every connection allowance group from the import settings, steel and timber.
+        /// Rebuilds the connection allowance groups that are switched on, steel and timber. This is
+        /// the import's entry point, the interface asks for one type at a time.
         /// An allowance is a percentage of the volume of the group it belongs to, the connection
         /// equivalent of CreateReinforcementGroup.
         /// </summary>
@@ -2301,26 +2390,79 @@ namespace CarboLifeAPI.Data
 
             if (RevitImportSettings.mapSteelConnections == true)
             {
-                newConnectionGroups.AddRange(getConnectionGroups(
-                    RevitImportSettings.SteelMaterialCategory,
-                    RevitImportSettings.SteelConnectionMaterialName,
-                    RevitImportSettings.SteelConnectionPercentage,
-                    CarboGroupCategories.SteelConnections, "steel", CarboGroupOrigin.SteelConnection));
+                newConnectionGroups.AddRange(getSteelConnectionGroups());
             }
 
             if (RevitImportSettings.mapTimberConnections == true)
             {
-                newConnectionGroups.AddRange(getConnectionGroups(
-                    RevitImportSettings.TimberMaterialCategory,
-                    RevitImportSettings.TimberConnectionMaterialName,
-                    RevitImportSettings.TimberConnectionPercentage,
-                    CarboGroupCategories.TimberConnections, "timber", CarboGroupOrigin.TimberConnection));
+                newConnectionGroups.AddRange(getTimberConnectionGroups());
             }
 
             if (newConnectionGroups.Count > 0)
             {
                 AddGroups(newConnectionGroups);
             }
+        }
+
+        /// <summary>
+        /// Rebuilds the steel connection allowance groups and switches the allowance on, leaving the
+        /// timber ones alone. Asking for them is the same intent as ticking the box at import, and
+        /// recording it keeps them through a later rebuild.
+        /// </summary>
+        /// <returns>How many groups were added</returns>
+        public int CreateSteelConnectionGroups()
+        {
+            RevitImportSettings.mapSteelConnections = true;
+
+            RemoveAutoGroups(CarboGroupOrigin.SteelConnection);
+
+            List<CarboGroup> newConnectionGroups = getSteelConnectionGroups();
+
+            if (newConnectionGroups.Count > 0)
+            {
+                AddGroups(newConnectionGroups);
+            }
+
+            return newConnectionGroups.Count;
+        }
+
+        /// <summary>
+        /// Rebuilds the timber connection allowance groups and switches the allowance on, leaving the
+        /// steel ones alone. See CreateSteelConnectionGroups.
+        /// </summary>
+        /// <returns>How many groups were added</returns>
+        public int CreateTimberConnectionGroups()
+        {
+            RevitImportSettings.mapTimberConnections = true;
+
+            RemoveAutoGroups(CarboGroupOrigin.TimberConnection);
+
+            List<CarboGroup> newConnectionGroups = getTimberConnectionGroups();
+
+            if (newConnectionGroups.Count > 0)
+            {
+                AddGroups(newConnectionGroups);
+            }
+
+            return newConnectionGroups.Count;
+        }
+
+        private List<CarboGroup> getSteelConnectionGroups()
+        {
+            return getConnectionGroups(
+                RevitImportSettings.SteelMaterialCategory,
+                RevitImportSettings.SteelConnectionMaterialName,
+                RevitImportSettings.SteelConnectionPercentage,
+                CarboGroupCategories.SteelConnections, "steel", CarboGroupOrigin.SteelConnection);
+        }
+
+        private List<CarboGroup> getTimberConnectionGroups()
+        {
+            return getConnectionGroups(
+                RevitImportSettings.TimberMaterialCategory,
+                RevitImportSettings.TimberConnectionMaterialName,
+                RevitImportSettings.TimberConnectionPercentage,
+                CarboGroupCategories.TimberConnections, "timber", CarboGroupOrigin.TimberConnection);
         }
 
         /// <summary>
@@ -2437,6 +2579,181 @@ namespace CarboLifeAPI.Data
                 this.groupList.Clear();
             }
             catch (Exception ex) { }
+        }
+
+        /// <summary>
+        /// The groups whose material the matcher was not confident about, worst first.
+        /// </summary>
+        public List<CarboGroup> getGroupsNeedingMaterialReview()
+        {
+            List<CarboGroup> result = new List<CarboGroup>();
+
+            if (groupList == null)
+                return result;
+
+            foreach (CarboGroup grp in groupList)
+            {
+                if (grp != null && grp.NeedsMaterialReview() == true)
+                    result.Add(grp);
+            }
+
+            result.Sort(delegate (CarboGroup a, CarboGroup b)
+            {
+                return a.MatchConfidence.CompareTo(b.MatchConfidence);
+            });
+
+            return result;
+        }
+
+        /// <summary>
+        /// A short report on the groups that need their material checked, or null when there are
+        /// none. Meant to be shown once after an import: the per group note was previously only
+        /// written into the description text, which nothing read, so a weak or zero density
+        /// match went into the totals with nothing to draw the eye to it.
+        /// </summary>
+        /// <param name="maxLines">How many groups to name before summarising the rest.</param>
+        public string getMaterialReviewSummary(int maxLines = 8)
+        {
+            List<CarboGroup> flagged = getGroupsNeedingMaterialReview();
+
+            if (flagged.Count == 0)
+                return null;
+
+            StringBuilder sb = new StringBuilder();
+
+            sb.AppendLine(flagged.Count + " of " + groupList.Count +
+                          " groups were given a material the matcher is not confident about.");
+            sb.AppendLine("Their carbon is included in the totals. Check them before issuing anything.");
+            sb.AppendLine();
+
+            int shown = 0;
+            foreach (CarboGroup grp in flagged)
+            {
+                if (shown >= maxLines)
+                    break;
+
+                sb.AppendLine("- " + grp.Category + " / " + grp.MaterialName +
+                              "  (" + grp.MatchConfidence.ToString("0.00", CultureInfo.InvariantCulture) + ")");
+                sb.AppendLine("    " + grp.MatchNote);
+                shown++;
+            }
+
+            if (flagged.Count > shown)
+                sb.AppendLine("- and " + (flagged.Count - shown) + " more, see the Description column.");
+
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// Read-only check over every group, its material and its elements, looking for the
+        /// states that produce a wrong number without producing an error.
+        ///
+        /// Deliberately reports rather than repairs: several of these have more than one sensible
+        /// repair and the right one depends on what the user meant. Run it before issuing a
+        /// report, and after any bulk operation such as applying a mapping file.
+        /// </summary>
+        /// <returns>One line per problem, empty when nothing was found.</returns>
+        public List<string> VerifyProject()
+        {
+            List<string> findings = new List<string>();
+
+            if (groupList == null)
+                return findings;
+
+            foreach (CarboGroup grp in groupList)
+            {
+                if (grp == null)
+                {
+                    findings.Add("A group in the list is empty.");
+                    continue;
+                }
+
+                string who = grp.Category + " / " + grp.MaterialName;
+
+                if (grp.Material == null)
+                {
+                    findings.Add(who + ": has no material at all.");
+                    continue;
+                }
+
+                //Everything here is volume x density x carbon factor, so a group with volume but
+                //no density contributes nothing however real its geometry is.
+                if (grp.Material.Density <= 0 && grp.Volume > 0)
+                {
+                    findings.Add(who + ": the material has no density, so this group is worth zero "
+                                 + "carbon despite holding " + grp.Volume.ToString("0.###", CultureInfo.InvariantCulture) + " m3.");
+                }
+
+                if (double.IsNaN(grp.EC) || double.IsInfinity(grp.EC)
+                    || double.IsNaN(grp.Mass) || double.IsInfinity(grp.Mass))
+                {
+                    findings.Add(who + ": mass or carbon is not a number. Check the correction \""
+                                 + grp.Correction + "\".");
+                }
+
+                if (grp.NeedsMaterialReview() == true)
+                {
+                    findings.Add(who + ": material matched at "
+                                 + grp.MatchConfidence.ToString("0.00", CultureInfo.InvariantCulture)
+                                 + ". " + grp.MatchNote);
+                }
+
+                //The generated allowances carry a correction that was worked out from the
+                //material's density at the moment they were built. If the material has been
+                //changed since, the correction is stale and the allowance is the wrong size.
+                //This is the check that catches a mapping file having rewritten a generated group.
+                if (grp.Origin == CarboGroupOrigin.Reinforcement)
+                    VerifyReinforcementCorrection(grp, who, findings);
+
+                //An element should carry the material of the group it sits in.
+                if (grp.AllElements != null)
+                {
+                    foreach (CarboElement ce in grp.AllElements)
+                    {
+                        if (ce == null)
+                            continue;
+
+                        if (string.IsNullOrEmpty(ce.CarboMaterialName) == false
+                            && string.Equals(ce.CarboMaterialName, grp.MaterialName, StringComparison.OrdinalIgnoreCase) == false)
+                        {
+                            findings.Add(who + ": element " + ce.Id + " still says \"" + ce.CarboMaterialName
+                                         + "\" while its group is on \"" + grp.MaterialName + "\".");
+                            break;  //One per group is enough to point at it.
+                        }
+                    }
+                }
+            }
+
+            return findings;
+        }
+
+        /// <summary>
+        /// Checks that a reinforcement group's correction still matches the density of the
+        /// material it is now carrying. See VerifyProject.
+        /// </summary>
+        private static void VerifyReinforcementCorrection(CarboGroup grp, string who, List<string> findings)
+        {
+            if (grp.Material == null || grp.Material.Density <= 0)
+                return;     //Already reported as a density problem above.
+
+            if (grp.AllElements == null || grp.AllElements.Count == 0)
+                return;
+
+            double rcDensity = grp.AllElements[0].rcDensity;
+
+            if (rcDensity <= 0)
+                return;
+
+            string expected = "*(" + rcDensity.ToString(CultureInfo.InvariantCulture)
+                            + "/" + grp.Material.Density.ToString(CultureInfo.InvariantCulture) + ")";
+
+            if (string.IsNullOrEmpty(grp.Correction) || grp.Correction.EndsWith(expected) == false)
+            {
+                findings.Add(who + ": the reinforcement correction \"" + grp.Correction
+                             + "\" does not match " + rcDensity.ToString("0.###", CultureInfo.InvariantCulture)
+                             + " kg/m3 over a density of " + grp.Material.Density.ToString("0.###", CultureInfo.InvariantCulture)
+                             + ". The allowance is the wrong size; rebuild the reinforcement groups.");
+            }
         }
 
         public void RemoveWaste()

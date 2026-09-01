@@ -311,7 +311,14 @@ Do you want to buy me a coffee and you get a key to remove this message?";
                         CarboProject newProject = new CarboProject();
 
                         CarboProject buffer = new CarboProject();
-                        carboLifeProject = buffer.DeSerializeXML(SelectedProjectPath);
+                        CarboProject opened = buffer.DeSerializeXML(SelectedProjectPath);
+
+                        //A damaged file comes back as null, having already said what was wrong.
+                        //Keep the project that is open rather than replacing it with nothing.
+                        if (opened == null)
+                            return;
+
+                        carboLifeProject = opened;
 
                         carboLifeProject.Audit();
                         carboLifeProject.CalculateProject();

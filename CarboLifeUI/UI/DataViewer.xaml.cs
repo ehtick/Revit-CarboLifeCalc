@@ -705,7 +705,10 @@ namespace CarboLifeUI.UI
             if (materialMapper.isAccepted == true)
             {
                 this.CarboLifeProject.carboMaterialMap = materialMapper.mappinglist;
-                this.CarboLifeProject.mapAllMaterials();
+
+                //The user just chose these in the mapper, so the groups they cover are marked as
+                //user assigned and stop being flagged for review.
+                this.CarboLifeProject.mapAllMaterials(CarboMaterialSource.UserAssigned);
             }
         }
 
@@ -933,10 +936,21 @@ namespace CarboLifeUI.UI
                     CarboLifeProject.RevitImportSettings.RCParameterName = concreteMapper.categoryName;
 
                     //RCMaterialName and RCMaterialCategory are template bound and set in the import settings dialog.
-                    CarboLifeProject.CreateReinforcementGroup();
+                    //Asking for the groups here switches the allowance on, see CreateReinforcementGroup.
+                    int added = CarboLifeProject.CreateReinforcementGroup();
 
                     CarboLifeProject.CalculateProject();
                     refreshData();
+
+                    if (added == 0)
+                    {
+                        CarboGroupSettings settings = CarboLifeProject.RevitImportSettings;
+
+                        MessageBox.Show("No reinforcement groups were added." + Environment.NewLine + Environment.NewLine +
+                                        WhyNoAllowanceGroups("reinforcement", settings.RCMaterialName,
+                                                              settings.RCMaterialCategory, null),
+                                        "Reinforcement", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -948,12 +962,33 @@ namespace CarboLifeUI.UI
         }
 
         /// <summary>
-        /// Rebuilds the steel and timber connection allowance groups from the import settings.
-        /// The percentages and materials themselves live in the import settings dialog.
+        /// Rebuilds the steel connection allowance groups. Asking for them here switches the
+        /// allowance on, so it does not matter whether it was ticked at import time.
         /// </summary>
-        private void Mnu_AutoConnectionGroups(object sender, RoutedEventArgs e)
+        private void Mnu_AutoSteelConnectionGroups(object sender, RoutedEventArgs e)
         {
             e.Handled = true;
+            BuildConnectionGroups(true);
+        }
+
+        /// <summary>
+        /// Rebuilds the timber connection allowance groups. See Mnu_AutoSteelConnectionGroups.
+        /// </summary>
+        private void Mnu_AutoTimberConnectionGroups(object sender, RoutedEventArgs e)
+        {
+            e.Handled = true;
+            BuildConnectionGroups(false);
+        }
+
+        /// <summary>
+        /// Rebuilds one kind of connection allowance and reports the outcome. When nothing comes out
+        /// it says which of the settings is the reason, a silent no-op here reads as a broken command.
+        /// </summary>
+        /// <param name="steel">True for the steel allowance, false for the timber one</param>
+        private void BuildConnectionGroups(bool steel)
+        {
+            if (CarboLifeProject == null)
+                return;
 
             //See Mnu_AutoRCGroups: this recovers the stored defaults instead of dereferencing null.
             if (CarboLifeProject.RevitImportSettings == null)
@@ -961,26 +996,58 @@ namespace CarboLifeUI.UI
                 CarboLifeProject.RevitImportSettings = new CarboGroupSettings().DeSerializeXML();
             }
 
-            if (CarboLifeProject.RevitImportSettings.mapSteelConnections == false &&
-                CarboLifeProject.RevitImportSettings.mapTimberConnections == false)
-            {
-                MessageBox.Show("Neither steel nor timber connection allowances are switched on." + Environment.NewLine +
-                                "Turn them on in the import settings first.",
-                                "Connections", MessageBoxButton.OK, MessageBoxImage.Information);
-                return;
-            }
+            CarboGroupSettings settings = CarboLifeProject.RevitImportSettings;
+
+            string name = steel ? "steel connection" : "timber connection";
+            string material = steel ? settings.SteelConnectionMaterialName : settings.TimberConnectionMaterialName;
+            string category = steel ? settings.SteelMaterialCategory : settings.TimberMaterialCategory;
+            double percentage = steel ? settings.SteelConnectionPercentage : settings.TimberConnectionPercentage;
 
             try
             {
-                CarboLifeProject.CreateConnectionGroups();
+                int added = steel
+                    ? CarboLifeProject.CreateSteelConnectionGroups()
+                    : CarboLifeProject.CreateTimberConnectionGroups();
 
                 CarboLifeProject.CalculateProject();
                 refreshData();
+
+                if (added == 0)
+                {
+                    MessageBox.Show("No " + name + " groups were added." + Environment.NewLine + Environment.NewLine +
+                                    WhyNoAllowanceGroups(name, material, category, percentage),
+                                    "Connections", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                MessageBox.Show(added.ToString() + " " + name + " group(s) added.",
+                                "Connections", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
                 MessageBox.Show(ex.Message);
             }
+        }
+
+        /// <summary>
+        /// Works out which setting stopped an allowance from producing anything.
+        /// </summary>
+        /// <param name="name">What to call the allowance in the message</param>
+        /// <param name="material">The material set for it</param>
+        /// <param name="category">The material category its parent groups must be in</param>
+        /// <param name="percentage">The allowance percentage, null for reinforcement which has none</param>
+        private static string WhyNoAllowanceGroups(string name, string material, string category, double? percentage)
+        {
+            if (string.IsNullOrEmpty(material))
+                return "No " + name + " material is set for this project.";
+
+            if (string.IsNullOrEmpty(category))
+                return "No material category is set for the " + name + " allowance.";
+
+            if (percentage.HasValue && percentage.Value <= 0)
+                return "The " + name + " allowance is set to " + percentage.Value.ToString() + "%.";
+
+            return "No groups use a material in category \"" + category + "\".";
         }
 
         private void Mnu_RemoveAutoReinforcement(object sender, RoutedEventArgs e)
@@ -1049,7 +1116,10 @@ namespace CarboLifeUI.UI
             if (materialMapper.isAccepted == true)
             {
                 this.CarboLifeProject.carboMaterialMap = materialMapper.mappinglist;
-                this.CarboLifeProject.mapAllMaterials();
+
+                //The user just chose these in the mapper, so the groups they cover are marked as
+                //user assigned and stop being flagged for review.
+                this.CarboLifeProject.mapAllMaterials(CarboMaterialSource.UserAssigned);
             }
         }
 

@@ -332,6 +332,11 @@ namespace CarboLifeUI.UI
 
                             CarboProject project = buffer.DeSerializeXML(file);
 
+                            //A damaged file in a comparison set is skipped, not crashed on: the
+                            //other files in the set are still worth comparing.
+                            if (project == null)
+                                continue;
+
                             project.Audit();
                             project.CalculateProject();
 

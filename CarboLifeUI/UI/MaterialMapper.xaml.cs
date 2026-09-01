@@ -103,20 +103,33 @@ namespace CarboLifeUI.UI
                 {
                     CarboMapFile CurrentMappingFile = new CarboMapFile();
                     CurrentMappingFile.mappingTable = mappinglist;
-                    //CurrentMappingFile.SaveToXml();
 
-                    CarboMapFile SavedMappingFile = new CarboMapFile();
-                    SavedMappingFile = CarboMapFile.LoadFromXml();
+                    CarboMapFile SavedMappingFile = CarboMapFile.LoadFromXml();
 
-                    if (SavedMappingFile != null)
+                    //LoadFromXml hands back an empty file when there is nothing there yet, and
+                    //null only when a file exists but could not be read. Writing this session's
+                    //rows over an unreadable shared file would throw away everyone else's
+                    //mappings, so that case stops here instead.
+                    if (SavedMappingFile == null)
                     {
-                        SavedMappingFile.Merge(CurrentMappingFile.mappingTable);
-                        SavedMappingFile.SaveToXml();
+                        System.Windows.MessageBox.Show(
+                            "The shared mapping file exists but could not be read, so it has been left alone." +
+                            Environment.NewLine + Environment.NewLine +
+                            PathUtils.GetMappingFilePath() + Environment.NewLine + Environment.NewLine +
+                            "Your mapping has NOT been saved. Overwriting it here would have discarded " +
+                            "everyone else's mappings. Repair or replace that file, then map again.",
+                            "Mapping not saved", MessageBoxButton.OK, MessageBoxImage.Error);
                     }
                     else
                     {
-                        //The mapping file needs to be created
-                        CurrentMappingFile.SaveToXml();
+                        SavedMappingFile.Merge(CurrentMappingFile.mappingTable);
+
+                        string error;
+                        if (SavedMappingFile.SaveToXml("", out error) == false)
+                        {
+                            System.Windows.MessageBox.Show(error, "Mapping not saved",
+                                                           MessageBoxButton.OK, MessageBoxImage.Warning);
+                        }
                     }
                 }
                 catch (Exception ex)

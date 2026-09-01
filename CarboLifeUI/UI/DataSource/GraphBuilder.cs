@@ -326,8 +326,14 @@ namespace CarboLifeUI.UI
             //build the grapicsTable
             if (carboByLevelDataGroup.levelList.Count > 0 && carboByLevelDataGroup.levelList[0].DataPoints.Count > 0)
             {
-                int levelCount = carboByLevelDataGroup.levelList.Count;
                 int categoryCount = carboByLevelDataGroup.levelList[0].DataPoints.Count;
+
+                //The heading of the tool tip comes from GetSecondaryToolTipText, which reads
+                //XToolTipLabelFormatter and, left unset, falls back to the X axis. Here that axis
+                //is the emissions scale, so the heading was a carbon figure and nothing on the
+                //tool tip said which level was under the pointer. A point's Index is its position
+                //in the values array, and that is the same position as its level in the labels.
+                string[] levelNames = labels.ToArray();
 
 
                 //loop though
@@ -337,16 +343,31 @@ namespace CarboLifeUI.UI
                 {
                     //points.Add(Math.Round(ppin.Value / 1000, 2));
 
-                    double ThisCategoryValue = 0;
-                    List<double> values = new List<double>();
-                    List<string> names = new List<string>();
+                    //A stacked series needs one value per level, so CarboByLevelDataGroup.AddItem
+                    //pads every level with a zero for every category in the project. Those pads are
+                    //placeholders, not measurements, and as plain zeroes LiveCharts still gave them
+                    //a hover area: pointing at any level listed every category in the project, most
+                    //of them reading nothing. Null is how LiveCharts is told a point does not exist.
+                    //It draws no bar and, because an empty point never gets a hover area, it is left
+                    //out of the tool tip as well.
+                    List<double?> values = new List<double?>();
                     string name = "value";
+                    bool hasValue = false;
 
                     foreach (CarboByLevelData level in carboByLevelDataGroup.levelList)
                     {
                         double value = Math.Round((level.DataPoints[i].Value / 1000), 1);
 
-                        values.Add(value);
+                        if (value == 0)
+                        {
+                            values.Add(null);
+                        }
+                        else
+                        {
+                            values.Add(value);
+                            hasValue = true;
+                        }
+
                         name = level.DataPoints[i].Name;
 
 
@@ -354,11 +375,19 @@ namespace CarboLifeUI.UI
                     //Values = new ChartValues<double> { Math.Round(ppin.Value / 1000, 2) },
                     j++;
 
-                    result.Add(new StackedRowSeries<double>
+                    //A category that rounds to zero on every level has nothing to draw, and keeping
+                    //it only leaves a dead name in the legend.
+                    if (hasValue == false)
+                        continue;
+
+                    result.Add(new StackedRowSeries<double?>
                     {
                         Values = values.ToArray(),
                         Name = name,
                         Fill = new SolidColorPaint(getSKColour(j)),
+                        XToolTipLabelFormatter = point => point.Index >= 0 && point.Index < levelNames.Length
+                                                            ? levelNames[point.Index]
+                                                            : LiveCharts.IgnoreToolTipLabel,
                         YToolTipLabelFormatter = point => $"{point.Model:0.00} tCO₂e",
                         DataLabelsSize = 11
                         //string.Format("{0} tCO₂e", chartPoint.Y

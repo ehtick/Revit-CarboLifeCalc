@@ -28,6 +28,24 @@ namespace CarboLifeAPI.Data
     }
 
     /// <summary>
+    /// Where the material sitting on a group came from.
+    ///
+    /// This outranks the match confidence. A score only says how sure the matcher was when it
+    /// guessed; once a person has chosen the material, or a saved mapping has named it, there is
+    /// nothing left to review however low that original guess scored.
+    /// </summary>
+    [Serializable]
+    public enum CarboMaterialSource
+    {
+        /// <summary>The matcher picked it. Its confidence still decides whether it needs a look.</summary>
+        AutoMatched = 0,
+        /// <summary>Named by the saved mapping file, so it was decided on a previous run.</summary>
+        MappingFile = 1,
+        /// <summary>Chosen by the user in the material mapper.</summary>
+        UserAssigned = 2
+    }
+
+    /// <summary>
     /// The categories the generators give their groups and elements. They are written into the
     /// project file, so they are fixed text rather than something derived from the origin, and they
     /// are collected here so the generators and the graph collectors cannot drift apart.

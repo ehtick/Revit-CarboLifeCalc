@@ -127,6 +127,114 @@ namespace CarboLifeAPI.Data
         public bool ECI_Seq_Override { get; set; }
         public string ECI_Mix_Info { get; set; }
 
+        /// <summary>
+        /// The name of the built in "nothing" material, present in every database whatever the
+        /// template. It exists so a group always has something valid to point at when no real
+        /// material applies, instead of a blank name or a half filled row.
+        /// </summary>
+        public const string SystemEmptyName = "<Empty>";
+
+        /// <summary>The category the built in material sits under.</summary>
+        public const string SystemEmptyCategory = "System";
+
+        /// <summary>
+        /// Reserved id for the built in material. Real materials get a random id in the
+        /// 200000-300000 band from CarboDatabase.getUniqueId, so 0 can never collide.
+        /// </summary>
+        public const int SystemEmptyId = 0;
+
+        /// <summary>
+        /// True for the built in "nothing" material. Matched on the name, because the id of a
+        /// row read from an older file that happens to be called &lt;Empty&gt; cannot be trusted.
+        /// </summary>
+        public bool IsSystemEmpty()
+        {
+            return Name != null
+                && string.Equals(Name.Trim(), SystemEmptyName, StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        /// Builds the built in "nothing" material: every carbon figure and the density are zero,
+        /// so a group carrying it contributes exactly nothing to any total.
+        /// </summary>
+        public static CarboMaterial CreateSystemEmpty()
+        {
+            CarboMaterial empty = new CarboMaterial();
+
+            empty.Id = SystemEmptyId;
+            empty.Name = SystemEmptyName;
+            empty.Category = SystemEmptyCategory;
+            empty.Description = "Built in placeholder. Carries no carbon and no mass, " +
+                                "use it where no real material applies.";
+            empty.Grade = "";
+            empty.EPDurl = "";
+
+            //The base constructor seeds a density of 500 for a normal new material. This one has
+            //to be zero: mass is volume x density, and the whole point is that it weighs nothing.
+            empty.Density = 0;
+            empty.WasteFactor = 0;
+
+            empty.ECI = 0;
+            empty.ECI_A1A3 = 0;
+            empty.ECI_A4 = 0;
+            empty.ECI_A5 = 0;
+            empty.ECI_B1B5 = 0;
+            empty.ECI_C1C4 = 0;
+            empty.ECI_D = 0;
+            empty.ECI_Seq = 0;
+            empty.ECI_Mix = 0;
+            empty.ECI_Mix_Info = "";
+
+            //Locked, so the material editor treats it as read only like any other locked row.
+            empty.isLocked = true;
+
+            return empty;
+        }
+
+        /// <summary>
+        /// Forces this row back to the built in definition. Called on load, so a copy that was
+        /// edited, or one that arrived inside an older project file with stray values on it,
+        /// cannot quietly start contributing carbon.
+        /// </summary>
+        internal void ResetToSystemEmpty()
+        {
+            CarboMaterial clean = CreateSystemEmpty();
+
+            Id = clean.Id;
+            Name = clean.Name;
+            Category = clean.Category;
+            Description = clean.Description;
+            Grade = clean.Grade;
+            Density = clean.Density;
+            WasteFactor = clean.WasteFactor;
+            isLocked = clean.isLocked;
+
+            ECI = 0;
+            ECI_A1A3 = 0;
+            ECI_A4 = 0;
+            ECI_A5 = 0;
+            ECI_B1B5 = 0;
+            ECI_C1C4 = 0;
+            ECI_D = 0;
+            ECI_Seq = 0;
+            ECI_Mix = 0;
+            ECI_Mix_Info = "";
+
+            ECI_A1A3_Override = false;
+            ECI_A4_Override = false;
+            ECI_A5_Override = false;
+            ECI_C1C4_Override = false;
+            ECI_Seq_Override = false;
+            ECI_D_Override = false;
+
+            materialA1A3Properties = new A1A3Element();
+            materiaA4Properties = new CarboA4Properties();
+            materialA5Properties = new CarboA5Properties();
+            materialC1C4Properties = new CarboC1C4Properties();
+            materialSeqProperties = new CarboSeqProperties();
+            materialDProperties = new CarboDProperties();
+        }
+
         public CarboMaterial()
         {
             Id = -1;

@@ -1696,6 +1696,13 @@ namespace CarboLifeAPI.Data
                 if (trimmedName.Length == 0)
                     continue;   //A row with no name cannot be scored, but must not throw either.
 
+                //The built in "<Empty>" material is deliberately kept out of the index. It exists
+                //to be chosen on purpose, never to be arrived at: it carries no carbon and no
+                //mass, so auto matching a real slab to it would silently price that slab at zero.
+                //It stays in CarboMaterialList, so every picker still offers it.
+                if (cm.IsSystemEmpty())
+                    continue;
+
                 CarboRow row = new CarboRow();
                 row.Index = built.Count;
                 row.Material = cm;
@@ -2558,6 +2565,23 @@ namespace CarboLifeAPI.Data
             r.IsAcceptable = r.Confidence >= CarboMatchOptions.ReviewThreshold;
             r.RunnerUpName = runnerUp != null ? runnerUp.Row.TrimmedName : "";
             r.RunnerUpConfidence = CarboMatchNorm.Clamp01(runnerUpConfidence);
+
+            //Every carbon figure in this application is volume x density x ECI, so a row with no
+            //density can only ever price a group at zero, however well its NAME matched. 108 of
+            //the 605 Okobaudat rows and 18 of the 213 Boverkets rows are like that, and asking
+            //for one of them by name returned confidence 1.00, IsReliable true, and a group of
+            //real geometry silently worth nothing. The name match is still reported honestly and
+            //the row is still applied - refusing it outright would be worse, it is what the user
+            //asked for - but it can never count as reliable, so it reaches the review flag.
+            if (r.Material != null && r.Material.Density <= 0)
+            {
+                r.IsAcceptable = false;
+                r.Reason = "ZeroDensity";
+                r.Explanation = "\"" + r.Material.Name + "\" has no density, so this group computes as zero mass "
+                              + "and zero carbon. Give the material a density, or choose another. "
+                              + (explanation ?? "");
+            }
+
             return r;
         }
 

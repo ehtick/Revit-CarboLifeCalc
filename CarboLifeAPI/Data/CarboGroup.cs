@@ -146,6 +146,116 @@ namespace CarboLifeAPI.Data
             }
         }
 
+        /// <summary>
+        /// How well the material on this group was matched at import, 0.000 to 1.000.
+        /// 1 means it was never auto matched (a manual or generated group), so nothing to review.
+        /// Persisted, so a weak mapping is still visible after a save and reload.
+        /// </summary>
+        public double MatchConfidence { get; set; }
+
+        /// <summary>
+        /// Why the match needs a look, empty when it does not. Written by the importer from
+        /// CarboMatchResult.Explanation, so the reason survives outside the Description text.
+        /// </summary>
+        public string MatchNote { get; set; }
+
+        /// <summary>
+        /// Where the material on this group came from. Outranks MatchConfidence: see
+        /// CarboMaterialSource and SetMaterialProvenance.
+        /// </summary>
+        public CarboMaterialSource MaterialSource { get; set; }
+
+        /// <summary>
+        /// True when the material on this group was auto matched and the matcher was not
+        /// confident about it. This is what a review list or a row highlight should test.
+        /// </summary>
+        public bool NeedsMaterialReview()
+        {
+            return string.IsNullOrEmpty(MatchNote) == false;
+        }
+
+        //The description carries a short provenance note about the material, appended after
+        //whatever the import wrote. These are the markers it can start with. They are matched as
+        //text when a note is replaced, so a group re-mapped twice does not collect two of them.
+        private const string reviewMarker = "[CHECK MATERIAL";
+        private const string userAssignedMarker = "[USER ASSIGNED]";
+        private const string mappingFileMarker = "[FROM MAPPING FILE]";
+
+        /// <summary>
+        /// Records where this group's material came from and rewrites the provenance note on the
+        /// end of the description to match.
+        ///
+        /// Anything the user typed before the note is kept; the note itself, from its marker to
+        /// the end of the string, is replaced. A material chosen by a person or named by a saved
+        /// mapping clears the review flag whatever the original match scored, which is the whole
+        /// point: the score describes a guess that has since been settled.
+        /// </summary>
+        /// <param name="source">Who decided this material.</param>
+        /// <param name="confidence">The matcher's score, only meaningful for an auto match.</param>
+        /// <param name="reviewNote">Why it needs a look. Ignored unless the source is AutoMatched.</param>
+        public void SetMaterialProvenance(CarboMaterialSource source, double confidence, string reviewNote)
+        {
+            MaterialSource = source;
+
+            string baseText = StripProvenanceNote(Description);
+
+            if (source == CarboMaterialSource.AutoMatched)
+            {
+                MatchConfidence = confidence;
+                MatchNote = reviewNote == null ? "" : reviewNote;
+
+                if (string.IsNullOrEmpty(MatchNote))
+                {
+                    //A confident automatic match says nothing extra.
+                    Description = baseText;
+                    return;
+                }
+
+                string note = reviewMarker + " "
+                            + confidence.ToString("0.00", CultureInfo.InvariantCulture) + "] " + MatchNote;
+
+                Description = Join(baseText, note);
+                return;
+            }
+
+            //Decided by a person, or by a mapping they saved earlier: nothing to review.
+            MatchConfidence = 1;
+            MatchNote = "";
+
+            Description = Join(baseText,
+                source == CarboMaterialSource.UserAssigned ? userAssignedMarker : mappingFileMarker);
+        }
+
+        /// <summary>
+        /// Removes a provenance note previously written by SetMaterialProvenance, leaving the rest
+        /// of the description alone.
+        /// </summary>
+        private static string StripProvenanceNote(string description)
+        {
+            if (string.IsNullOrEmpty(description))
+                return "";
+
+            int cut = -1;
+
+            foreach (string marker in new[] { reviewMarker, userAssignedMarker, mappingFileMarker })
+            {
+                int at = description.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+
+                if (at >= 0 && (cut < 0 || at < cut))
+                    cut = at;
+            }
+
+            if (cut < 0)
+                return description.Trim();
+
+            return description.Substring(0, cut).Trim();
+        }
+
+        private static string Join(string baseText, string note)
+        {
+            return string.IsNullOrEmpty(baseText) ? note : baseText + " " + note;
+        }
+
         public double RcDensity { get; set; }
 
         /// <summary>
@@ -263,6 +373,12 @@ namespace CarboLifeAPI.Data
             Origin = CarboGroupOrigin.Other;
 
             RcDensity = 0;
+
+            //Nothing was auto matched until the importer says so, and a group read from a file
+            //written before these existed reads back the same way: no review needed.
+            MatchConfidence = 1;
+            MaterialSource = CarboMaterialSource.AutoMatched;
+            MatchNote = "";
         }
         internal void RefreshValuesFromElements()
         {
@@ -484,6 +600,26 @@ namespace CarboLifeAPI.Data
                 PerCent = 0;
             }
         }
+        /// <summary>
+        /// The result of evaluating the correction expression, or the uncorrected volume when
+        /// that result is not a usable number.
+        ///
+        /// A correction is free text that reaches StringToFormula, and a division by zero there
+        /// returns Infinity rather than throwing - the reinforcement generator builds
+        /// "*(172/0)" whenever the reinforcement material has no density, and 108 of the 605
+        /// Okobaudat rows have exactly that. Infinity then flowed into TotalVolume, Mass, EC and
+        /// on into the project total, silently, with nothing on screen to say why every number
+        /// had become infinite. Falling back to the uncorrected volume keeps the group wrong in
+        /// a bounded, visible way instead.
+        /// </summary>
+        private static double SafeCorrectedVolume(double evaluated, double fallback)
+        {
+            if (double.IsNaN(evaluated) || double.IsInfinity(evaluated))
+                return fallback;
+
+            return evaluated;
+        }
+
         public void CalculateTotals(bool cA13 = true, bool cA4 = true, bool cA5 = true, bool cB = true, bool cC = true, bool cD = true, bool cSeq = true, bool cAdd = true, bool calcSubstructrue = true, double uncertFact = 0)
         {
             //Recalculate The materials
@@ -543,22 +679,21 @@ namespace CarboLifeAPI.Data
                                 //Calculate the real volume based on a correction if required.
                                 double ElWasteFact = 1 + (Waste / 100);
 
+                                double elCorrected = ce.Volume;
+
                                 if (Utils.isValidExpression(Correction) == true)
                                 {
                                     string ElVolumeStr = ce.Volume.ToString(CultureInfo.InvariantCulture);
                                     StringToFormula stf = new StringToFormula();
-                                    double result = stf.Eval(ElVolumeStr + Correction);
-
-                                    //TotalVolume = Math.Round((inUseProperties.B4 * (result * wasteFact)), 3);
-                                    ce.Volume_Total = inUseProperties.B4 * (result * ElWasteFact);
-
+                                    elCorrected = SafeCorrectedVolume(stf.Eval(ElVolumeStr + Correction), ce.Volume);
                                 }
-                                else
-                                {
-                                    //TotalVolume = Math.Round(inUseProperties.B4 * (Volume * wasteFact), 3);
-                                    ce.Volume_Total = inUseProperties.B4 * (ce.Volume * ElWasteFact);
 
-                                }
+                                //B4 is deliberately NOT applied here, see the group volume below.
+                                //The uncertainty factor is, so the element volumes add up to the
+                                //group volume: without it every element sat 1/(1+uncert) below its
+                                //share of the group, which is what the heat map, the Revit
+                                //write-back and the per element exports all read.
+                                ce.Volume_Total = elCorrected * ElWasteFact * uncertaintyFactor;
 
                                 //Calculate last: it derives the element's mass and EC from Volume_Total,
                                 //so it has to run after the waste, correction and B4 factors are in.
@@ -575,30 +710,28 @@ namespace CarboLifeAPI.Data
             //Round the volume;
             //Volume = Math.Round(Volume, 3);
 
-            //Convert to Total Volume waste, convertion and B4 factors:
+            //Convert to Total Volume waste and conversion factors:
 
             double wasteFact = 1 + (Waste / 100);
 
-            //Calculate the real volume based on a correction if required. 
+            double corrected = Volume;
+
+            //Calculate the real volume based on a correction if required.
             if (Utils.isValidExpression(Correction) == true)
             {
                 string volumeStr = Volume.ToString(CultureInfo.InvariantCulture);
                 StringToFormula stf = new StringToFormula();
-                double result = stf.Eval(volumeStr + Correction);
-
-                //TotalVolume = Math.Round((inUseProperties.B4 * (result * wasteFact)), 3);
-                TotalVolume = inUseProperties.B4 * (result * wasteFact);
-
-            }
-            else
-            {
-                //TotalVolume = Math.Round(inUseProperties.B4 * (Volume * wasteFact), 3);
-                TotalVolume = inUseProperties.B4 * (Volume * wasteFact);
-
+                corrected = SafeCorrectedVolume(stf.Eval(volumeStr + Correction), Volume);
             }
 
-            //Adjust Volume to uncertainty
-            TotalVolume = TotalVolume * uncertaintyFactor;
+            //B4, the replacement count, is deliberately NOT applied to the volume.
+            //TotalVolume and Mass describe the material standing in the building, which is what
+            //the volume and mass columns of every report and export mean. B4 belongs to the
+            //carbon, and it is applied once in the EC line below and once in each getTotalXX
+            //getter. Folding it in here as well made both of those B4 squared: a group with an
+            //element design life of 30 years in a 60 year building reported twice the carbon it
+            //should, four times instead of two.
+            TotalVolume = corrected * wasteFact * uncertaintyFactor;
 
             //Use Correct ECi to write into Elements based on Chosen switches (A-D)
             if (this.AllElements.Count > 0)
@@ -680,6 +813,9 @@ namespace CarboLifeAPI.Data
             result.PerCent = this.PerCent;
 
             result.Origin = this.Origin;
+            result.MatchConfidence = this.MatchConfidence;
+            result.MaterialSource = this.MaterialSource;
+            result.MatchNote = this.MatchNote;
             result.Grade = this.Grade;
             result.VolumeLink = this.VolumeLink;
             result.RcDensity = this.RcDensity;
@@ -733,6 +869,9 @@ namespace CarboLifeAPI.Data
                 PerCent = this.PerCent,
 
                 Origin = this.Origin,
+                MatchConfidence = this.MatchConfidence,
+                MaterialSource = this.MaterialSource,
+                MatchNote = this.MatchNote,
                 RcDensity = this.RcDensity
         };
 
@@ -765,6 +904,9 @@ namespace CarboLifeAPI.Data
 
             PerCent = carboGroup.PerCent;
             Origin = carboGroup.Origin;
+            MatchConfidence = carboGroup.MatchConfidence;
+            MaterialSource = carboGroup.MaterialSource;
+            MatchNote = carboGroup.MatchNote;
             RcDensity = carboGroup.RcDensity;
 
         }

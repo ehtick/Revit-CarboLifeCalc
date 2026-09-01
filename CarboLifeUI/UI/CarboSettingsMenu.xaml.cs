@@ -4,6 +4,7 @@ using CarboLifeAPI.Data;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -59,25 +60,85 @@ namespace CarboLifeUI.UI
             CheckTemplateFile();
         }
 
+        /// <summary>
+        /// The shortest and longest design life the box will take, in years.
+        /// The upper bound also keeps the value inside an Int16, which is what it is stored as.
+        /// </summary>
+        private const int minDesignLife = 1;
+        private const int maxDesignLife = 500;
+
         private void btn_Ok_Click(object sender, RoutedEventArgs e)
         {
+            //Convert.ToInt16(Convert.ToDouble(...)) threw on an empty box, on "60 years" and on
+            //anything non numeric, and overflowed above 32767. Inside Revit that is an unhandled
+            //exception, not a validation message, so the box is checked before anything is saved.
+            int designLife;
+
+            if (TryReadDesignLife(out designLife) == false)
+                return;
+
             isAccepted = true;
-            settings.defaultDesignLife = Convert.ToInt16(Convert.ToDouble(txt_DesignLife.Text));
+            settings.defaultDesignLife = designLife;
             settings.secretMessage = txt_SecretMessage.Text;
 
-            settings.showCars = chx_Cars.IsChecked.Value;
-            settings.showTrees = chx_Trees.IsChecked.Value;
-            settings.showPlanes = chx_Plane.IsChecked.Value;
-            settings.showSCC = chx_SCC.IsChecked.Value;
-            settings.showDeaths = chx_Deaths.IsChecked.Value;
+            settings.showCars = chx_Cars.IsChecked == true;
+            settings.showTrees = chx_Trees.IsChecked == true;
+            settings.showPlanes = chx_Plane.IsChecked == true;
+            settings.showSCC = chx_SCC.IsChecked == true;
+            settings.showDeaths = chx_Deaths.IsChecked == true;
 
-            settings.launchCircle = chx_Experimental.IsChecked.Value;
+            settings.launchCircle = chx_Experimental.IsChecked == true;
 
             settings.templatePath = txt_Path.Text;
             settings.mappingPath = txt_Mapping.Text;
 
             settings.Save();
             this.Close();
+        }
+
+        /// <summary>
+        /// Reads the design life box. Tells the user what is wrong and puts the caret back in the
+        /// box rather than letting the dialog close on a bad value.
+        /// </summary>
+        private bool TryReadDesignLife(out int designLife)
+        {
+            designLife = settings.defaultDesignLife;
+
+            string text = txt_DesignLife.Text == null ? "" : txt_DesignLife.Text.Trim();
+
+            double parsed;
+
+            //Accept what the user's keyboard produces and what a pasted invariant value looks like.
+            bool ok = double.TryParse(text, NumberStyles.Any, CultureInfo.CurrentCulture, out parsed)
+                   || double.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out parsed);
+
+            if (ok == false)
+            {
+                System.Windows.MessageBox.Show(
+                    "The design life must be a number of years, for example 60." + Environment.NewLine +
+                    "\"" + text + "\" could not be read.",
+                    "Design life", MessageBoxButton.OK, MessageBoxImage.Warning);
+
+                txt_DesignLife.Focus();
+                txt_DesignLife.SelectAll();
+                return false;
+            }
+
+            double rounded = Math.Round(parsed);
+
+            if (rounded < minDesignLife || rounded > maxDesignLife)
+            {
+                System.Windows.MessageBox.Show(
+                    "The design life must be between " + minDesignLife + " and " + maxDesignLife + " years.",
+                    "Design life", MessageBoxButton.OK, MessageBoxImage.Warning);
+
+                txt_DesignLife.Focus();
+                txt_DesignLife.SelectAll();
+                return false;
+            }
+
+            designLife = (int)rounded;
+            return true;
         }
 
 

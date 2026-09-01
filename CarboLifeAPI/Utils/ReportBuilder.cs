@@ -24,6 +24,27 @@ namespace CarboLifeAPI
 {
     public static class ReportBuilder
     {
+        /// <summary>
+        /// Makes a value safe to drop into the report markup.
+        ///
+        /// Nothing on this path escaped anything, so any name carrying an ampersand or an angle
+        /// bracket went into the html raw. A material called "&lt;Empty&gt;" would be read by the
+        /// browser as an unknown tag and vanish from the table, and a type called
+        /// "Steel &amp; Timber" produced invalid markup. Same helper as the CarboCircle report,
+        /// which hit this first.
+        /// </summary>
+        private static string esc(string value)
+        {
+            if (string.IsNullOrEmpty(value))
+                return "";
+
+            return value
+                .Replace("&", "&amp;")
+                .Replace("<", "&lt;")
+                .Replace(">", "&gt;")
+                .Replace("\"", "&quot;");
+        }
+
         static string report;
         static string reportpath;
         //static string imgPath;
@@ -356,9 +377,9 @@ namespace CarboLifeAPI
 
                         html += "<TR>" + System.Environment.NewLine;
 
-                        html += "<TD align='left' valign='middle'>" + cbg.Material.Name + "</td>" + System.Environment.NewLine;
-                        html += "<TD align='left' valign='middle'>" + cbg.Material.Category + "</td>" + System.Environment.NewLine;
-                        html += "<TD align='left' valign='middle'>" + cbg.Material.Description + Environment.NewLine + cbg.Material.EPDurl + "</td>" + System.Environment.NewLine;
+                        html += "<TD align='left' valign='middle'>" + esc(cbg.Material.Name) + "</td>" + System.Environment.NewLine;
+                        html += "<TD align='left' valign='middle'>" + esc(cbg.Material.Category) + "</td>" + System.Environment.NewLine;
+                        html += "<TD align='left' valign='middle'>" + esc(cbg.Material.Description) + Environment.NewLine + esc(cbg.Material.EPDurl) + "</td>" + System.Environment.NewLine;
 
                         html += "<TD align='left' valign='middle'>" + Math.Round(cbg.Density, 2) + "</td>" + System.Environment.NewLine;
                         html += "<TD align='left' valign='middle'>" + Math.Round(cbg.ECI, 2) + "</td>" + System.Environment.NewLine;
@@ -449,13 +470,13 @@ namespace CarboLifeAPI
 
                     html += "<TR>" + System.Environment.NewLine;
 
-                    html += "<TD align='left' valign='middle'>" + cbg.Category + "</td>" + System.Environment.NewLine;
-                    html += "<TD align='left' valign='middle'>" + cbg.Material.Name + "</td>" + System.Environment.NewLine;
-                    html += "<TD align='left' valign='middle'>" + cbg.Description + "</td>" + System.Environment.NewLine;
+                    html += "<TD align='left' valign='middle'>" + esc(cbg.Category) + "</td>" + System.Environment.NewLine;
+                    html += "<TD align='left' valign='middle'>" + esc(cbg.Material.Name) + "</td>" + System.Environment.NewLine;
+                    html += "<TD align='left' valign='middle'>" + esc(cbg.Description) + "</td>" + System.Environment.NewLine;
                     html += "<TD align='left' valign='middle'>" + Math.Round(cbg.Volume, 2) + "</td>" + System.Environment.NewLine;
 
                     //Advanced settings
-                    html += "<TD align='left' valign='middle'>" + cbg.Correction + "</td>" + System.Environment.NewLine;
+                    html += "<TD align='left' valign='middle'>" + esc(cbg.Correction) + "</td>" + System.Environment.NewLine;
                     html += "<TD align='left' valign='middle'>" + cbg.Waste + "%" + "</td>" + System.Environment.NewLine;
                     html += "<TD align='left' valign='middle'>" + Math.Round(cbg.inUseProperties.B4, 2) + "</td>" + System.Environment.NewLine;
                     html += "<TD align='left' valign='middle'>" + Math.Round(cbg.TotalVolume, 2) + "</td>" + System.Environment.NewLine;
@@ -578,12 +599,12 @@ namespace CarboLifeAPI
 
                     html += "<TR>" + System.Environment.NewLine;
 
-                    html += "<TD align='left' valign='middle'>" + cbg.Category + "</td>" + System.Environment.NewLine;
-                    html += "<TD align='left' valign='middle'>" + cbg.Material.Name + "</td>" + System.Environment.NewLine;
-                    html += "<TD align='left' valign='middle'>" + cbg.Description + "</td>" + System.Environment.NewLine;
+                    html += "<TD align='left' valign='middle'>" + esc(cbg.Category) + "</td>" + System.Environment.NewLine;
+                    html += "<TD align='left' valign='middle'>" + esc(cbg.Material.Name) + "</td>" + System.Environment.NewLine;
+                    html += "<TD align='left' valign='middle'>" + esc(cbg.Description) + "</td>" + System.Environment.NewLine;
 
                     //Advanced settings
-                    html += "<TD align='left' valign='middle'>" + cbg.Correction + "</td>" + System.Environment.NewLine;
+                    html += "<TD align='left' valign='middle'>" + esc(cbg.Correction) + "</td>" + System.Environment.NewLine;
                     html += "<TD align='left' valign='middle'>" + cbg.Waste + "%" + "</td>" + System.Environment.NewLine;
                     html += "<TD align='left' valign='middle'>" + Math.Round(cbg.Additional, 2) + "</td>" + System.Environment.NewLine;
 

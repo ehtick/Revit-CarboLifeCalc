@@ -35,6 +35,7 @@ namespace CarboLifeAPI.Data
         public void setData(List<CarboMaterial> data)
         {
             CarboMaterialList = data;
+            EnsureSystemMaterials();
             InvalidateMatchIndex();
         }
 
@@ -42,6 +43,67 @@ namespace CarboLifeAPI.Data
         {
             //DeSerialiseThedataBase
             CarboMaterialList = new List<CarboMaterial>();
+            EnsureSystemMaterials();
+        }
+
+        /// <summary>
+        /// Guarantees the built in "&lt;Empty&gt;" material is in this database, exactly once and
+        /// with its defined values.
+        ///
+        /// Called on every path that produces or loads a database, including an existing project
+        /// file, so the material is there whatever template the project was built from and
+        /// however old the file is. Idempotent: running it twice adds nothing.
+        ///
+        /// It is appended rather than inserted at the front, because several places take
+        /// CarboMaterialList[0] as a fallback material and prepending would silently make that
+        /// fallback the empty one.
+        /// </summary>
+        /// <returns>True when the list was changed.</returns>
+        public bool EnsureSystemMaterials()
+        {
+            if (CarboMaterialList == null)
+                CarboMaterialList = new List<CarboMaterial>();
+
+            bool changed = false;
+            CarboMaterial found = null;
+
+            //Walk backwards: a file that somehow carries two copies keeps the first and loses
+            //the rest, rather than leaving duplicates in every picker.
+            for (int i = CarboMaterialList.Count - 1; i >= 0; i--)
+            {
+                CarboMaterial cm = CarboMaterialList[i];
+
+                if (cm == null || cm.IsSystemEmpty() == false)
+                    continue;
+
+                if (found == null)
+                {
+                    found = cm;
+                }
+                else
+                {
+                    CarboMaterialList.RemoveAt(i);
+                    changed = true;
+                }
+            }
+
+            if (found == null)
+            {
+                CarboMaterialList.Add(CarboMaterial.CreateSystemEmpty());
+                changed = true;
+            }
+            else if (found.Density != 0 || found.ECI != 0 || found.Id != CarboMaterial.SystemEmptyId
+                     || found.isLocked == false)
+            {
+                //A copy that drifted, or one edited in an older version, is put back.
+                found.ResetToSystemEmpty();
+                changed = true;
+            }
+
+            if (changed)
+                InvalidateMatchIndex();
+
+            return changed;
         }
 
         /// <summary>
@@ -163,128 +225,130 @@ namespace CarboLifeAPI.Data
         {
             CarboMatchDiagnostics.Flush();
         }
+        // Superseded by getClosestMatch / CarboMaterialMatcher. Kept commented out for reference
+        // only, so it is not compiled and cannot drift out of step with the real matcher.
 
-        public CarboMaterial getClosestMatchOldBackup(string materialToLookup, string RevitMaterialCategory = "", string grade = "")
-        {
-            int score = 0;
-            int highscore = -50;
-            int basescore = materialToLookup.Length;
-
-            int gradebase = grade.Length;
-
-
-            CarboMaterial result = new CarboMaterial();
-            //string[] wordsInMaterialToLookup = materialToLookup.Split(' ');
-
-            //better split:
-            string[] wordsInMaterialToLookup = materialToLookup.Split(new Char[] { ' ', '_', '-' });
-
-            Utils.MatchLogWrite("New Material: " + materialToLookup);
-
-            foreach (string str in wordsInMaterialToLookup)
-            {
-                Utils.MatchLogWrite(str);
-            }
-
-
-            foreach (CarboMaterial cm in this.CarboMaterialList)
-            {
-                string logEntry = "";
-
-                score = 0;
-                int matchScore = 0;
-                int distScore = 0;
-
-                int gradeScore = 0;
-                int wordScore = 0;
-                string wordsthatmatch = "";
-                int categoryScore1 = 0;
-                int categoryScore2 = 0;
-
-
-                //Direct Hit == LOADS OF POINTS;
-
-                if (cm.Name.ToLower() == materialToLookup.ToLower())
-                {
-                    matchScore = (basescore * 3);
-                }
-                // string materialname = cm.Name;
-                int dist = Utils.CalcLevenshteinDistance(materialToLookup, cm.Name);
-                distScore = (basescore - dist);
-
-                //Get additional score points;
-
-                // GRADE points
-                if (cm.Grade != "" && grade != "")
-                {
-                    int gradeDist = Utils.CalcLevenshteinDistance(cm.Grade.ToLower(), grade.ToLower());
-                    gradeScore = (cm.Grade.Length - gradeDist) * 2;
-                }
-
-                //See if any of the words have a direct match in the lookup;
-                foreach (string word in wordsInMaterialToLookup)
-                {
-                    word.Trim();
-                    if (word != "" || word != " ")
-                    {
-                        string lowerWord = word.ToLower();
-                        string materialName = cm.Name.ToLower();
-                        string categoryName = cm.Category.ToLower();
-
-                        //Thif the material contains a word from the carbolist; get points
-                        bool contains = materialName.IndexOf(lowerWord, StringComparison.OrdinalIgnoreCase) >= 0;
-
-                        bool containsCategory1 = categoryName.IndexOf(lowerWord, StringComparison.OrdinalIgnoreCase) >= 0;
-
-
-                        bool containsCategory2 = false;
-                        if (RevitMaterialCategory != "")
-                            containsCategory2 = RevitMaterialCategory.IndexOf(lowerWord, StringComparison.OrdinalIgnoreCase) >= 0;
-
-
-                        if (contains == true)
-                        {
-                            wordScore += word.Length * 2;
-                            wordsthatmatch += word + ":" + wordScore.ToString() + " ";
-                        }
-                        //else ///penalty if word does not exist in searched string
-                        //wordScore += -1 * (word.Length);
-
-                        //Checks if the material category contains the word
-                        if (containsCategory1 == true)
-                        {
-                            categoryScore1 += word.Length * 5;
-                            //wordsthatmatch += word + ":" + wordScore.ToString() + " ";
-                        }
-
-                        //If a revit Category has been provided, check for extra points;
-                        if (containsCategory2 == true)
-                        {
-                            categoryScore2 += word.Length * 5;
-                        }
-                    }
-                }
-
-                //Calculate Total Score;
-                score += matchScore + distScore + gradeScore + wordScore + categoryScore1 + categoryScore2;
-
-                //Make a decision of this is better than current best;
-                if (score > highscore)
-                {
-                    highscore = score;
-                    result = cm.Clone() as CarboMaterial;
-                }
-
-                logEntry = materialToLookup + "," + cm.Name.ToLower() + "," + matchScore.ToString() + "," + distScore.ToString() + "," + gradeScore.ToString() + "," + wordScore.ToString() + "," + score + " Matching Words:(" + wordsthatmatch + ")";
-
-
-                Utils.MatchLogWrite(logEntry);
-
-            }
-            //The match
-            Utils.MatchLogWrite(materialToLookup + "," + result.Name.ToLower() + "," + "Match" + "," + " Dist" + "," + "Grade" + "," + "WordsMatching" + "," + highscore);
-            return result;
-        }
+//         public CarboMaterial getClosestMatchOldBackup(string materialToLookup, string RevitMaterialCategory = "", string grade = "")
+//         {
+//             int score = 0;
+//             int highscore = -50;
+//             int basescore = materialToLookup.Length;
+// 
+//             int gradebase = grade.Length;
+// 
+// 
+//             CarboMaterial result = new CarboMaterial();
+//             //string[] wordsInMaterialToLookup = materialToLookup.Split(' ');
+// 
+//             //better split:
+//             string[] wordsInMaterialToLookup = materialToLookup.Split(new Char[] { ' ', '_', '-' });
+// 
+//             Utils.MatchLogWrite("New Material: " + materialToLookup);
+// 
+//             foreach (string str in wordsInMaterialToLookup)
+//             {
+//                 Utils.MatchLogWrite(str);
+//             }
+// 
+// 
+//             foreach (CarboMaterial cm in this.CarboMaterialList)
+//             {
+//                 string logEntry = "";
+// 
+//                 score = 0;
+//                 int matchScore = 0;
+//                 int distScore = 0;
+// 
+//                 int gradeScore = 0;
+//                 int wordScore = 0;
+//                 string wordsthatmatch = "";
+//                 int categoryScore1 = 0;
+//                 int categoryScore2 = 0;
+// 
+// 
+//                 //Direct Hit == LOADS OF POINTS;
+// 
+//                 if (cm.Name.ToLower() == materialToLookup.ToLower())
+//                 {
+//                     matchScore = (basescore * 3);
+//                 }
+//                 // string materialname = cm.Name;
+//                 int dist = Utils.CalcLevenshteinDistance(materialToLookup, cm.Name);
+//                 distScore = (basescore - dist);
+// 
+//                 //Get additional score points;
+// 
+//                 // GRADE points
+//                 if (cm.Grade != "" && grade != "")
+//                 {
+//                     int gradeDist = Utils.CalcLevenshteinDistance(cm.Grade.ToLower(), grade.ToLower());
+//                     gradeScore = (cm.Grade.Length - gradeDist) * 2;
+//                 }
+// 
+//                 //See if any of the words have a direct match in the lookup;
+//                 foreach (string word in wordsInMaterialToLookup)
+//                 {
+//                     word.Trim();
+//                     if (word != "" || word != " ")
+//                     {
+//                         string lowerWord = word.ToLower();
+//                         string materialName = cm.Name.ToLower();
+//                         string categoryName = cm.Category.ToLower();
+// 
+//                         //Thif the material contains a word from the carbolist; get points
+//                         bool contains = materialName.IndexOf(lowerWord, StringComparison.OrdinalIgnoreCase) >= 0;
+// 
+//                         bool containsCategory1 = categoryName.IndexOf(lowerWord, StringComparison.OrdinalIgnoreCase) >= 0;
+// 
+// 
+//                         bool containsCategory2 = false;
+//                         if (RevitMaterialCategory != "")
+//                             containsCategory2 = RevitMaterialCategory.IndexOf(lowerWord, StringComparison.OrdinalIgnoreCase) >= 0;
+// 
+// 
+//                         if (contains == true)
+//                         {
+//                             wordScore += word.Length * 2;
+//                             wordsthatmatch += word + ":" + wordScore.ToString() + " ";
+//                         }
+//                         //else ///penalty if word does not exist in searched string
+//                         //wordScore += -1 * (word.Length);
+// 
+//                         //Checks if the material category contains the word
+//                         if (containsCategory1 == true)
+//                         {
+//                             categoryScore1 += word.Length * 5;
+//                             //wordsthatmatch += word + ":" + wordScore.ToString() + " ";
+//                         }
+// 
+//                         //If a revit Category has been provided, check for extra points;
+//                         if (containsCategory2 == true)
+//                         {
+//                             categoryScore2 += word.Length * 5;
+//                         }
+//                     }
+//                 }
+// 
+//                 //Calculate Total Score;
+//                 score += matchScore + distScore + gradeScore + wordScore + categoryScore1 + categoryScore2;
+// 
+//                 //Make a decision of this is better than current best;
+//                 if (score > highscore)
+//                 {
+//                     highscore = score;
+//                     result = cm.Clone() as CarboMaterial;
+//                 }
+// 
+//                 logEntry = materialToLookup + "," + cm.Name.ToLower() + "," + matchScore.ToString() + "," + distScore.ToString() + "," + gradeScore.ToString() + "," + wordScore.ToString() + "," + score + " Matching Words:(" + wordsthatmatch + ")";
+// 
+// 
+//                 Utils.MatchLogWrite(logEntry);
+// 
+//             }
+//             //The match
+//             Utils.MatchLogWrite(materialToLookup + "," + result.Name.ToLower() + "," + "Match" + "," + " Dist" + "," + "Grade" + "," + "WordsMatching" + "," + highscore);
+//             return result;
+//         }
 
         public List<string> getCategoryList()
         {
@@ -458,6 +522,9 @@ namespace CarboLifeAPI.Data
                     //Utils.WriteToLog("Deserialised: " + myPath);
                     bufferproject.templateName = fileNameNoExtension;
 
+                    //Whatever the template holds, it gets the built in "<Empty>" material.
+                    bufferproject.EnsureSystemMaterials();
+
                     return bufferproject;
 
                 }
@@ -564,6 +631,16 @@ namespace CarboLifeAPI.Data
                 {
                     if (CarboMaterialList[i].Id == id)
                     {
+                        //The built in material is part of every database by definition, and code
+                        //elsewhere assumes it is there. EnsureSystemMaterials would put it back
+                        //on the next load anyway, so refuse plainly rather than appear to work.
+                        if (CarboMaterialList[i].IsSystemEmpty())
+                        {
+                            MessageBox.Show(CarboMaterial.SystemEmptyName + " is a built in material and cannot be deleted.",
+                                            "Built in material", MessageBoxButton.OK, MessageBoxImage.Information);
+                            return;
+                        }
+
                         name = CarboMaterialList[i].Name;
                         CarboMaterialList.RemoveAt(i);
                         InvalidateMatchIndex();
@@ -593,6 +670,10 @@ namespace CarboLifeAPI.Data
                 {
                     if (CarboMaterialList[i].Name == name)
                     {
+                        //See the overload above: the built in material is not removable.
+                        if (CarboMaterialList[i].IsSystemEmpty())
+                            return false;
+
                         CarboMaterialList.RemoveAt(i);
                         InvalidateMatchIndex();
                         result = true;
