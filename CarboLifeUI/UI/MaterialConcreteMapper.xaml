@@ -23,7 +23,7 @@
             <RowDefinition Height="5"/>
             <RowDefinition Height="35"/>
             <RowDefinition Height="95"/>
-            <RowDefinition Height="0"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition/>
             <RowDefinition Height="0"/>
             <RowDefinition Height="35"/>
@@ -40,9 +40,42 @@
 
         <Label Grid.Column="1" Grid.Row="1" Grid.ColumnSpan="2" Style="{StaticResource baseStyleTitle}">Concrete Reinforcement Mapper</Label>
 
-        <TextBox Visibility="Visible" Grid.Column="2" Margin="5,5,5,0" Grid.Row="2" Style="{StaticResource baseStyle}" TextWrapping="Wrap" Height="46" VerticalAlignment="Top" BorderBrush="Transparent" IsReadOnly="True">The parameter below defines a local override to reinforcement density (kg/m³). The reinforcement material and material category are set in the import settings, next to the template.</TextBox>
+        <TextBox Name="txt_Note" Visibility="Visible" Grid.Column="2" Margin="5,5,5,0" Grid.Row="2" Style="{StaticResource baseStyle}" TextWrapping="Wrap" Height="46" VerticalAlignment="Top" BorderBrush="Transparent" IsReadOnly="True">The parameter below defines a local override to reinforcement density (kg/m³). The reinforcement material and material category are set in the import settings, next to the template.</TextBox>
         <ComboBox Visibility="Visible"  Name="cbb_RCImportType" IsReadOnly="False" Grid.Column="2" Grid.Row="2" Margin="30,0,0,10" Height="28" Width="150" VerticalAlignment="Bottom" HorizontalAlignment="Left" Style="{StaticResource ComboBoxFlatStyle}" ></ComboBox>
         <TextBox Visibility="Visible"  Name="txt_RCImportValue" Grid.Column="2" Grid.Row="2" Margin="185,0,5,10" Height="28" VerticalAlignment="Bottom" Style="{StaticResource flatTextBox}" />
+
+        <!-- Only shown when the mapper is opened on a project: the import settings dialog edits the
+             same two values against the selected template, so it does not need them repeated here. -->
+        <Grid Name="pnl_Materials" Grid.Column="2" Grid.Row="3" Margin="5,0,5,5" Visibility="Collapsed">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="220"/>
+                <ColumnDefinition Width="1*"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBox Grid.Row="0" Grid.ColumnSpan="2" Style="{StaticResource baseStyle}" TextWrapping="Wrap" Margin="0,0,0,6"
+                     BorderBrush="Transparent" IsReadOnly="True">Every group whose material sits in the category below is reinforced, with the material below:</TextBox>
+
+            <Label Grid.Row="1" Grid.Column="0" Style="{StaticResource baseStyle}" Height="28" VerticalAlignment="Center">Concrete material category:</Label>
+            <ComboBox Name="cbb_RCMaterialCategory" Grid.Row="1" Grid.Column="1" Height="26" Margin="0,0,0,6"
+                      Style="{StaticResource ComboBoxFlatStyle}"
+                      SelectionChanged="Cbb_Material_SelectionChanged"
+                      ToolTip="Groups whose material sits in this category get reinforcement added"/>
+
+            <Label Grid.Row="2" Grid.Column="0" Style="{StaticResource baseStyle}" Height="28" VerticalAlignment="Center">Reinforcement material:</Label>
+            <ComboBox Name="cbb_RCMaterial" Grid.Row="2" Grid.Column="1" Height="26" Margin="0,0,0,6"
+                      Style="{StaticResource ComboBoxFlatStyle}"
+                      SelectionChanged="Cbb_Material_SelectionChanged"
+                      ToolTip="The material the generated reinforcement groups are made of"/>
+
+            <TextBlock Name="txt_Warning" Grid.Row="3" Grid.ColumnSpan="2" FontSize="11" FontWeight="SemiBold"
+                       Foreground="#C05000" TextWrapping="Wrap" Margin="0,0,0,4" Visibility="Collapsed"/>
+        </Grid>
 
         <TextBox Grid.Column="2" Margin="5,5,5,0" Grid.Row="4" Style="{StaticResource baseStyle}" TextWrapping="Wrap" Height="28" VerticalAlignment="Top" BorderBrush="Transparent" IsReadOnly="True">The mapping table:</TextBox>
 

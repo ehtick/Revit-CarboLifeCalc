@@ -925,7 +925,10 @@ namespace CarboLifeUI.UI
                 CarboLifeProject.RevitImportSettings = new CarboGroupSettings().DeSerializeXML();
             }
 
-            MaterialConcreteMapper concreteMapper = new MaterialConcreteMapper(CarboLifeProject.RevitImportSettings);
+            //Passing the project adds the material and category boxes to the mapper. Without them
+            //a project that was imported before those were ever set had nothing to reinforce with,
+            //and the command could only report that afterwards.
+            MaterialConcreteMapper concreteMapper = new MaterialConcreteMapper(CarboLifeProject.RevitImportSettings, CarboLifeProject);
             concreteMapper.ShowDialog();
             if (concreteMapper.isAccepted == true)
             {
@@ -935,7 +938,9 @@ namespace CarboLifeUI.UI
                     CarboLifeProject.RevitImportSettings.RCParameterType = concreteMapper.categoryType;
                     CarboLifeProject.RevitImportSettings.RCParameterName = concreteMapper.categoryName;
 
-                    //RCMaterialName and RCMaterialCategory are template bound and set in the import settings dialog.
+                    CarboLifeProject.RevitImportSettings.RCMaterialName = concreteMapper.materialName;
+                    CarboLifeProject.RevitImportSettings.RCMaterialCategory = concreteMapper.materialCategory;
+
                     //Asking for the groups here switches the allowance on, see CreateReinforcementGroup.
                     int added = CarboLifeProject.CreateReinforcementGroup();
 
@@ -981,8 +986,13 @@ namespace CarboLifeUI.UI
         }
 
         /// <summary>
-        /// Rebuilds one kind of connection allowance and reports the outcome. When nothing comes out
-        /// it says which of the settings is the reason, a silent no-op here reads as a broken command.
+        /// Asks for the settings one kind of connection allowance needs, rebuilds it and reports the
+        /// outcome.
+        ///
+        /// The settings used to be taken straight from the import settings, which are empty in every
+        /// project where nobody opened that dialog: the command then built nothing and could only
+        /// say afterwards which setting was missing. ConnectionWindow asks first, showing whatever
+        /// the project already has, so the command always has something to work with.
         /// </summary>
         /// <param name="steel">True for the steel allowance, false for the timber one</param>
         private void BuildConnectionGroups(bool steel)
@@ -999,9 +1009,35 @@ namespace CarboLifeUI.UI
             CarboGroupSettings settings = CarboLifeProject.RevitImportSettings;
 
             string name = steel ? "steel connection" : "timber connection";
-            string material = steel ? settings.SteelConnectionMaterialName : settings.TimberConnectionMaterialName;
-            string category = steel ? settings.SteelMaterialCategory : settings.TimberMaterialCategory;
-            double percentage = steel ? settings.SteelConnectionPercentage : settings.TimberConnectionPercentage;
+
+            ConnectionWindow connectionWindow = new ConnectionWindow(CarboLifeProject, steel);
+            connectionWindow.ShowDialog();
+
+            if (connectionWindow.isAccepted == false)
+                return;
+
+            string material = connectionWindow.SelectedMaterialName;
+            string category = connectionWindow.SelectedCategory;
+            double percentage = connectionWindow.SelectedPercentage;
+
+            //The generators read these back out of the project, so they are stored before the call.
+            if (steel == true)
+            {
+                settings.SteelConnectionMaterialName = material;
+                settings.SteelMaterialCategory = category;
+                settings.SteelConnectionPercentage = percentage;
+            }
+            else
+            {
+                settings.TimberConnectionMaterialName = material;
+                settings.TimberMaterialCategory = category;
+                settings.TimberConnectionPercentage = percentage;
+            }
+
+            if (connectionWindow.SaveAsDefault == true)
+            {
+                SaveConnectionDefaults(steel, material, category, percentage);
+            }
 
             try
             {
@@ -1026,6 +1062,49 @@ namespace CarboLifeUI.UI
             catch (Exception ex)
             {
                 MessageBox.Show(ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Stores one connection allowance in the application defaults, so the next project starts
+        /// with it instead of asking for the same three values again. The other settings in that
+        /// file are left exactly as they are.
+        /// </summary>
+        /// <param name="steel">True for the steel allowance, false for the timber one</param>
+        /// <param name="material">The material the allowance is made of</param>
+        /// <param name="category">The material category the allowance is worked out from</param>
+        /// <param name="percentage">The allowance as a percentage of the group volume</param>
+        private static void SaveConnectionDefaults(bool steel, string material, string category, double percentage)
+        {
+            try
+            {
+                CarboSettings appSettings = new CarboSettings().Load();
+
+                if (appSettings == null || appSettings.defaultCarboGroupSettings == null)
+                    return;
+
+                if (steel == true)
+                {
+                    appSettings.defaultCarboGroupSettings.mapSteelConnections = true;
+                    appSettings.defaultCarboGroupSettings.SteelConnectionMaterialName = material;
+                    appSettings.defaultCarboGroupSettings.SteelMaterialCategory = category;
+                    appSettings.defaultCarboGroupSettings.SteelConnectionPercentage = percentage;
+                }
+                else
+                {
+                    appSettings.defaultCarboGroupSettings.mapTimberConnections = true;
+                    appSettings.defaultCarboGroupSettings.TimberConnectionMaterialName = material;
+                    appSettings.defaultCarboGroupSettings.TimberMaterialCategory = category;
+                    appSettings.defaultCarboGroupSettings.TimberConnectionPercentage = percentage;
+                }
+
+                appSettings.Save();
+            }
+            catch (Exception ex)
+            {
+                //The groups themselves are unaffected by this, so it is reported and no more.
+                MessageBox.Show("The defaults could not be saved: " + ex.Message,
+                                "Connections", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
 

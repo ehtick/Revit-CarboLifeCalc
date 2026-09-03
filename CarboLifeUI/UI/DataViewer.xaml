@@ -93,10 +93,12 @@
                         <RibbonMenuItem Header="Reinforcement..." Click="Mnu_AutoRCGroups"
                                         ImageSource="/CarboLifeUI;component/Resources/rbn_rebar32.png"
                                         ToolTipDescription="Map the reinforcement quantities and rebuild the reinforcement groups."/>
-                        <RibbonMenuItem Header="Steel connections" Click="Mnu_AutoSteelConnectionGroups"
-                                        ToolTipDescription="Rebuild the steel connection allowance groups, switching the allowance on if it was off."/>
-                        <RibbonMenuItem Header="Timber connections" Click="Mnu_AutoTimberConnectionGroups"
-                                        ToolTipDescription="Rebuild the timber connection allowance groups, switching the allowance on if it was off."/>
+                        <RibbonMenuItem Header="Steel connections..." Click="Mnu_AutoSteelConnectionGroups"
+                                        ImageSource="/CarboLifeUI;component/Resources/rbn_steelconnection32.png"
+                                        ToolTipDescription="Set the steelwork category, the connection material and the allowance, then rebuild the steel connection groups."/>
+                        <RibbonMenuItem Header="Timber connections..." Click="Mnu_AutoTimberConnectionGroups"
+                                        ImageSource="/CarboLifeUI;component/Resources/rbn_timberconnection32.png"
+                                        ToolTipDescription="Set the timber category, the connection material and the allowance, then rebuild the timber connection groups."/>
                         <RibbonSeparator/>
                         <RibbonMenuItem Header="Remove reinforcement" Click="Mnu_RemoveAutoReinforcement"
                                         ImageSource="/CarboLifeUI;component/Resources/rbn_del.png"/>

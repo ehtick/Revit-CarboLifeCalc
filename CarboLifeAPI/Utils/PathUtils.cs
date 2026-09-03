@@ -437,6 +437,14 @@ namespace CarboLifeAPI
         }
 
         // ── Template file discovery ─────────────────────────────────────
+        /// <summary>
+        /// The material templates on offer, keyed by file name.
+        ///
+        /// Sorted by name within each extension: Directory.GetFiles returns whatever order the file
+        /// system hands back, which is alphabetical on a local NTFS volume but not on a network
+        /// share, so the order of the lists built from this used to depend on where the materials
+        /// folder happened to live.
+        /// </summary>
         public static IDictionary<string, string> GetTemplateFiles(string storedPath)
         {
             var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -450,7 +458,14 @@ namespace CarboLifeAPI
 
             foreach (string ext in new[] { "*.cxml", "*.csv" })
             {
-                foreach (string file in Directory.GetFiles(searchDir, ext))
+                List<string> files = new List<string>(Directory.GetFiles(searchDir, ext));
+                files.Sort(delegate (string a, string b)
+                {
+                    return string.Compare(Path.GetFileName(a), Path.GetFileName(b),
+                                          StringComparison.OrdinalIgnoreCase);
+                });
+
+                foreach (string file in files)
                 {
                     string name = Path.GetFileName(file);
                     if (!result.ContainsKey(name))
@@ -459,6 +474,65 @@ namespace CarboLifeAPI
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Which entry of a template list should start off selected.
+        ///
+        /// In order: the template the settings point at, then UserMaterials.cxml - the user's own
+        /// materials, which is the file this application maintains and the one a new project is
+        /// meant to be priced with - and only if neither is on the list, its first entry.
+        ///
+        /// Selecting by position was the whole default before this, so which database a new project
+        /// or an import started with came down to the order the file system listed the materials
+        /// folder in. That put a reference database like Okobaudat in front of the user's own
+        /// materials, and the numbers a project came out with depended on it.
+        /// </summary>
+        /// <param name="available">The template file names on offer</param>
+        /// <returns>The entry to select, null when there is nothing to select</returns>
+        public static string GetDefaultTemplateSelection(IEnumerable<string> available)
+        {
+            if (available == null)
+                return null;
+
+            List<string> names = new List<string>(available);
+
+            if (names.Count == 0)
+                return null;
+
+            List<string> wanted = new List<string>();
+
+            try
+            {
+                CarboSettings settings = new CarboSettings().Load();
+                string resolved = ResolveTemplatePath(settings.templatePath);
+
+                if (string.IsNullOrEmpty(resolved) == false)
+                    wanted.Add(Path.GetFileName(resolved));
+            }
+            catch
+            {
+                //An unreadable settings file is no reason to fail to offer a template, the user
+                //materials below are the same thing a broken setting is reset to anyway.
+            }
+
+            wanted.Add(Path.GetFileName(GetDefaultTemplatePath()));
+
+            foreach (string want in wanted)
+            {
+                if (string.IsNullOrEmpty(want))
+                    continue;
+
+                foreach (string name in names)
+                {
+                    if (string.Equals(name, want, StringComparison.OrdinalIgnoreCase))
+                        return name;
+                }
+            }
+
+            //Neither is there: the user materials file is missing or the list was built somewhere
+            //else entirely, so the first entry is all there is to fall back on.
+            return names[0];
         }
 
 

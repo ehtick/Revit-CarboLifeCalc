@@ -126,6 +126,12 @@
     <Resource Include="Resources\rbn_rebar32.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Resource>
+    <Resource Include="Resources\rbn_steelconnection32.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Resources\rbn_timberconnection32.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Resource>
     <Resource Include="Resources\rbn_refresh32.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Resource>

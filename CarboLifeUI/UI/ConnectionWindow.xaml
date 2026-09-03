@@ -1,0 +1,143 @@
+﻿<Window x:Class="CarboLifeUI.UI.ConnectionWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:local="clr-namespace:CarboLifeUI.UI"
+        mc:Ignorable="d"
+        Title="Carbo Life: Connections"
+        Width="520" Height="565" MinWidth="520" MinHeight="565"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterScreen"
+        Background="WhiteSmoke"
+        Loaded="Window_Loaded"
+        Icon="pack://application:,,,/CarboLifeUI;component/Resources/ico_clcwindow.ico">
+
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="MyStyles.xaml"/>
+                <ResourceDictionary Source="MyDataGrid.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+
+            <Style x:Key="FieldLabel" TargetType="TextBlock">
+                <Setter Property="FontWeight" Value="SemiBold"/>
+                <Setter Property="FontSize" Value="12"/>
+                <Setter Property="Margin" Value="0,0,0,2"/>
+            </Style>
+
+            <Style x:Key="HintText" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="11"/>
+                <Setter Property="Foreground" Value="Gray"/>
+                <Setter Property="TextWrapping" Value="Wrap"/>
+                <Setter Property="Margin" Value="0,2,0,8"/>
+            </Style>
+
+            <Style x:Key="WarningText" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="11"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+                <Setter Property="Foreground" Value="#C05000"/>
+                <Setter Property="TextWrapping" Value="Wrap"/>
+                <Setter Property="Margin" Value="0,0,0,4"/>
+                <Setter Property="Visibility" Value="Collapsed"/>
+            </Style>
+
+            <Style x:Key="ResultLabel" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="12"/>
+                <Setter Property="VerticalAlignment" Value="Center"/>
+                <Setter Property="Margin" Value="0,0,0,6"/>
+            </Style>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Grid Margin="15,10,15,10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Label Name="lbl_Title" Grid.Row="0" Padding="0,0,0,6" Style="{StaticResource baseStyleTitle}">Connection allowance</Label>
+
+        <!-- 1: which groups the allowance is worked out from -->
+        <GroupBox Grid.Row="1" Header="Applies to" Margin="0,0,0,8" Padding="8,4,8,8" Style="{StaticResource baseStyleBold}">
+            <StackPanel>
+                <TextBlock Name="lbl_Category" Style="{StaticResource FieldLabel}">Material category</TextBlock>
+                <ComboBox Name="cbb_Category" Height="26"
+                          Style="{StaticResource ComboBoxFlatStyle}"
+                          SelectionChanged="Cbb_SelectionChanged"
+                          ToolTip="Every group whose material sits in this category gets a connection allowance"/>
+                <TextBlock Name="txt_Matches" Style="{StaticResource HintText}"/>
+            </StackPanel>
+        </GroupBox>
+
+        <!-- 2: what the allowance is made of and how big it is -->
+        <GroupBox Grid.Row="2" Header="Allowance" Margin="0,0,0,8" Padding="8,4,8,8" Style="{StaticResource baseStyleBold}">
+            <StackPanel>
+                <TextBlock Name="lbl_Material" Style="{StaticResource FieldLabel}">Connection material</TextBlock>
+                <ComboBox Name="cbb_Material" Height="26" Margin="0,0,0,10"
+                          Style="{StaticResource ComboBoxFlatStyle}"
+                          SelectionChanged="Cbb_SelectionChanged"
+                          ToolTip="The material the generated connection groups are made of"/>
+
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Name="lbl_Percentage" Style="{StaticResource FieldLabel}" Text="Allowance"
+                               VerticalAlignment="Center" Width="120"/>
+                    <TextBox Name="txt_Percentage" Width="80" Height="26"
+                             Style="{StaticResource flatTextBox}"
+                             TextChanged="Txt_TextChanged"
+                             ToolTip="The percentage of the group volume added as connections"/>
+                    <TextBlock Name="lbl_PercentageUnit" Style="{StaticResource ResultLabel}" Margin="8,0,0,0" Text="% of the volume"/>
+                </StackPanel>
+            </StackPanel>
+        </GroupBox>
+
+        <!-- 3: what that comes to, before anything is created -->
+        <GroupBox Grid.Row="3" Header="Result / Output" Margin="0,0,0,8" Padding="8,4,8,8" Style="{StaticResource baseStyleBold}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="180"/>
+                    <ColumnDefinition Width="110"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Row="0" Grid.Column="0" Style="{StaticResource ResultLabel}">Volume:</TextBlock>
+                <TextBlock Grid.Row="1" Grid.Column="0" Style="{StaticResource ResultLabel}">Weight:</TextBlock>
+                <TextBlock Grid.Row="2" Grid.Column="0" Style="{StaticResource ResultLabel}">Embodied carbon added:</TextBlock>
+
+                <TextBox Name="txt_VolumeResult" Grid.Row="0" Grid.Column="1" Height="24" Margin="0,0,0,6"
+                         Style="{StaticResource textboxReadOnlyStyle}" IsReadOnly="True"/>
+                <TextBox Name="txt_WeightResult" Grid.Row="1" Grid.Column="1" Height="24" Margin="0,0,0,6"
+                         Style="{StaticResource textboxReadOnlyStyle}" IsReadOnly="True"/>
+                <TextBox Name="txt_ECResult" Grid.Row="2" Grid.Column="1" Height="24" Margin="0,0,0,6"
+                         Style="{StaticResource textboxReadOnlyStyle}" IsReadOnly="True"/>
+
+                <TextBlock Grid.Row="0" Grid.Column="2" Style="{StaticResource ResultLabel}" Margin="8,0,0,6">m³</TextBlock>
+                <TextBlock Grid.Row="1" Grid.Column="2" Style="{StaticResource ResultLabel}" Margin="8,0,0,6">kg</TextBlock>
+                <TextBlock Grid.Row="2" Grid.Column="2" Style="{StaticResource ResultLabel}" Margin="8,0,0,6">tCO₂e</TextBlock>
+            </Grid>
+        </GroupBox>
+
+        <TextBlock Name="txt_Warning" Grid.Row="4" Style="{StaticResource WarningText}"/>
+
+        <CheckBox Name="chk_SaveAsDefault" Grid.Row="6" HorizontalAlignment="Left" VerticalAlignment="Center"
+                  ToolTip="Stores the category, the material and the allowance in the import settings and switches this allowance on there, so the next project starts with them">Save as default</CheckBox>
+
+        <StackPanel Grid.Row="6" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+            <Button Name="btn_Accept" Width="70" Height="30" Margin="0,0,10,0"
+                    Style="{StaticResource ButtonStyle}" Click="Btn_Accept_Click" IsDefault="True">Accept</Button>
+            <Button Name="btn_Cancel" Width="70" Height="30"
+                    Style="{StaticResource ButtonStyle}" Click="Btn_Cancel_Click" IsCancel="True">Cancel</Button>
+        </StackPanel>
+
+    </Grid>
+</Window>

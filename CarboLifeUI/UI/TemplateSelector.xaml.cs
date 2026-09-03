@@ -45,7 +45,16 @@ namespace CarboLifeUI.UI
                 {
                     cbb_TemplateName.Items.Add(template.Key);
                 }
-                cbb_TemplateName.SelectedIndex = 0;
+
+                //The user's own materials, or whatever the settings point at. This used to select
+                //position 0, which is whichever file the materials folder happened to list first:
+                //a reference database like Okobaudat rather than the user materials.
+                string selected = PathUtils.GetDefaultTemplateSelection(templates.Keys);
+
+                if (selected != null)
+                    cbb_TemplateName.SelectedItem = selected;
+                else if (cbb_TemplateName.Items.Count > 0)
+                    cbb_TemplateName.SelectedIndex = 0;
             }
         }
 

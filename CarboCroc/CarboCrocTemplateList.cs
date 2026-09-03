@@ -63,8 +63,14 @@ namespace CarboCroc
                         foreach (var template in templates)
                         {
                             _options.Add(template.Key);
-                            _selectedIndex = 0; // Reset selection on new list
                         }
+
+                        //Reset selection on new list: to the user's own materials, or whatever the
+                        //settings point at. Resetting to position 0 handed back whichever file the
+                        //materials folder listed first, a reference database rather than the
+                        //user materials. See PathUtils.GetDefaultTemplateSelection.
+                        int defaultIndex = _options.IndexOf(PathUtils.GetDefaultTemplateSelection(_options));
+                        _selectedIndex = defaultIndex >= 0 ? defaultIndex : 0;
                     }
 
                 }

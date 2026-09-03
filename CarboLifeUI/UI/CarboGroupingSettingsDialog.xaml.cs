@@ -118,12 +118,15 @@ namespace CarboLifeUI.UI
                     cbb_Template.Items.Add(template.Key);
                 }
 
-                // Select the template saved in settings, fall back to index 0
-                CarboSettings settings = new CarboSettings().Load();
-                string savedFileName = Path.GetFileName(settings.templatePath);
+                //The template saved in the settings, or the user's own materials. Falling back to
+                //index 0 meant whichever file the materials folder listed first, which is a
+                //reference database like Okobaudat rather than the materials the user maintains.
+                string selected = PathUtils.GetDefaultTemplateSelection(templateCollection.Keys);
 
-                int savedIndex = cbb_Template.Items.IndexOf(savedFileName);
-                cbb_Template.SelectedIndex = savedIndex >= 0 ? savedIndex : 0;
+                if (selected != null)
+                    cbb_Template.SelectedItem = selected;
+                else if (cbb_Template.Items.Count > 0)
+                    cbb_Template.SelectedIndex = 0;
             }
 
             BuildAllowanceBlocks();
