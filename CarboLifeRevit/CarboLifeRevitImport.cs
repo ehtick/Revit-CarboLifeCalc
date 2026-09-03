@@ -47,7 +47,7 @@ namespace CarboLifeRevit
                         //DeSerializeXML reports the problem itself and hands back null rather than
                         //throwing, so a damaged file never reached the catch below. updateFile
                         //stayed true and the update path then dereferenced the null, which came
-                        //out as a second, misleading "an error occured" dialog with the real
+                        //out as a second, misleading "an error occurred" dialog with the real
                         //cause already dismissed. Stop here instead: no import is better than an
                         //import that quietly discards the file the user asked to update.
                         if (projectToUpdate == null)
@@ -138,7 +138,7 @@ namespace CarboLifeRevit
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show("An error occured while trying to import the elements: " + ex.Message, "Error", MessageBoxButton.OK);
+                    MessageBox.Show("An error occurred while trying to import the elements: " + ex.Message, "Error", MessageBoxButton.OK);
                 }
             }
             else

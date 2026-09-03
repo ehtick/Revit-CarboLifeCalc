@@ -4,7 +4,8 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              mc:Ignorable="d" 
-             d:DesignHeight="900" d:DesignWidth="800" MinWidth="800" MinHeight="900" Width="800" Height="900"  Loaded="Window_Loaded" Background="WhiteSmoke" Icon="pack://application:,,,/CarboLifeUI;component/Resources/ico_clcwindow.ico">
+             d:DesignHeight="900" d:DesignWidth="800" MinWidth="800" MinHeight="900" Width="800" Height="900"  Loaded="Window_Loaded" Background="WhiteSmoke" Icon="pack://application:,,,/CarboLifeUI;component/Resources/ico_clcwindow.ico"
+             Title="Heatmapper | Carbon Footprint Visualiser">
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -113,12 +114,12 @@
                             <RadioButton Name="rad_MaterialTotals" Grid.Column="1" Margin="5,0,0,0"  Grid.Row="5" FontSize="12" FontFamily="Segoe UI" Height="25" VerticalAlignment="Top" Click="rad_Control_Click">By Material Totals</RadioButton>
 
                             <Label Grid.Row="2" Grid.Column="2" Margin="0,0,0,0" Height="27" VerticalAlignment="Top" Style="{StaticResource baseStyle}" Content="Cutoff Max:"/>
-                            <TextBox x:Name="txt_CutoffMax" Grid.Row="2" Grid.Column="3" Margin="0,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" Width="80" Height="25" Style="{StaticResource flatTextBox}" IsEnabled="False">9999</TextBox>
+                            <TextBox x:Name="txt_CutoffMax" Grid.Row="2" Grid.Column="3" Margin="0,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" Width="80" Height="25" Style="{StaticResource flatTextBox}" KeyDown="txt_Cutoff_KeyDown" LostFocus="txt_Cutoff_LostFocus" ToolTip="Type an exact cutoff and press Enter, or drag the slider.">9999</TextBox>
                             <Slider x:Name="sld_Max" Grid.Row="2" Grid.Column="4" Margin="5,5,5,5" Value="1" Maximum="1" ValueChanged="sld_Max_ValueChanged"
                                     ToolTip="Elements above this value are treated as out of scope. Cannot be dragged below the minimum cutoff."></Slider>
 
                             <Label Grid.Row="1" Grid.Column="2" Margin="0,0,0,0" Height="27" VerticalAlignment="Top" Style="{StaticResource baseStyle}" Content="Cutoff Min:"/>
-                            <TextBox x:Name="txt_CutoffMin" Grid.Row="1" Grid.Column="3" Margin="0,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" Width="80" Height="25" Style="{StaticResource flatTextBox}" IsEnabled="False" >0</TextBox>
+                            <TextBox x:Name="txt_CutoffMin" Grid.Row="1" Grid.Column="3" Margin="0,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" Width="80" Height="25" Style="{StaticResource flatTextBox}" KeyDown="txt_Cutoff_KeyDown" LostFocus="txt_Cutoff_LostFocus" ToolTip="Type an exact cutoff and press Enter, or drag the slider." >0</TextBox>
                             <Slider x:Name="sld_Min" Grid.Row="1" Grid.Column="4" Margin="5,5,5,5" Maximum="1" ValueChanged="sld_Min_ValueChanged"
                                     ToolTip="Elements below this value are treated as out of scope. Cannot be dragged above the maximum cutoff."></Slider>
 

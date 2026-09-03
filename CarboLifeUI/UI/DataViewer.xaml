@@ -66,19 +66,25 @@
                 <RibbonGroup x:Name="Group" Header="Group">
                     <RibbonButton Label="New" Width="64" Height="64" Click="Mnu_NewGroup_Click" LargeImageSource="/CarboLifeUI;component/Resources/rbn_groupnew32.png"/>
 
-                    <RibbonMenuButton Label="Delete Group" PreviewMouseDown="Mnu_DeleteGroup_Click" SmallImageSource="/CarboLifeUI;component/Resources/rbn_del.png" />
-                    <RibbonMenuButton Label="Merge Group" PreviewMouseDown="Mnu_MergeGroup_Click" SmallImageSource="/CarboLifeUI;component/Resources/rbn_groupmerge32.png"/>
-                    <RibbonMenuButton Label="Purge Elements" MouseDown="Mnu_PurgeElements_Click" SmallImageSource="/CarboLifeUI;component/Resources/rbn_grouppurge32.png"/>
+                    <!-- RibbonButton, not RibbonMenuButton. A RibbonMenuButton is a drop-down: it
+                         has no Click event and it draws a drop-down arrow it never used, which is
+                         why these were wired to PreviewMouseDown - firing on press rather than on
+                         click, before the control's own behaviour, and still firing if the user
+                         pressed and dragged away. These are plain actions, so they are plain
+                         buttons, matching New / Select / Editor. -->
+                    <RibbonButton Label="Delete Group" Click="Mnu_DeleteGroup_Click" SmallImageSource="/CarboLifeUI;component/Resources/rbn_del.png" />
+                    <RibbonButton Label="Merge Group" Click="Mnu_MergeGroup_Click" SmallImageSource="/CarboLifeUI;component/Resources/rbn_groupmerge32.png"/>
+                    <RibbonButton Label="Purge Elements" Click="Mnu_PurgeElements_Click" SmallImageSource="/CarboLifeUI;component/Resources/rbn_grouppurge32.png"/>
 
-                    <RibbonMenuButton Label="Split Group..." PreviewMouseDown="RibbonMenuButton_PreviewMouseDown" Visibility="Visible" SmallImageSource="/CarboLifeUI;component/Resources/rbn_groupsplit32.png"/>
-                    <RibbonMenuButton Label="Remove Waste..." PreviewMouseDown="mnu_noWaste" SmallImageSource="/CarboLifeUI;component/Resources/rbn_del.png"/>
+                    <RibbonButton Label="Split Group..." Click="Mnu_SplitGroup_Click" Visibility="Visible" SmallImageSource="/CarboLifeUI;component/Resources/rbn_groupsplit32.png"/>
+                    <RibbonButton Label="Remove Waste..." Click="mnu_noWaste" SmallImageSource="/CarboLifeUI;component/Resources/rbn_del.png"/>
 
                     <!--- Needs a re-think -->
 
                 </RibbonGroup>
                 <!-- materials-->
                 <RibbonGroup x:Name="Materials" Header="Materials">
-                    <RibbonMenuButton Label="Multi-Map..." PreviewMouseDown="mnu_MapElements_Click" LargeImageSource="/CarboLifeUI;component/Resources/rbn_materialmap32.png"/>
+                    <RibbonButton Label="Multi-Map..." Width="64" Height="64" Click="mnu_MapElements_Click" LargeImageSource="/CarboLifeUI;component/Resources/rbn_materialmap32.png"/>
                     <RibbonButton Label="Select" Click="Btn_Material_Click" LargeImageSource="/CarboLifeUI;component/Resources/rbn_materialselect32.png" />
                     <RibbonButton Label="Editor" Click="btn_OpenMaterialEditor_Click" LargeImageSource="/CarboLifeUI;component/Resources/rbn_materialedit32.png" />
                 </RibbonGroup>
@@ -311,17 +317,24 @@
                 <DataGridTextColumn Width="1*" MinWidth="100" Header="Density (kg/m³)" Binding="{Binding Path=Density}" IsReadOnly="True"/>
                 <DataGridTextColumn Width="1*" MinWidth="90" Header="Mass(kg)" Binding="{Binding Path=Mass}" IsReadOnly="True"/>
 
+                <!-- CarboElement has no ECI_Total or EC_Total: those two columns were bound to
+                     properties that only exist in Superseded\HeatMapBuilder*.cs, which the csproj
+                     excludes from the build. WPF fails a binding silently, so they sat here
+                     permanently blank next to the real figures. ECI_Total is repointed at
+                     ECI_Cumulative, which is real and was not shown anywhere; EC_Total is dropped
+                     because the "EC Cumulative" column below already carries that number.
+                     An element's EC is in kg, not tonnes - only the group and project totals are
+                     divided by 1000 - so the unit on the EC column is corrected too. -->
                 <DataGridTextColumn MinWidth="100" Header="ECI(kgCO₂e/kg)" Binding="{Binding Path=ECI}" IsReadOnly="True"/>
-                <DataGridTextColumn MinWidth="100" Header="ECI_Total(kgCO₂e/kg)" Binding="{Binding Path=ECI_Total}" IsReadOnly="True"/>
+                <DataGridTextColumn MinWidth="100" Header="ECI Cumulative (kgCO₂e/kg)" Binding="{Binding Path=ECI_Cumulative}" IsReadOnly="True"/>
 
-                <DataGridTextColumn MinWidth="100" Header="EC (tCO₂e)" Binding="{Binding Path=EC}" IsReadOnly="True"/>
-                <DataGridTextColumn MinWidth="100" Header="EC_Total (tCO₂e)" Binding="{Binding Path=EC_Total}" IsReadOnly="True"/>
+                <DataGridTextColumn MinWidth="100" Header="EC (kgCO₂e)" Binding="{Binding Path=EC}" IsReadOnly="True"/>
 
                 <DataGridCheckBoxColumn MinWidth="100" Header="isDemolished" Binding="{Binding Path=isDemolished}" IsReadOnly="True"/>
                 <DataGridCheckBoxColumn MinWidth="100" Header="isExisting" Binding="{Binding Path=isExisting}" IsReadOnly="True"/>
                 <DataGridTextColumn Width="50" MinWidth="100" Header="Additional" Binding="{Binding Path=AdditionalData, Mode=TwoWay}" IsReadOnly="True"/>
-                <DataGridTextColumn Width="50" MinWidth="100" Header="EC Cumulative" Binding="{Binding Path=EC_Cumulative, Mode=TwoWay}" IsReadOnly="True"/>
-                <DataGridTextColumn Width="50" MinWidth="100" Header="Volume Cumulative" Binding="{Binding Path=Volume_Cumulative, Mode=TwoWay}" IsReadOnly="True"/>
+                <DataGridTextColumn Width="50" MinWidth="100" Header="EC Cumulative (kgCO₂e)" Binding="{Binding Path=EC_Cumulative}" IsReadOnly="True"/>
+                <DataGridTextColumn Width="50" MinWidth="100" Header="Volume Cumulative (m³)" Binding="{Binding Path=Volume_Cumulative}" IsReadOnly="True"/>
                 <DataGridTextColumn Width="50" MinWidth="100" Header="Area (m²)" Binding="{Binding Path=Area, Mode=TwoWay}" IsReadOnly="True"/>
                 
                 <DataGridTextColumn MinWidth="50" Header="Grade" Binding="{Binding Path=Grade}" IsReadOnly="True"/>

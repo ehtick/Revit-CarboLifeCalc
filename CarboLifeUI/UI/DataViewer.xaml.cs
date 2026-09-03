@@ -94,9 +94,9 @@ namespace CarboLifeUI.UI
         {
             try
             {
-                dgv_Overview.ItemsSource = CarboLifeProject.getGroupList;
-
-                SortData();
+                //SortData owns ItemsSource now, and refreshData also fills in the TOTAL label,
+                //which used to sit on its placeholder text until the first recalculation.
+                refreshData();
 
                 //Load images
                 string _path = System.Reflection.Assembly.GetExecutingAssembly().Location;
@@ -129,7 +129,14 @@ namespace CarboLifeUI.UI
             refreshData();
         }
 
-        private void Mnu_DeleteGroup_Click(object sender, MouseButtonEventArgs e)
+        /// <summary>
+        /// Deletes the selected groups.
+        ///
+        /// Wired to Click, not PreviewMouseDown. A destructive action on mouse-down fires while
+        /// the button is still held, so pressing and dragging away still deleted; and being a
+        /// tunnelling preview event it ran before the button's own behaviour.
+        /// </summary>
+        private void Mnu_DeleteGroup_Click(object sender, RoutedEventArgs e)
         {
             var selectedGroups = dgv_Overview.SelectedItems.Cast<CarboGroup>().ToList();
 
@@ -168,27 +175,158 @@ namespace CarboLifeUI.UI
                             MessageBoxImage.Information);
         }
 
+        /// <summary>
+        /// Recalculates the project and puts the result on screen.
+        ///
+        /// Anything that changes a group, a material or an element should call this rather than
+        /// SortData: a sort only reorders what is already there, so a handler that sorted without
+        /// recalculating left the grid looking updated while the numbers and the TOTAL label were
+        /// still the previous ones. The placeholder on that label - "TOTAL: xxx tCO₂e (Recalculate
+        /// to refresh)" - is what that used to feel like.
+        /// </summary>
+        private void ApplyAndRefresh()
+        {
+            if (CarboLifeProject == null)
+                return;
+
+            CarboLifeProject.CalculateProject();
+            refreshData();
+        }
+
         public void refreshData()
         {
-            dgv_Overview.ItemsSource = null;
-            dgv_Overview.ItemsSource = CarboLifeProject.getGroupList;
+            if (CarboLifeProject == null)
+                return;
 
-            //GetTotals
+            //A cell still in edit blocks the collection view from refreshing.
+            dgv_Overview.CommitEdit(DataGridEditingUnit.Row, true);
+
+            //Where the user was, so the grid stops jumping back to the top and losing the row
+            //they were working on every time a value changes.
+            List<int> selectedIds = GetSelectedGroupIds();
+            double scrollOffset = GetVerticalScrollOffset(dgv_Overview);
+
+            SortData();
+
+            UpdateTotalLabel();
+
+            RestoreSelection(selectedIds, scrollOffset);
+        }
+
+        /// <summary>
+        /// Puts the project total on the label. One place, so no path can leave it stale.
+        /// </summary>
+        private void UpdateTotalLabel()
+        {
             double totals = 0;
 
-            if (CarboLifeProject.getGroupList.Count > 0)
+            if (CarboLifeProject != null && CarboLifeProject.getGroupList != null
+                && CarboLifeProject.getGroupList.Count > 0)
             {
                 totals = CarboLifeProject.getTotalsGroup().EC;
             }
-            else
-            {
-                totals = 0;
-            }
 
             lbl_Total.Content = "TOTAL: " + Math.Round(totals, 2) + " tCO₂e";
+        }
 
+        private List<int> GetSelectedGroupIds()
+        {
+            List<int> ids = new List<int>();
 
-            SortData();
+            if (dgv_Overview.SelectedItems == null)
+                return ids;
+
+            foreach (object item in dgv_Overview.SelectedItems)
+            {
+                CarboGroup cg = item as CarboGroup;
+
+                if (cg != null)
+                    ids.Add(cg.Id);
+            }
+
+            return ids;
+        }
+
+        /// <summary>
+        /// Reselects the groups that were selected before the refresh and scrolls back to where
+        /// the user was. Selection is restored by group Id rather than by object reference,
+        /// because a rebuilt collection view hands back different row containers.
+        /// </summary>
+        private void RestoreSelection(List<int> selectedIds, double scrollOffset)
+        {
+            if (selectedIds == null || selectedIds.Count == 0)
+                return;
+
+            try
+            {
+                dgv_Overview.SelectedItems.Clear();
+
+                CarboGroup first = null;
+
+                foreach (CarboGroup cg in CarboLifeProject.getGroupList)
+                {
+                    if (selectedIds.Contains(cg.Id) == false)
+                        continue;
+
+                    dgv_Overview.SelectedItems.Add(cg);
+
+                    if (first == null)
+                        first = cg;
+                }
+
+                //The element grid below follows the selection, so put it back too.
+                if (first != null)
+                    dgv_Elements.ItemsSource = first.AllElements;
+
+                SetVerticalScrollOffset(dgv_Overview, scrollOffset);
+            }
+            catch
+            {
+                //Losing the selection is not worth an error dialog.
+            }
+        }
+
+        private static double GetVerticalScrollOffset(DependencyObject grid)
+        {
+            ScrollViewer viewer = FindScrollViewer(grid);
+            return viewer != null ? viewer.VerticalOffset : 0;
+        }
+
+        private static void SetVerticalScrollOffset(DependencyObject grid, double offset)
+        {
+            if (offset <= 0)
+                return;
+
+            ScrollViewer viewer = FindScrollViewer(grid);
+
+            if (viewer != null)
+                viewer.ScrollToVerticalOffset(offset);
+        }
+
+        /// <summary>
+        /// The DataGrid's own scroll viewer, which only exists once the template has been applied.
+        /// </summary>
+        private static ScrollViewer FindScrollViewer(DependencyObject parent)
+        {
+            if (parent == null)
+                return null;
+
+            ScrollViewer found = parent as ScrollViewer;
+
+            if (found != null)
+                return found;
+
+            int count = VisualTreeHelper.GetChildrenCount(parent);
+
+            for (int i = 0; i < count; i++)
+            {
+                ScrollViewer child = FindScrollViewer(VisualTreeHelper.GetChild(parent, i));
+
+                if (child != null)
+                    return child;
+            }
+
+            return null;
         }
 
         private void Btn_Material_Click(object sender, RoutedEventArgs e)
@@ -243,18 +381,13 @@ namespace CarboLifeUI.UI
         private void Mnu_NewGroup_Click(object sender, RoutedEventArgs e)
         {
             CarboLifeProject.CreateNewGroup();
-            SortData();
+            ApplyAndRefresh();
         }
 
-        private void Mnu_DeleteGroup_Click(object sender, RoutedEventArgs e)
-        {
-            CarboGroup carboGroup = (CarboGroup)dgv_Overview.SelectedItem;
-            if (carboGroup != null)
-            {
-                CarboLifeProject.DeleteGroup(carboGroup);
-            }
-            SortData();
-        }
+        //A second Mnu_DeleteGroup_Click taking RoutedEventArgs used to live here. It was never
+        //wired to anything - the XAML pointed at the MouseButtonEventArgs overload - and it
+        //deleted a single group with no confirmation, so it would have been the worse of the two
+        //had anyone connected it.
 
         private void Dgv_Overview_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
         {
@@ -370,7 +503,7 @@ namespace CarboLifeUI.UI
             {
                 CarboLifeProject.DuplicateGroup(carboGroup);
             }
-            SortData();
+            ApplyAndRefresh();
         }
 
         private void Mnu_PurgeElements_Click(object sender, RoutedEventArgs e)
@@ -380,7 +513,7 @@ namespace CarboLifeUI.UI
             {
                 if (carboGroup.AllElements.Count > 0)
                 {
-                    MessageBoxResult result = MessageBox.Show("Do you really want to remove all elements from this collection? This action is can NOT be undone", "Warning", MessageBoxButton.YesNo, MessageBoxImage.Stop);
+                    MessageBoxResult result = MessageBox.Show("Do you really want to remove all elements from this collection? This action can NOT be undone", "Warning", MessageBoxButton.YesNo, MessageBoxImage.Stop);
                     if (result == MessageBoxResult.Yes)
                     {
                         CarboLifeProject.PurgeElements(carboGroup);
@@ -391,7 +524,7 @@ namespace CarboLifeUI.UI
                     MessageBoxResult result = MessageBox.Show("This collection contains no elements", "Warning", MessageBoxButton.YesNo, MessageBoxImage.Stop);
                 }
             }
-            SortData();
+            ApplyAndRefresh();
         }
 
         private void Mnu_Reinforce_Click(object sender, RoutedEventArgs e)
@@ -464,46 +597,69 @@ namespace CarboLifeUI.UI
                     CarboLifeProject.AddGroup(ProfileWindowWindow.profileGroup);
                 }
             }
-            SortData();
+            ApplyAndRefresh();
         }
 
-        private void SortByMaterial()
-        {
-            if (CarboLifeProject.getGroupList != null)
-            {
-                ListCollectionView collectionView = new ListCollectionView(CarboLifeProject.getGroupList);
-                collectionView.GroupDescriptions.Add(new PropertyGroupDescription("MaterialName"));
-                dgv_Overview.ItemsSource = null;
-                dgv_Overview.ItemsSource = collectionView;
-            }
-        }
-
-        private void SortByCategoty()
-        {
-            if (CarboLifeProject.getGroupList != null)
-            {
-                ListCollectionView collectionView = new ListCollectionView(CarboLifeProject.getGroupList);
-                collectionView.GroupDescriptions.Add(new PropertyGroupDescription("Category"));
-                dgv_Overview.ItemsSource = null;
-                dgv_Overview.ItemsSource = collectionView;
-            }
-        }
+        //SortByMaterial and SortByCategoty are gone: SortData covers both against one reused
+        //collection view, instead of each building its own and re-sourcing the grid.
 
         private void ComboBox_DropDownClosed(object sender, EventArgs e)
         {
             SortData();
         }
 
+        /// <summary>The one collection view behind the group grid, kept and reused.</summary>
+        private ListCollectionView groupView;
+
+        /// <summary>What groupView is grouped by, so it is only rebuilt when that changes.</summary>
+        private string groupViewGroupedBy;
+
+        /// <summary>
+        /// Groups the grid by material or by category.
+        ///
+        /// The view is built once and then refreshed in place. It used to be rebuilt from scratch
+        /// on every call, and because refreshData assigned ItemsSource, then SortByX assigned null
+        /// and then a brand new ListCollectionView, the grid was re-sourced three times per
+        /// refresh and landed on a view that had never heard of the previous selection. That is
+        /// why the selected row, the scroll position and the element grid were lost every time.
+        /// </summary>
         private void SortData()
         {
-            if (cbb_SortValue.Text == "Material")
+            if (CarboLifeProject == null || CarboLifeProject.getGroupList == null)
+                return;
+
+            string groupBy = cbb_SortValue.Text == "Material" ? "MaterialName" : "Category";
+
+            bool needsRebuild = groupView == null
+                             || groupViewGroupedBy != groupBy
+                             || ReferenceEquals(groupView.SourceCollection, CarboLifeProject.getGroupList) == false;
+
+            if (needsRebuild)
             {
-                SortByMaterial();
+                RebuildGroupView(groupBy);
+                return;
             }
-            else
+
+            //Same list, same grouping: re-read the values. CarboGroup raises no change
+            //notifications, so this is what makes new EC and mass figures appear.
+            try
             {
-                SortByCategoty();
+                groupView.Refresh();
             }
+            catch (InvalidOperationException)
+            {
+                //A view mid-edit refuses to refresh; rebuilding always works.
+                RebuildGroupView(groupBy);
+            }
+        }
+
+        private void RebuildGroupView(string groupBy)
+        {
+            groupView = new ListCollectionView(CarboLifeProject.getGroupList);
+            groupView.GroupDescriptions.Add(new PropertyGroupDescription(groupBy));
+            groupViewGroupedBy = groupBy;
+
+            dgv_Overview.ItemsSource = groupView;
         }
 
         private void Btn_ShowHideCorrections_Click(object sender, RoutedEventArgs e)
@@ -597,7 +753,7 @@ namespace CarboLifeUI.UI
             //List<CarboElement> selectedElement = dgv_Elements.SelectedCells;
         }
 
-        private void Mnu_MergeGroup_Click(object sender, MouseButtonEventArgs e)
+        private void Mnu_MergeGroup_Click(object sender, RoutedEventArgs e)
         {
             try
             {
@@ -628,6 +784,8 @@ namespace CarboLifeUI.UI
                         CarboLifeProject.DeleteGroup(cg);
                     }
                 }
+
+                ApplyAndRefresh();
             }
             catch (Exception ex)
             {
@@ -664,7 +822,14 @@ namespace CarboLifeUI.UI
                 CarboElement newBufferElement = selectedCarboElementList[0];
                 string materialName = newBufferElement.MaterialName;
                 if (materialName != "")
+                {
                     CarboLifeProject.CarboDatabase.AddMaterial(new CarboMaterial(materialName));
+
+                    //The database gained a row, so the grid and the totals are re-read. The new
+                    //material carries no carbon yet, so nothing should move - but if it does, the
+                    //user sees it now rather than at the next unrelated recalculation.
+                    ApplyAndRefresh();
+                }
             }
             else
             {
@@ -709,6 +874,11 @@ namespace CarboLifeUI.UI
                 //The user just chose these in the mapper, so the groups they cover are marked as
                 //user assigned and stop being flagged for review.
                 this.CarboLifeProject.mapAllMaterials(CarboMaterialSource.UserAssigned);
+
+                //The mapper has just changed the materials, so the totals and the grid have to
+                //follow. Without this the numbers stayed on screen from before the mapping until
+                //the user happened to press Calculate.
+                ApplyAndRefresh();
             }
         }
 
@@ -800,7 +970,7 @@ namespace CarboLifeUI.UI
             refreshData();
         }
 
-        private void RibbonMenuButton_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        private void Mnu_SplitGroup_Click(object sender, RoutedEventArgs e)
         {
             var selectedItems = dgv_Overview.SelectedItems;
             IList<CarboGroup> selectedGroups = new List<CarboGroup>();
@@ -1181,28 +1351,17 @@ namespace CarboLifeUI.UI
                             "Remove groups", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
-        private void mnu_noWaste(object sender, MouseButtonEventArgs e)
+        private void mnu_noWaste(object sender, RoutedEventArgs e)
         {
             CarboLifeProject.RemoveWaste();
             CarboLifeProject.CalculateProject();
             refreshData();
         }
 
-        private void mnu_MapElements_Click(object sender, MouseButtonEventArgs e)
-        {
-            MaterialMapper materialMapper = new MaterialMapper(this.CarboLifeProject);
-            materialMapper.ShowDialog();
-            if (materialMapper.isAccepted == true)
-            {
-                this.CarboLifeProject.carboMaterialMap = materialMapper.mappinglist;
-
-                //The user just chose these in the mapper, so the groups they cover are marked as
-                //user assigned and stop being flagged for review.
-                this.CarboLifeProject.mapAllMaterials(CarboMaterialSource.UserAssigned);
-            }
-        }
-
-
+        //A second mnu_MapElements_Click taking MouseButtonEventArgs used to live here, wired to
+        //the ribbon's PreviewMouseDown while an identical RoutedEventArgs copy sat unused higher
+        //up. The ribbon now uses Click, so the RoutedEventArgs one is the live handler and this
+        //duplicate is gone.
 
     }
 }

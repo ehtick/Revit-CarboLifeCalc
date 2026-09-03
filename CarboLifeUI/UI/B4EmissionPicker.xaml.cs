@@ -37,24 +37,17 @@ namespace CarboLifeUI.UI
             UpdateValue();
         }
 
-        private async void Txt_Life_TextChanged(object sender, TextChangedEventArgs e)
+        private void Txt_Life_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(250);
-            if (startLength == tb.Text.Length)
             {
                 UpdateValue();
             }
         }
 
-        private async void Txt_Value2_TextChanged(object sender, TextChangedEventArgs e)
+        private void Txt_Value2_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-            await Task.Delay(250);
-            if (startLength == tb.Text.Length)
             {
                 UpdateValue();
             }

@@ -155,7 +155,7 @@ namespace CarboLifeUI.UI
                 try
                 {
                     MessageBoxResult result = System.Windows.MessageBox.Show("Do you want to update the material template with the current project materials?" + Environment.NewLine +
-                        "Materials with excact same names will be overwritten with new values, other will be added to the template file", "Warning", MessageBoxButton.YesNo);
+                        "Materials with exact same names will be overwritten with new values, others will be added to the template file", "Warning", MessageBoxButton.YesNo);
 
                     if (result == MessageBoxResult.Yes)
                     {
@@ -177,7 +177,7 @@ namespace CarboLifeUI.UI
             }
             else
             {
-                MessageBoxResult result = System.Windows.MessageBox.Show("Please select a material to syncronise", "Computer says no", MessageBoxButton.YesNo);
+                MessageBoxResult result = System.Windows.MessageBox.Show("Please select a material to synchronise", "Computer says no", MessageBoxButton.YesNo);
             }
 
             refreshTemplateMaterials();
@@ -229,8 +229,8 @@ namespace CarboLifeUI.UI
             {
                 try
                 {
-                    MessageBoxResult result = System.Windows.MessageBox.Show("Do you want to update the project materials  with the selected materials from the template?" + Environment.NewLine +
-                        "Materials with excact same name will be overwritten, others will be added to the project", "Warning", MessageBoxButton.YesNo);
+                    MessageBoxResult result = System.Windows.MessageBox.Show("Do you want to update the project materials with the selected materials from the template?" + Environment.NewLine +
+                        "Materials with exact same name will be overwritten, others will be added to the project", "Warning", MessageBoxButton.YesNo);
 
                     if (result == MessageBoxResult.Yes)
                     {
@@ -252,7 +252,7 @@ namespace CarboLifeUI.UI
             }
             else
             {
-                MessageBoxResult result = System.Windows.MessageBox.Show("Please select a material to syncronise", "Computer says no", MessageBoxButton.YesNo);
+                MessageBoxResult result = System.Windows.MessageBox.Show("Please select a material to synchronise", "Computer says no", MessageBoxButton.YesNo);
             }
 
             refreshTemplateMaterials();
@@ -316,7 +316,7 @@ namespace CarboLifeUI.UI
             }
             else
             {
-                System.Windows.MessageBox.Show(0 + "elements deleted.", "Not a success", MessageBoxButton.OK);
+                System.Windows.MessageBox.Show(0 + " elements deleted.", "Not a success", MessageBoxButton.OK);
             }
 
             refreshTemplateMaterials();

@@ -132,7 +132,7 @@
                             <TextBox Name="txt_Name" Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2"
                                      Height="26" Margin="2,2,2,4"
                                      Style="{StaticResource flatTextBox}"
-                                     TextChanged="txt_Name_TextChanged"/>
+                                     LostFocus="txt_Name_TextChanged"/>
 
                             <!-- Description -->
                             <Label Grid.Row="1" Grid.Column="0" Content="Description:"
@@ -171,7 +171,7 @@
                                        Padding="4,0,0,0"/>
                                 <TextBox Name="txt_Density" Height="26"
                                          Style="{StaticResource flatTextBox}"
-                                         TextChanged="txt_Density_TextChanged"/>
+                                         LostFocus="txt_Density_TextChanged"/>
                             </DockPanel>
 
                             <!-- EPD Link -->
@@ -180,7 +180,7 @@
                             <TextBox Name="txt_EPDLink" Grid.Row="4" Grid.Column="1"
                                      Height="26" Margin="2,2,2,4" VerticalAlignment="Center"
                                      Style="{StaticResource flatTextBox}"
-                                     TextChanged="txt_EPDLink_TextChanged"/>
+                                     LostFocus="txt_EPDLink_TextChanged"/>
                             <Button Name="btn_OpenLink" Grid.Row="4" Grid.Column="2"
                                     Content="Open..." Width="52" Height="26" Margin="2,2,0,4"
                                     VerticalAlignment="Center"
@@ -199,14 +199,14 @@
                                 </Grid.ColumnDefinitions>
                                 <TextBox Name="txt_Waste" Grid.Column="0" Height="26"
                                          Style="{StaticResource flatTextBox}"
-                                         TextChanged="txt_Waste_TextChanged"/>
+                                         LostFocus="txt_Waste_TextChanged"/>
                                 <Label Grid.Column="1" Content="%" VerticalAlignment="Center"
                                        Style="{StaticResource formTextStyle}" Padding="4,0,0,0"/>
                                 <Label Grid.Column="2" Content="Grade:" VerticalAlignment="Center"
                                        Style="{StaticResource formTextStyle}" Padding="0"/>
                                 <TextBox Name="txt_Grade" Grid.Column="3" Height="26"
                                          Style="{StaticResource flatTextBox}"
-                                         TextChanged="txt_Grade_TextChanged"/>
+                                         LostFocus="txt_Grade_TextChanged"/>
                             </Grid>
                         </Grid>
                     </GroupBox>
@@ -252,7 +252,7 @@
                                      Margin="2,3" IsReadOnly="True" Style="{StaticResource flatTextBox}"/>
                             <TextBox Name="txt_A1_A3" Grid.Row="1" Grid.Column="2"
                                      Margin="2,3" Style="{StaticResource flatTextBox}"
-                                     TextChanged="txt_A1_A3_TextChanged"/>
+                                     LostFocus="txt_A1_A3_TextChanged"/>
                             <CheckBox Name="chx_A1_A3_Manual" Grid.Row="1" Grid.Column="3"
                                       VerticalAlignment="Center" HorizontalAlignment="Center"
                                       Click="chx_A1_A3_Manual_Click"/>
@@ -267,7 +267,7 @@
                                      Margin="2,3" IsReadOnly="True" Style="{StaticResource flatTextBox}"/>
                             <TextBox Name="txt_A4" Grid.Row="2" Grid.Column="2"
                                      Margin="2,3" Style="{StaticResource flatTextBox}"
-                                     TextChanged="txt_A4_TextChanged"/>
+                                     LostFocus="txt_A4_TextChanged"/>
                             <CheckBox Name="chx_A4_Manual" Grid.Row="2" Grid.Column="3"
                                       VerticalAlignment="Center" HorizontalAlignment="Center"
                                       Click="chx_A4_Manual_Click"/>
@@ -282,7 +282,7 @@
                                      Margin="2,3" IsReadOnly="True" Style="{StaticResource flatTextBox}"/>
                             <TextBox Name="txt_A5" Grid.Row="3" Grid.Column="2"
                                      Margin="2,3" Style="{StaticResource flatTextBox}"
-                                     TextChanged="txt_A5_TextChanged"/>
+                                     LostFocus="txt_A5_TextChanged"/>
                             <CheckBox Name="chx_A5_Manual" Grid.Row="3" Grid.Column="3"
                                       VerticalAlignment="Center" HorizontalAlignment="Center"
                                       Click="chx_A5_Manual_Click"/>
@@ -297,7 +297,7 @@
                                      Margin="2,3" IsReadOnly="True" Style="{StaticResource flatTextBox}"/>
                             <TextBox Name="txt_B1_B5" Grid.Row="4" Grid.Column="2"
                                      Margin="2,3" Style="{StaticResource flatTextBox}"
-                                     TextChanged="txt_B1_B5_TextChanged"/>
+                                     LostFocus="txt_B1_B5_TextChanged"/>
                             <Button Name="btn_B1_B5" Grid.Row="4" Grid.Column="4"
                                     Content="?" Margin="2,3" Style="{StaticResource ButtonStyle}"
                                     Click="Btn_B1_B5_Click"/>
@@ -309,7 +309,7 @@
                                      Margin="2,3" IsReadOnly="True" Style="{StaticResource flatTextBox}"/>
                             <TextBox Name="txt_C1_C4" Grid.Row="5" Grid.Column="2"
                                      Margin="2,3" Style="{StaticResource flatTextBox}"
-                                     TextChanged="txt_C1_C4_TextChanged"/>
+                                     LostFocus="txt_C1_C4_TextChanged"/>
                             <CheckBox Name="chx_C1_C4_Manual" Grid.Row="5" Grid.Column="3"
                                       VerticalAlignment="Center" HorizontalAlignment="Center"
                                       Click="chx_C1_C4_Manual_Click"/>
@@ -324,7 +324,7 @@
                                      Margin="2,3" IsReadOnly="True" Style="{StaticResource flatTextBox}"/>
                             <TextBox Name="txt_D" Grid.Row="6" Grid.Column="2"
                                      Margin="2,3" Style="{StaticResource flatTextBox}"
-                                     TextChanged="txt_D_TextChanged"
+                                     LostFocus="txt_D_TextChanged"
                                      Text="{Binding Text, Delay=1000}"/>
                             <CheckBox Name="chx_D_Manual" Grid.Row="6" Grid.Column="3"
                                       VerticalAlignment="Center" HorizontalAlignment="Center"
@@ -340,7 +340,7 @@
                                      Margin="2,3" Style="{StaticResource flatTextBox}"/>
                             <TextBox Name="txt_Seq" Grid.Row="7" Grid.Column="2"
                                      Margin="2,3" Style="{StaticResource flatTextBox}"
-                                     TextChanged="txt_Seq_TextChanged"
+                                     LostFocus="txt_Seq_TextChanged"
                                      Text="{Binding Text, Delay=1000}"/>
                             <CheckBox Name="chx_Seq_Manual" Grid.Row="7" Grid.Column="3"
                                       VerticalAlignment="Center" HorizontalAlignment="Center"
@@ -355,10 +355,10 @@
                                    MouseDown="Label_MouseDown"/>
                             <TextBox Name="txt_Mix_Setting" Grid.Row="8" Grid.Column="1"
                                      Margin="2,3" Style="{StaticResource flatTextBox}"
-                                     TextChanged="txt_Mix_Setting_TextChanged"/>
+                                     LostFocus="txt_Mix_Setting_TextChanged"/>
                             <TextBox Name="txt_Mix" Grid.Row="8" Grid.Column="2"
                                      Margin="2,3" Style="{StaticResource flatTextBox}"
-                                     TextChanged="txt_Mix_TextChanged"
+                                     LostFocus="txt_Mix_TextChanged"
                                      Text="{Binding Text, Delay=1000}"/>
                             <Button Name="btn_Mix" Grid.Row="8" Grid.Column="4"
                                     Content="Edit..." Margin="2,3" Style="{StaticResource ButtonStyle}"

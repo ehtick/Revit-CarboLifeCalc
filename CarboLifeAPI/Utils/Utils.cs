@@ -170,31 +170,111 @@ namespace CarboLifeAPI
             return table;
         }
 
+        /// <summary>
+        /// Reads a number the user typed, and says whether it could be read at all.
+        ///
+        /// Prefer this over ConvertMeToDouble wherever the difference between "the user cleared
+        /// the box" and "the user typed zero" matters, which is most places: a cleared area or
+        /// factor should keep its previous value, not silently become 0.
+        ///
+        /// The old implementation replaced every comma with a dot and then parsed as invariant,
+        /// so an en-GB user typing "1,234" got 1.234 - out by a factor of a thousand, with no
+        /// warning. The user's own culture is tried first, then invariant for pasted or stored
+        /// values, and only a single lone comma is treated as a decimal point.
+        /// </summary>
+        /// <returns>True when the text held a usable number.</returns>
+        public static bool TryConvertToDouble(string value, out double result)
+        {
+            result = 0;
+
+            if (string.IsNullOrWhiteSpace(value))
+                return false;
+
+            string text = value.Trim();
+
+            //A single separator has to be resolved BEFORE handing the text to a culture, because
+            //.NET is lenient about group sizes: on en-GB "3,4" parses happily as 34, and on de-DE
+            //"3.4" parses as 34, either of which is a silent factor of ten.
+            //
+            //A real thousands group always has exactly three digits after it. One separator with
+            //anything other than three digits behind it therefore cannot be a group separator, so
+            //it is a decimal point whatever the local convention says. Exactly three digits
+            //("1,234") is genuinely ambiguous - 1234 in Britain, 1.234 in Germany - and there the
+            //user's own culture is the best answer available.
+            char decimalPoint;
+
+            if (LooksLikeLoneDecimalSeparator(text, out decimalPoint))
+            {
+                string normalised = text.Replace(decimalPoint, '.');
+
+                //Float, not Any: no thousands separators are permitted in this reading.
+                if (double.TryParse(normalised, NumberStyles.Float, CultureInfo.InvariantCulture, out result))
+                    return true;
+            }
+
+            //What the user's keyboard and locale produce.
+            if (double.TryParse(text, NumberStyles.Any, CultureInfo.CurrentCulture, out result))
+                return true;
+
+            //Values that came from a file, a paste or an invariant ToString.
+            if (double.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out result))
+                return true;
+
+            result = 0;
+            return false;
+        }
+
+        /// <summary>
+        /// True when the text holds exactly one '.' or ',' that cannot be a thousands separator,
+        /// and is therefore the decimal point regardless of culture. See TryConvertToDouble.
+        /// </summary>
+        private static bool LooksLikeLoneDecimalSeparator(string text, out char separator)
+        {
+            separator = '.';
+
+            int dots = 0;
+            int commas = 0;
+
+            for (int i = 0; i < text.Length; i++)
+            {
+                if (text[i] == '.') dots++;
+                else if (text[i] == ',') commas++;
+            }
+
+            //Both present, or more than one of either: leave it to the cultures.
+            if (dots + commas != 1)
+                return false;
+
+            separator = dots == 1 ? '.' : ',';
+
+            int at = text.IndexOf(separator);
+
+            //Count the digits after it; anything non-digit and this is not a plain number anyway.
+            int digitsAfter = 0;
+
+            for (int i = at + 1; i < text.Length; i++)
+            {
+                if (char.IsDigit(text[i]) == false)
+                    return false;
+
+                digitsAfter++;
+            }
+
+            //Exactly three digits is a legitimate thousands group, so it stays ambiguous.
+            return digitsAfter != 3;
+        }
+
+        /// <summary>
+        /// Reads a number the user typed, returning 0 when it cannot be read.
+        ///
+        /// Kept because around 200 call sites use it. It cannot tell a failure from a real zero,
+        /// so anywhere that distinction matters should call TryConvertToDouble instead.
+        /// </summary>
         public static double ConvertMeToDouble(string value)
         {
-            double result = 0;
-
-            try
-            {
-                if (string.IsNullOrWhiteSpace(value))
-                    return 0;
-
-                // Convert comma decimal → dot decimal
-                value = value.Replace(',', '.');
-
-                //result = Convert.ToDouble(value);
-                bool ok = double.TryParse(
-                    value,NumberStyles.Any,CultureInfo.InvariantCulture,
-                    out result
-                );
-            }
-            catch
-            {
-                result = 0;
-                return result;
-            }
+            double result;
+            TryConvertToDouble(value, out result);
             return result;
-
         }
 
 
@@ -725,7 +805,7 @@ namespace CarboLifeAPI
             }
             catch
             {
-                MessageBox.Show("There was an error in in opening the file, it could not be found, or is of the wrong format", "Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("There was an error opening the file, it could not be found, or is of the wrong format", "Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return "";
             }
 
@@ -765,7 +845,7 @@ namespace CarboLifeAPI
             }
             catch
             {
-                MessageBox.Show("There was an error in in opening the file, it could not be found, or is of the wrong format", "Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("There was an error opening the file, it could not be found, or is of the wrong format", "Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return "";
             }
 
@@ -805,7 +885,7 @@ namespace CarboLifeAPI
             }
             catch
             {
-                MessageBox.Show("There was an error in in opening the file, it could not be found, or is of the wrong format", "Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("There was an error opening the file, it could not be found, or is of the wrong format", "Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return "";
             }
 

@@ -1302,7 +1302,7 @@ namespace CarboLifeAPI.Data
             double perAreaEmb = totalsEmb / Area;
             double area = Math.Round(Area,0);
 
-            generalText += "The calulated values are based on a uncertainty factor of: " + Math.Round((UncertFact * 100), 0).ToString("N") + " %" + Environment.NewLine;
+            generalText += "The calculated values are based on an uncertainty factor of: " + Math.Round((UncertFact * 100), 0).ToString("N") + " %" + Environment.NewLine;
             generalText += "and a GIA of: " + Math.Round((area), 0).ToString("N") + " m2." + Environment.NewLine;
 
             generalText += Environment.NewLine;

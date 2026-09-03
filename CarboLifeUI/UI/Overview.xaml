@@ -174,10 +174,10 @@
             <ComboBox Name="cbb_BuildingType" Grid.Row="1" Margin="100,2,250,0" Height="25" Width="170" HorizontalAlignment="Left" VerticalAlignment="Top" Style="{StaticResource ComboBoxFlatStyle}" DropDownClosed="cbb_BuildingType_DropDownClosed"/>
 
             <RadioButton Name="rad_AreaTotal" Margin="290,4,0,0" Grid.Row="1" Height="28" Width="80" HorizontalAlignment="Left" VerticalAlignment="Top" Checked="rad_AreaNew_Checked" Unchecked="rad_AreaNew_Checked" IsChecked="True">Total GIA:</RadioButton>
-            <TextBox Name="txt_Area" Grid.Row="1" Margin="380,00,0,0" Height="28" Width="100" HorizontalAlignment="Left" VerticalAlignment="Top"   Style="{StaticResource flatTextBox}" TextChanged="txt_Area_TextChanged" />
+            <TextBox Name="txt_Area" Grid.Row="1" Margin="380,00,0,0" Height="28" Width="100" HorizontalAlignment="Left" VerticalAlignment="Top"   Style="{StaticResource flatTextBox}" LostFocus="txt_Area_TextChanged" />
 
             <RadioButton Name="rad_AreaNew" Margin="290,34,0,0" Grid.Row="1" Height="28" Width="80" HorizontalAlignment="Left" VerticalAlignment="Top" Checked="rad_AreaNew_Checked" Unchecked="rad_AreaNew_Checked">New GIA:</RadioButton>
-            <TextBox Name="txt_AreaNew" Grid.Row="1" Margin="380,30,0,0" Height="28" Width="100" HorizontalAlignment="Left" VerticalAlignment="Top"   Style="{StaticResource flatTextBox}" TextChanged="txt_AreaNew_TextChanged" />
+            <TextBox Name="txt_AreaNew" Grid.Row="1" Margin="380,30,0,0" Height="28" Width="100" HorizontalAlignment="Left" VerticalAlignment="Top"   Style="{StaticResource flatTextBox}" LostFocus="txt_AreaNew_TextChanged" />
 
             <Label Margin="480,0,0,0" Grid.Row="1" Height="28" Width="30" VerticalAlignment="Top" HorizontalAlignment="Left" Style="{StaticResource formTextStyle}">m²</Label>
             <Label Margin="480,30,0,0" Grid.Row="1" Height="28" Width="30" VerticalAlignment="Top" HorizontalAlignment="Left" Style="{StaticResource formTextStyle}">m²</Label>

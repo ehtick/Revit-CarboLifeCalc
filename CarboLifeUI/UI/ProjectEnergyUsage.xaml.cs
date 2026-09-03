@@ -39,6 +39,8 @@ namespace CarboLifeUI.UI
             this.designPeriod = _designPeriod;
 
             InitializeComponent();
+            //Enter commits the field under the caret, the same way leaving the box does.
+            CarboUiCommit.WireEnterCommits(this);
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
@@ -125,13 +127,9 @@ namespace CarboLifeUI.UI
             CarboInfoBox cib = new CarboInfoBox(title, content);
             cib.ShowDialog();
         }
-        private async void txt_Electricty_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_Electricty_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(250);
-            if (startLength == tb.Text.Length)
             {
                 projectEnergyProperties.ElectricityUsedPerYear = Utils.ConvertMeToDouble(tb.Text);
             }
@@ -139,13 +137,9 @@ namespace CarboLifeUI.UI
 
         }
 
-        private async void txt_ElectrictyCost_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_ElectrictyCost_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(250);
-            if (startLength == tb.Text.Length)
             {
                 projectEnergyProperties.CO2CostPerkWh = Utils.ConvertMeToDouble(tb.Text);
             }
@@ -153,13 +147,9 @@ namespace CarboLifeUI.UI
 
         }
 
-        private async void txt_Water_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_Water_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(250);
-            if (startLength == tb.Text.Length)
             {
                 projectEnergyProperties.WaterUsedPerYear = Utils.ConvertMeToDouble(tb.Text);
             }
@@ -167,13 +157,9 @@ namespace CarboLifeUI.UI
 
         }
 
-        private async void txt_WaterCost_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_WaterCost_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(250);
-            if (startLength == tb.Text.Length)
             {
                 projectEnergyProperties.CO2CostPerm3 = Utils.ConvertMeToDouble(tb.Text);
             }
@@ -181,13 +167,9 @@ namespace CarboLifeUI.UI
 
         }
 
-        private async void txt_EnergyGeneration_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_EnergyGeneration_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(250);
-            if (startLength == tb.Text.Length)
             {
                 projectEnergyProperties.ElectricitygeneratedPerYear = Utils.ConvertMeToDouble(tb.Text);
             }
@@ -195,13 +177,9 @@ namespace CarboLifeUI.UI
 
         }
 
-        private async void txt_decarbofact_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_decarbofact_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(250);
-            if (startLength == tb.Text.Length)
             {
                 projectEnergyProperties.decabornisationFactor = Utils.ConvertMeToDouble(tb.Text);
             }
@@ -209,13 +187,9 @@ namespace CarboLifeUI.UI
 
         }
 
-        private async void txt_Description_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_Description_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(250);
-            if (startLength == tb.Text.Length)
             {
                 projectEnergyProperties.comment = tb.Text;
             }

@@ -66,7 +66,7 @@ namespace CarboLifeRevit
             pB_ShowCarboCalc.LargeImage = limg_pB_ShowCarboCalc2;
             pB_ShowCarboCalc.Image = smllimg_ShowCarboCalc2;
             pB_ShowCarboCalc.SetContextualHelp(contextualHelp);
-            pB_ShowCarboCalc.ToolTip = "Vizualise your project in Revit";
+            pB_ShowCarboCalc.ToolTip = "Visualise your project in Revit";
 
             
             FormStatusChecker.isWindowOpen = false;

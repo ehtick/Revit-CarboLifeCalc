@@ -42,6 +42,8 @@ namespace CarboLifeUI.UI
             noUpdates = true;
 
             InitializeComponent();
+            //Enter commits the field under the caret, the same way leaving the box does.
+            CarboUiCommit.WireEnterCommits(this);
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
@@ -224,50 +226,34 @@ namespace CarboLifeUI.UI
             infoBox.Show();
         }
 
-        private async void txt_C1Thickness_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_C1Thickness_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(500);
-            if (startLength == tb.Text.Length)
             {
                 eolProperties.c1density = Utils.ConvertMeToDouble(tb.Text);
                 Refresh();
             }
         }
 
-        private async void txt_C1BaseValue_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_C1BaseValue_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(500);
-            if (startLength == tb.Text.Length)
             {
                 eolProperties.c1BaseValue = Utils.ConvertMeToDouble(tb.Text);
                 Refresh();
             }
         }
 
-        private async void txt_C1Value_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_C1Value_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(500);
-            if (startLength == tb.Text.Length)
             {
             }
         }
 
-        private async void txt_C2Value_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_C2Value_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(500);
-            if (startLength == tb.Text.Length)
             {
                 if (noUpdates == false)
                 {
@@ -279,26 +265,20 @@ namespace CarboLifeUI.UI
             }
         }
 
-        private async void txt_C3Value_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_C3Value_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(500);
-            if (startLength == tb.Text.Length && noUpdates == false)
+            if (noUpdates == false)
             {
                 eolProperties.c3Value = Utils.ConvertMeToDouble(tb.Text);
                 Refresh();
             }
         }
 
-        private async void txt_landfillP_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_landfillP_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(500);
-            if (startLength == tb.Text.Length && noUpdates == false)
+            if (noUpdates == false)
             {
                 double landfP = Utils.ConvertMeToDouble(tb.Text);
                 //Check Range:
@@ -314,13 +294,10 @@ namespace CarboLifeUI.UI
             }
         }
 
-        private async void txt_incineratedP_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_incineratedP_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(500);
-            if (startLength == tb.Text.Length && noUpdates == false)
+            if (noUpdates == false)
             {
                 double incP = Utils.ConvertMeToDouble(tb.Text);
                 //Check Range:
@@ -336,13 +313,10 @@ namespace CarboLifeUI.UI
             }
         }
 
-       private async void txt_reusedP_TextChanged(object sender, TextChangedEventArgs e)
+       private void txt_reusedP_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(500);
-            if (startLength == tb.Text.Length && noUpdates == false)
+            if (noUpdates == false)
             {
                 double reusep = Utils.ConvertMeToDouble(tb.Text);
                 //Check Range:
@@ -358,13 +332,10 @@ namespace CarboLifeUI.UI
             }
         }
 
-        private async void txt_landfillValue_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_landfillValue_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(500);
-            if (startLength == tb.Text.Length && noUpdates == false)
+            if (noUpdates == false)
             {
                 double p = Utils.ConvertMeToDouble(tb.Text);
                 eolProperties.c4landfV = p;
@@ -372,13 +343,10 @@ namespace CarboLifeUI.UI
             }
         }
 
-        private async void txt_incineratedValue_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_incineratedValue_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(500);
-            if (startLength == tb.Text.Length && noUpdates == false)
+            if (noUpdates == false)
             {
                 double p = Utils.ConvertMeToDouble(tb.Text);
                 eolProperties.c4incfV = p;
@@ -386,13 +354,10 @@ namespace CarboLifeUI.UI
             }
         }
 
-        private async void txt_reusedValue_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_reusedValue_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(500);
-            if (startLength == tb.Text.Length && noUpdates == false)
+            if (noUpdates == false)
             {
                 double p = Utils.ConvertMeToDouble(tb.Text);
                 eolProperties.c4reUseV = p;
@@ -400,13 +365,10 @@ namespace CarboLifeUI.UI
             }
         }
 
-        private async void txt_additional_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_additional_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(500);
-            if (startLength == tb.Text.Length && noUpdates == false)
+            if (noUpdates == false)
             {
                 double p = Utils.ConvertMeToDouble(tb.Text);
                 eolProperties.other = p;

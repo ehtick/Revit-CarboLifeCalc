@@ -276,7 +276,7 @@ namespace CarboLifeUI.UI
             try
             {
                 MessageBoxResult result = MessageBox.Show("Do you want to update the PROJECT MATERIALS based on the DEFAULT USER MATERIALS?" + Environment.NewLine +
-                    "Materials with IDENTICAL names will be OVERWRITTEN, NON-EXISTING  materials will be ADDED", "Warning", MessageBoxButton.YesNo);
+                    "Materials with IDENTICAL names will be OVERWRITTEN, NON-EXISTING materials will be ADDED", "Warning", MessageBoxButton.YesNo);
 
                 if (result == MessageBoxResult.Yes)
                 {
@@ -314,8 +314,8 @@ namespace CarboLifeUI.UI
         {
             try
             {
-                MessageBoxResult result = MessageBox.Show("Do you want to update the DEFAULT USER MATERIALS based on these PROJECT settings ?" + Environment.NewLine +
-                    "Materials with IDENTICAL names will be OVERWRITTEN, NON-EXISTING  materials will be ADDED", "Warning", MessageBoxButton.YesNo);
+                MessageBoxResult result = MessageBox.Show("Do you want to update the DEFAULT USER MATERIALS based on these PROJECT settings?" + Environment.NewLine +
+                    "Materials with IDENTICAL names will be OVERWRITTEN, NON-EXISTING materials will be ADDED", "Warning", MessageBoxButton.YesNo);
 
                 if (result == MessageBoxResult.Yes)
                 {
@@ -423,8 +423,8 @@ namespace CarboLifeUI.UI
             string name = "";
             try
             {
-                MessageBoxResult result = MessageBox.Show("Do you want to update the material template with the current project materials ?" + Environment.NewLine +
-                    "Materials with excact same names will be overwritten with new values", "Warning", MessageBoxButton.YesNo);
+                MessageBoxResult result = MessageBox.Show("Do you want to update the material template with the current project materials?" + Environment.NewLine +
+                    "Materials with exact same names will be overwritten with new values", "Warning", MessageBoxButton.YesNo);
 
                 if (result == MessageBoxResult.Yes)
                 {
@@ -463,7 +463,7 @@ namespace CarboLifeUI.UI
             string name = "";
             try
             {
-                MessageBoxResult mresult = MessageBox.Show("Do you want to save the current Project Materials in a seperate file for sharing or use in anoter project ?", "Warning", MessageBoxButton.YesNo);
+                MessageBoxResult mresult = MessageBox.Show("Do you want to save the current Project Materials in a separate file for sharing or use in another project?", "Warning", MessageBoxButton.YesNo);
 
                 if (mresult == MessageBoxResult.Yes)
                 {

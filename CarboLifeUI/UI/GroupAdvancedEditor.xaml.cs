@@ -39,6 +39,8 @@ namespace CarboLifeUI.UI
             this.database = dataBase; 
 
             InitializeComponent();
+            //Enter commits the field under the caret, the same way leaving the box does.
+            CarboUiCommit.WireEnterCommits(this);
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
@@ -150,26 +152,18 @@ namespace CarboLifeUI.UI
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        private async void txt_Formula_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_Formula_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(500);
-            if (startLength == tb.Text.Length)
             {
                 group.Correction = tb.Text;
                 UpdateValue();
 
             }
         }
-        private async void txt_FormulaDescription_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_FormulaDescription_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(500);
-            if (startLength == tb.Text.Length)
             {
                 group.CorrectionDescription = tb.Text;
                 UpdateValue();
@@ -205,13 +199,9 @@ namespace CarboLifeUI.UI
             UpdateValue();
         }
 
-        private async void txt_WasteFactor_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_WasteFactor_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(500);
-            if (startLength == tb.Text.Length)
             {
                 group.Waste = Utils.ConvertMeToDouble(tb.Text);
                 UpdateValue();
@@ -223,14 +213,10 @@ namespace CarboLifeUI.UI
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        private async void txt_B4Factor_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_B4Factor_TextChanged(object sender, RoutedEventArgs e)
         {
             /*
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(500);
-            if (startLength == tb.Text.Length)
             {
                 group.B4Factor = Utils.ConvertMeToDouble(tb.Text);
                 UpdateValue();
@@ -239,14 +225,10 @@ namespace CarboLifeUI.UI
             */
         }
 
-        private async void txt_AssetReferencePeriod_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_AssetReferencePeriod_TextChanged(object sender, RoutedEventArgs e)
         {
             /*
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(500);
-            if (startLength == tb.Text.Length)
             {
                 group.AssetLifePeriod = Utils.ConvertMeToDouble(tb.Text);
                 UpdateValue();
@@ -254,14 +236,10 @@ namespace CarboLifeUI.UI
             */
         }
 
-        private async void txt_ComponentLifespan_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_ComponentLifespan_TextChanged(object sender, RoutedEventArgs e)
         {
             /*
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(500);
-            if (startLength == tb.Text.Length)
             {
                 group.ComponentLifePeriod = Utils.ConvertMeToDouble(tb.Text);
                 UpdateValue();
@@ -274,13 +252,9 @@ namespace CarboLifeUI.UI
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        private async void txt_AdditionalValue_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_AdditionalValue_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(500);
-            if (startLength == tb.Text.Length)
             {
                 group.Additional = Utils.ConvertMeToDouble(tb.Text);
                 UpdateValue();
@@ -288,13 +262,9 @@ namespace CarboLifeUI.UI
             }
         }
 
-        private async void txt_AdditionalDescription_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_AdditionalDescription_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(500);
-            if (startLength == tb.Text.Length)
             {
                 group.AdditionalDescription = tb.Text;
             }

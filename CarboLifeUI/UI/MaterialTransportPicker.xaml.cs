@@ -41,11 +41,13 @@ namespace CarboLifeUI.UI
             this.a4Properties = c2Properties;
             if (c2Properties.materialDensity != materialToBeTransported.Density)
             {
-                MessageBoxResult dialogResult = MessageBox.Show("The transportation density does not match the meterial density, would you like to use: " + materialToBeTransported.Density + " kg/m³ as  a transportation density value?", "Warning", MessageBoxButton.YesNo);
+                MessageBoxResult dialogResult = MessageBox.Show("The transportation density does not match the material density, would you like to use: " + materialToBeTransported.Density + " kg/m³ as a transportation density value?", "Warning", MessageBoxButton.YesNo);
                 if(dialogResult == MessageBoxResult.Yes)
                     this.a4Properties.materialDensity = materialToBeTransported.Density;
             }
             InitializeComponent();
+            //Enter commits the field under the caret, the same way leaving the box does.
+            CarboUiCommit.WireEnterCommits(this);
 
         }
 
@@ -282,13 +284,9 @@ namespace CarboLifeUI.UI
             }
         }
 
-        private async void txt_DistanceToSite_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_DistanceToSite_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(500);
-            if (startLength == tb.Text.Length)
             {
                 a4Properties.distanceToSite = Utils.ConvertMeToDouble(tb.Text);
                 a4Properties.calculate();
@@ -296,13 +294,9 @@ namespace CarboLifeUI.UI
             }
         }
 
-        private async void txt_Empty_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_Empty_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(500);
-            if (startLength == tb.Text.Length)
             {
                 a4Properties.emptyRun = Utils.ConvertMeToDouble(tb.Text);
                 a4Properties.calculate();
@@ -310,13 +304,9 @@ namespace CarboLifeUI.UI
             }
         }
 
-        private async void txt_Density_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_Density_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(500);
-            if (startLength == tb.Text.Length)
             {
                 a4Properties.materialDensity = Utils.ConvertMeToDouble(tb.Text);
                 a4Properties.calculate();
@@ -351,13 +341,9 @@ namespace CarboLifeUI.UI
             }
         }
 
-        private async void txt_MaxVolume_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_MaxVolume_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(500);
-            if (startLength == tb.Text.Length)
             {
                 a4Properties.vehicleSettings.maxVolume = Utils.ConvertMeToDouble(tb.Text);
                 a4Properties.calculate();
@@ -365,13 +351,9 @@ namespace CarboLifeUI.UI
             }
         }
 
-        private async void txt_UnitPerkm_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_UnitPerkm_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(500);
-            if (startLength == tb.Text.Length)
             {
                 a4Properties.vehicleSettings.kmPer = Utils.ConvertMeToDouble(tb.Text);
                 a4Properties.calculate();
@@ -379,13 +361,9 @@ namespace CarboLifeUI.UI
             }
         }
 
-        private async void txt_MaxDistance_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_MaxDistance_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(500);
-            if (startLength == tb.Text.Length)
             {
                 a4Properties.vehicleSettings.totalDistance = Utils.ConvertMeToDouble(tb.Text);
                 a4Properties.calculate();
@@ -393,13 +371,9 @@ namespace CarboLifeUI.UI
             }
         }
 
-        private async void txt_Construction_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_Construction_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(500);
-            if (startLength == tb.Text.Length)
             {
                 a4Properties.vehicleSettings.carboCostNew = Utils.ConvertMeToDouble(tb.Text);
                 a4Properties.calculate();
@@ -407,13 +381,9 @@ namespace CarboLifeUI.UI
             }
         }
 
-        private async void txt_FuelCO2_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_FuelCO2_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(500);
-            if (startLength == tb.Text.Length)
             {
                 a4Properties.vehicleFuel.emission = Utils.ConvertMeToDouble(tb.Text);
                 a4Properties.calculate();
@@ -421,13 +391,9 @@ namespace CarboLifeUI.UI
             }
         }
 
-        private async void txt_FuelProductionCO2_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_FuelProductionCO2_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(500);
-            if (startLength == tb.Text.Length)
             {
                 a4Properties.vehicleFuel.production = Utils.ConvertMeToDouble(tb.Text);
                 a4Properties.calculate();
@@ -435,13 +401,9 @@ namespace CarboLifeUI.UI
             }
         }
 
-        private async void txt_MaxLoad_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_MaxLoad_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(500);
-            if (startLength == tb.Text.Length)
             {
                 a4Properties.vehicleSettings.maxLoad = Utils.ConvertMeToDouble(tb.Text);
                 a4Properties.calculate();

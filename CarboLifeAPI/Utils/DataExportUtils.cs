@@ -1471,7 +1471,7 @@ private static void CreateProjectCombinedExportCSV(List<CarboProject> projectLis
 
            /* string fileString = "DO NOT REMOVE THIS LINE: " +
                             "edit the data below and use as import template, do not change column layout. " +
-                            "materials with identical ID's will be ovewritten. " +
+                            "materials with identical ID's will be overwritten. " +
                             "New Ids will be imported as a new material" + Environment.NewLine; */
 
             string fileString = "";
@@ -1736,7 +1736,7 @@ fileString =
 
                 if (File.Exists(targetPathFull))
                 {
-                    var result = MessageBox.Show("Exported Data Succesfully! Press ok to open the file.", "Success", MessageBoxButton.OKCancel);
+                    var result = MessageBox.Show("Exported Data Successfully! Press ok to open the file.", "Success", MessageBoxButton.OKCancel);
                     if (result == MessageBoxResult.OK)
                     {
                         var startInfo = new ProcessStartInfo
@@ -1830,7 +1830,7 @@ fileString =
 
                 if (File.Exists(targetPathFull))
                 {
-                    var result = MessageBox.Show("Exported Succesfully! Press ok to open the file.","Success",MessageBoxButton.OKCancel);
+                    var result = MessageBox.Show("Exported Successfully! Press ok to open the file.","Success",MessageBoxButton.OKCancel);
                     if(result == MessageBoxResult.OK)
                     {
                             var startInfo = new ProcessStartInfo

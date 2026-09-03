@@ -51,6 +51,8 @@ namespace CarboLifeUI.UI
             URL = "";
 
             InitializeComponent();
+            //Enter commits the field under the caret, the same way leaving the box does.
+            CarboUiCommit.WireEnterCommits(this);
         }
 
         public MaterialMyEPD(double density, string link)
@@ -62,6 +64,8 @@ namespace CarboLifeUI.UI
             URL = link;
 
             InitializeComponent();
+            //Enter commits the field under the caret, the same way leaving the box does.
+            CarboUiCommit.WireEnterCommits(this);
         }
 
         private void rad_m3_Checked(object sender, RoutedEventArgs e)
@@ -76,13 +80,9 @@ namespace CarboLifeUI.UI
             UpdateValue();
         }
 
-        private async void txt_Update_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_Update_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(250);
-            if (startLength == tb.Text.Length)
             {
                 UpdateValue();
             }
@@ -230,13 +230,9 @@ namespace CarboLifeUI.UI
             this.Close();
         }
 
-        private async void txt_m3A1_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_m3A1_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(250);
-            if (startLength == tb.Text.Length)
             {
                 UpdateValue();
             }

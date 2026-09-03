@@ -92,16 +92,12 @@ namespace CarboLifeUI.UI
             }
         }
 
-        private async void Txt_Search_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
+        /// <summary>A search box filters as you type, through a real debounce. See MaterialEditor.</summary>
+        private readonly UiDebouncer searchDebouncer = new UiDebouncer(250);
 
-            await Task.Delay(250);
-            if (startLength == tb.Text.Length)
-            {
-                loadPossibleElements();
-            }
+        private void Txt_Search_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            searchDebouncer.Poke(loadPossibleElements);
         }
 
         private void loadPossibleElements()

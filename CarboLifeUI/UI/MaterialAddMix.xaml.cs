@@ -143,21 +143,23 @@ namespace CarboLifeUI.UI
             this.Close();
         }
 
-        private async void Txt_Search_TextChanged(object sender, TextChangedEventArgs e)
+        /// <summary>
+        /// A search box filters as you type, through a real debounce. See MaterialEditor.
+        ///
+        /// The density box is saved and put back because refreshInterface rewrites it, which
+        /// would otherwise discard whatever the user had typed there.
+        /// </summary>
+        private readonly UiDebouncer searchDebouncer = new UiDebouncer(300);
+
+        private void Txt_Search_TextChanged(object sender, TextChangedEventArgs e)
         {
-            string text = txt_Density.Text;
+            string density = txt_Density.Text;
 
-            TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(500);
-            if (startLength == tb.Text.Length)
+            searchDebouncer.Poke(delegate ()
             {
-                txt_Density.Text= text;
+                txt_Density.Text = density;
                 refreshInterface();
-            }
-
-
+            });
         }
 
         private void Cbb_Categories_DropDownClosed(object sender, EventArgs e)

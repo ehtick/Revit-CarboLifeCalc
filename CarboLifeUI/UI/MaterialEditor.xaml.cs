@@ -51,6 +51,8 @@ namespace CarboLifeUI.UI
                 MessageBox.Show(ex.Message);
             }
             InitializeComponent();
+            //Enter commits the field under the caret, the same way leaving the box does.
+            CarboUiCommit.WireEnterCommits(this);
         }
 
         private void Btn_Accept_Click(object sender, RoutedEventArgs e)
@@ -765,28 +767,21 @@ namespace CarboLifeUI.UI
             }
         }
 
-        private async void txt_A1_A3_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_A1_A3_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int caretIndex = txt_A1_A3.CaretIndex;
-
-            await Task.Delay(1000);
             if (selectedMaterial.ECI_A1A3_Override == true)
             {
                 selectedMaterial.ECI_A1A3 = Utils.ConvertMeToDouble(txt_A1_A3.Text);
 
                 StoreGeneralProperties();
                 UpdateMaterialSettings();
-                txt_A1_A3.CaretIndex = txt_A1_A3.Text.Length;
             }
         }
 
-        private async void txt_A4_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_A4_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(1000);
             if (selectedMaterial.ECI_A4_Override == true)
             {
                 selectedMaterial.ECI_A4 = Utils.ConvertMeToDouble(txt_A4.Text);
@@ -796,13 +791,9 @@ namespace CarboLifeUI.UI
             }
         }
 
-        private async void txt_A5_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_A5_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(1000);
-
             if (selectedMaterial.ECI_A5_Override == true)
             {
                 selectedMaterial.ECI_A5 = Utils.ConvertMeToDouble(txt_A5.Text);
@@ -813,20 +804,15 @@ namespace CarboLifeUI.UI
 
         }
 
-        private async void txt_B1_B5_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_B1_B5_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(1000);
                     selectedMaterial.ECI_B1B5 = Utils.ConvertMeToDouble(txt_B1_B5.Text);
             StoreGeneralProperties();
             UpdateMaterialSettings();
         }
-        private async void txt_C1_C4_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            await Task.Delay(1000);
-            if (selectedMaterial.ECI_C1C4_Override == true)
+        private void txt_C1_C4_TextChanged(object sender, RoutedEventArgs e)
+        {            if (selectedMaterial.ECI_C1C4_Override == true)
             {
                 selectedMaterial.ECI_C1C4 = Utils.ConvertMeToDouble(txt_C1_C4.Text);
                 StoreGeneralProperties();
@@ -834,12 +820,9 @@ namespace CarboLifeUI.UI
             }
         }
 
-        private async void txt_D_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_D_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(1000);
                  if (selectedMaterial.ECI_D_Override == true)
                     {
                         selectedMaterial.ECI_D = Utils.ConvertMeToDouble(txt_D.Text);
@@ -848,28 +831,22 @@ namespace CarboLifeUI.UI
             }           
            }
 
-        private async void txt_Seq_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_Seq_TextChanged(object sender, RoutedEventArgs e)
         {
-            TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(1000);
-
-                if (selectedMaterial.ECI_Seq_Override == true)
-                {
-                    selectedMaterial.ECI_Seq = Utils.ConvertMeToDouble(txt_Seq.Text);
+            //This one was async void with nothing to await, so it ran on every keystroke and
+            //called UpdateMaterialSettings, which rewrites all the boxes from the model while
+            //the user is still typing in one of them.
+            if (selectedMaterial.ECI_Seq_Override == true)
+            {
+                selectedMaterial.ECI_Seq = Utils.ConvertMeToDouble(txt_Seq.Text);
                 StoreGeneralProperties();
                 UpdateMaterialSettings();
             }
-
         }
 
-        private async void txt_Mix_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_Mix_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(1000);
                 selectedMaterial.ECI_Mix = Utils.ConvertMeToDouble(txt_Mix.Text);
             StoreGeneralProperties();
             UpdateMaterialSettings();
@@ -891,16 +868,16 @@ namespace CarboLifeUI.UI
             }
         }
 
-        private async void Txt_Search_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
+        /// <summary>
+        /// The search box keeps filtering as you type - that is the point of a search box - but
+        /// through a real debounce. The old guard compared the text LENGTH before and after the
+        /// wait, so "abc" to "abd" looked unchanged and the filter ran for every keystroke anyway.
+        /// </summary>
+        private readonly UiDebouncer searchDebouncer = new UiDebouncer(300);
 
-            await Task.Delay(1000);
-            if (startLength == tb.Text.Length)
-            {
-                RefreshMaterialList();
-            }
+        private void Txt_Search_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            searchDebouncer.Poke(RefreshMaterialList);
         }
 
         private void btn_AddCategory_Click(object sender, RoutedEventArgs e)
@@ -923,7 +900,7 @@ namespace CarboLifeUI.UI
                     }
                     else
                     {
-                        MessageBox.Show("This category allready exists.", "Friendly Warning", MessageBoxButton.OK);
+                        MessageBox.Show("This category already exists.", "Friendly Warning", MessageBoxButton.OK);
                     }
                 }
                 else
@@ -1074,24 +1051,18 @@ namespace CarboLifeUI.UI
             infoBox.ShowDialog();
         }
 
-        private async void txt_Mix_Setting_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_Mix_Setting_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-
-            await Task.Delay(1000);
             selectedMaterial.ECI_Mix_Info = tb.Text;
 
             StoreGeneralProperties();
             StoreEmissionProperties();
         }
 
-        private async void txt_Waste_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_Waste_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(1000);
-            if (startLength == tb.Text.Length)
             {
                 double value = Utils.ConvertMeToDouble(tb.Text);
                 if (value < 0)
@@ -1113,10 +1084,8 @@ namespace CarboLifeUI.UI
             info.ShowDialog();
         }
 
-        private async void txt_Name_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            await Task.Delay(1000);
-            if (selectedMaterial != null)
+        private void txt_Name_TextChanged(object sender, RoutedEventArgs e)
+        {            if (selectedMaterial != null)
             {
                 selectedMaterial.Name = txt_Name.Text;
                 StoreGeneralProperties();
@@ -1130,20 +1099,16 @@ namespace CarboLifeUI.UI
             //RefreshMaterialList();
         }
 
-        private async void txt_Density_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            await Task.Delay(1000);
-            if (selectedMaterial != null)
+        private void txt_Density_TextChanged(object sender, RoutedEventArgs e)
+        {            if (selectedMaterial != null)
             {
                 selectedMaterial.Density = Utils.ConvertMeToDouble(txt_Density.Text);
                 StoreGeneralProperties();
             }
         }
 
-        private async void txt_EPDLink_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            await Task.Delay(1000);
-            if (selectedMaterial != null)
+        private void txt_EPDLink_TextChanged(object sender, RoutedEventArgs e)
+        {            if (selectedMaterial != null)
             {
                 selectedMaterial.EPDurl = txt_EPDLink.Text;
                 StoreGeneralProperties();
@@ -1193,10 +1158,8 @@ namespace CarboLifeUI.UI
 
         }
 
-        private async void txt_Grade_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            await Task.Delay(1000);
-            if (selectedMaterial != null)
+        private void txt_Grade_TextChanged(object sender, RoutedEventArgs e)
+        {            if (selectedMaterial != null)
             {
                 selectedMaterial.Grade = txt_Grade.Text;
 

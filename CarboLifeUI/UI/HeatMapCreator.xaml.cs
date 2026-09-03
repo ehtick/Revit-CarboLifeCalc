@@ -389,6 +389,71 @@ namespace CarboLifeUI.UI
         }
 
         /// <summary>
+        /// Commits a typed cutoff when the user presses Enter.
+        ///
+        /// These two boxes were IsEnabled="False" and only ever written to, so the numbers were
+        /// greyed out and could not even be selected to copy - yet a cutoff is exactly the value
+        /// someone wants to set precisely, which dragging a slider to 1.05 kgCO₂/kg cannot do.
+        /// Committing on Enter and on focus loss, rather than while typing, keeps a half typed
+        /// "1." from being read as 1 and redrawing the graph under the user.
+        /// </summary>
+        private void txt_Cutoff_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if (e.Key != System.Windows.Input.Key.Enter)
+                return;
+
+            e.Handled = true;
+            CommitTypedCutoffs();
+        }
+
+        private void txt_Cutoff_LostFocus(object sender, RoutedEventArgs e)
+        {
+            CommitTypedCutoffs();
+        }
+
+        /// <summary>
+        /// Reads both boxes and applies them. Anything unreadable puts the boxes back to the
+        /// cutoffs actually in force, so the user can see what the tool is using.
+        /// </summary>
+        private void CommitTypedCutoffs()
+        {
+            if (cutoffRange == null)
+                return;
+
+            double low, high;
+
+            if (TryReadCutoff(txt_CutoffMin, out low) == false || TryReadCutoff(txt_CutoffMax, out high) == false)
+            {
+                UpdateCutoffText();
+                return;
+            }
+
+            //Nothing typed that changes anything: leave the graph alone.
+            if (Math.Abs(low - cutoffMin) < double.Epsilon && Math.Abs(high - cutoffMax) < double.Epsilon)
+                return;
+
+            //SetCutoffs clamps to the data range, orders the pair and redraws.
+            SetCutoffs(low, high);
+        }
+
+        private static bool TryReadCutoff(System.Windows.Controls.TextBox box, out double value)
+        {
+            value = 0;
+
+            if (box == null)
+                return false;
+
+            string text = box.Text == null ? "" : box.Text.Trim();
+
+            //The boxes are written by HeatMapNiceRange.Format, which uses the current culture and
+            //puts thousands separators in, so read it back the same way.
+            return double.TryParse(text, System.Globalization.NumberStyles.Any,
+                                   System.Globalization.CultureInfo.CurrentCulture, out value)
+                || double.TryParse(text, System.Globalization.NumberStyles.Any,
+                                   System.Globalization.CultureInfo.InvariantCulture, out value);
+        }
+
+        /// <summary>
         /// Moves both cutoffs at once and redraws.
         /// </summary>
         private void SetCutoffs(double low, double high)

@@ -51,14 +51,14 @@
                            Style="{StaticResource formTextStyle}" Margin="0,4,8,0" VerticalAlignment="Center"/>
                     <TextBox Name="txt_ProjectName" Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="4"
                              Height="28" Margin="0,4,0,4" Style="{StaticResource flatTextBox}"
-                             TextChanged="txt_ProjectName_TextChanged"/>
+                             LostFocus="txt_ProjectName_TextChanged"/>
 
                     <!-- Project Number -->
                     <Label Grid.Row="1" Grid.Column="0" Content="Project Number:"
                            Style="{StaticResource formTextStyle}" Margin="0,4,8,0" VerticalAlignment="Center"/>
                     <TextBox Name="txt_Number" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="4"
                              Height="28" Margin="0,4,0,4" Style="{StaticResource flatTextBox}"
-                             TextChanged="txt_Number_TextChanged"/>
+                             LostFocus="txt_Number_TextChanged"/>
 
                     <!-- Project Category -->
                     <Label Grid.Row="2" Grid.Column="0" Content="Project Category:"
@@ -75,7 +75,7 @@
                              Height="64" Margin="0,4,4,4" Style="{StaticResource flatTextBox}"
                              VerticalContentAlignment="Top" AcceptsReturn="True"
                              HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
-                             TextChanged="txt_Desctiption_TextChanged"/>
+                             LostFocus="txt_Desctiption_TextChanged"/>
                     <Button Name="btn_EditDescription" Grid.Row="3" Grid.Column="4"
                             Content="Edit..." Width="52" Height="28" Margin="0,4,0,4"
                             VerticalAlignment="Top" Style="{StaticResource ButtonStyle}"
@@ -96,13 +96,13 @@
                         </Grid.ColumnDefinitions>
                         <TextBox Name="txt_Area" Grid.Column="0" Height="28"
                                  Style="{StaticResource flatTextBox}"
-                                 TextChanged="txt_Area_TextChanged"/>
+                                 LostFocus="txt_Area_TextChanged"/>
                         <Label Grid.Column="1" Content="m²" VerticalAlignment="Center"
                                Style="{StaticResource formTextStyle}" Padding="4,0,0,0"/>
                         <Label Grid.Column="2" Content="" Width="16"/>
                         <TextBox Name="txt_AreaNew" Grid.Column="3" Height="28"
                                  Style="{StaticResource flatTextBox}"
-                                 TextChanged="txt_AreaNew_TextChanged"/>
+                                 LostFocus="txt_AreaNew_TextChanged"/>
                         <Label Grid.Column="4" Content="m²" VerticalAlignment="Center"
                                Style="{StaticResource formTextStyle}" Padding="4,0,0,0"/>
                         <CheckBox Name="chx_IsTotalBuilding" Grid.Column="5" Grid.ColumnSpan="2"
@@ -132,7 +132,7 @@
                         </Grid.ColumnDefinitions>
                         <TextBox Name="txt_DesignLife" Grid.Column="0" Height="28"
                                  Style="{StaticResource flatTextBox}"
-                                 TextChanged="txt_DesignLife_TextChanged"/>
+                                 LostFocus="txt_DesignLife_TextChanged"/>
                         <Label Grid.Column="1" Content="Year" VerticalAlignment="Center"
                                Style="{StaticResource formTextStyle}" Padding="6,0,0,0"/>
                         <Label Grid.Column="2" VerticalAlignment="Center"
@@ -151,7 +151,7 @@
                         </Grid.ColumnDefinitions>
                         <TextBox Name="txt_SocialCost" Grid.Column="0" Height="28"
                                  Style="{StaticResource flatTextBox}"
-                                 TextChanged="txt_SocialCost_TextChanged"/>
+                                 LostFocus="txt_SocialCost_TextChanged"/>
                         <Label Grid.Column="1" Content="$/£/€ per tCO₂e" VerticalAlignment="Center"
                                Style="{StaticResource formTextStyle}" Padding="6,0,0,0"/>
                         <Label Grid.Column="2" VerticalAlignment="Center"
@@ -170,7 +170,7 @@
                         </Grid.ColumnDefinitions>
                         <TextBox Name="txt_Uncert" Grid.Column="0" Height="28"
                                  Style="{StaticResource flatTextBox}"
-                                 TextChanged="txt_Uncert_TextChanged"/>
+                                 LostFocus="txt_Uncert_TextChanged"/>
                         <Label Grid.Column="1" Content="%" VerticalAlignment="Center"
                                Style="{StaticResource formTextStyle}" Padding="4,0,0,0"/>
                         <Label Grid.Column="2" VerticalAlignment="Center"
@@ -213,7 +213,7 @@
                         </Grid.ColumnDefinitions>
                         <TextBox Name="txt_A0Value" Grid.Column="0" Height="28"
                                  Style="{StaticResource flatTextBox}"
-                                 TextChanged="txt_A0Value_TextChanged"/>
+                                 LostFocus="txt_A0Value_TextChanged"/>
                         <Label Grid.Column="1" Content="tCO₂e" VerticalAlignment="Center"
                                Style="{StaticResource formTextStyle}" Padding="6,0,0,0"/>
                     </Grid>
@@ -247,7 +247,7 @@
                                Padding="6,0,0,0" Visibility="Hidden"/>
                         <TextBox Name="txt_ValueA5Fact" Grid.Column="0" Height="28"
                                  Style="{StaticResource flatTextBox}"
-                                 TextChanged="txt_ValueA5Fact_TextChanged"/>
+                                 LostFocus="txt_ValueA5Fact_TextChanged"/>
                         <Label Name="lbl_Currencyunit" Grid.Column="1" Content="kgCO₂e/m²"
                                Style="{StaticResource formTextStyle}" VerticalAlignment="Center"
                                Padding="6,0,0,0"/>
@@ -329,7 +329,7 @@
                         </Grid.ColumnDefinitions>
                         <TextBox Name="txt_DemoArea" Grid.Column="0" Height="28"
                                  Style="{StaticResource flatTextBox}"
-                                 TextChanged="txt_DemoArea_TextChanged"/>
+                                 LostFocus="txt_DemoArea_TextChanged"/>
                         <Label Name="lbl_perM2" Grid.Column="1" Content="m²"
                                VerticalAlignment="Center" Style="{StaticResource formTextStyle}"
                                Padding="4,0,0,0"/>
@@ -337,7 +337,7 @@
                                HorizontalAlignment="Center" Style="{StaticResource formTextStyle}"/>
                         <TextBox Name="txt_DemoC1Fact" Grid.Column="3" Height="28"
                                  Style="{StaticResource flatTextBox}"
-                                 TextChanged="txt_DemoC1Fact_TextChanged"/>
+                                 LostFocus="txt_DemoC1Fact_TextChanged"/>
                         <Label Grid.Column="4" Content="kgCO₂/m²" VerticalAlignment="Center"
                                Style="{StaticResource formTextStyle}" Padding="6,0,0,0"/>
                     </Grid>

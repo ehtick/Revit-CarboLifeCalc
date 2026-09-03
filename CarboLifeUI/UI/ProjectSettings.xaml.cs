@@ -29,12 +29,16 @@ namespace CarboLifeUI.UI
         {
             AppDomain.CurrentDomain.AssemblyResolve += new ResolveEventHandler(CurrentDomain_AssemblyResolve);
             InitializeComponent();
+            //Enter commits the field under the caret, the same way leaving the box does.
+            CarboUiCommit.WireEnterCommits(this);
         }
 
         public ProjectSettings(CarboProject carboLifeProject)
         {
             AppDomain.CurrentDomain.AssemblyResolve += new ResolveEventHandler(CurrentDomain_AssemblyResolve);
             InitializeComponent();
+            //Enter commits the field under the caret, the same way leaving the box does.
+            CarboUiCommit.WireEnterCommits(this);
 
             CarboLifeProject = carboLifeProject;
 
@@ -212,53 +216,37 @@ namespace CarboLifeUI.UI
             CarboLifeProject.Category = cbb_BuildingType.Text;
         }
 
-        private async void txt_ProjectName_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_ProjectName_TextChanged(object sender, RoutedEventArgs e)
         {
 
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(250);
-            if (startLength == tb.Text.Length)
             {
                 CarboLifeProject.Name = tb.Text;
             }
         }
 
-        private async void txt_Number_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_Number_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(250);
-            if (startLength == tb.Text.Length)
             {
                 CarboLifeProject.Number = tb.Text;
             }
         }
 
-        private async void txt_Desctiption_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_Desctiption_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(250);
-            if (startLength == tb.Text.Length)
             {
                 CarboLifeProject.Description = tb.Text;
             }
         }
 
-        private async void txt_Area_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_Area_TextChanged(object sender, RoutedEventArgs e)
         {
             string text = txt_Area.Text;
             try
             {
                 TextBox tb = (TextBox)sender;
-                int startLength = tb.Text.Length;
-
-                await Task.Delay(1200);
-
                 double convertedText = Utils.ConvertMeToDouble(tb.Text);
                 if (convertedText != 0)
                 {
@@ -281,16 +269,12 @@ namespace CarboLifeUI.UI
             }
         }
 
-        private async void txt_AreaNew_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_AreaNew_TextChanged(object sender, RoutedEventArgs e)
         {
             string text = txt_AreaNew.Text;
             try
             {
                 TextBox tb = (TextBox)sender;
-                int startLength = tb.Text.Length;
-
-                await Task.Delay(1000);
-
                 double convertedText = Utils.ConvertMeToDouble(tb.Text);
                 if (convertedText != 0)
                 {
@@ -320,23 +304,17 @@ namespace CarboLifeUI.UI
                 RefreshInterFace();
             }
         }
-        private async void txt_DemoArea_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_DemoArea_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(1000);
             CarboLifeProject.demoArea = Utils.ConvertMeToDouble(tb.Text);
             RefreshInterFace();
 
         }
 
-        private async void txt_DemoC1Fact_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_DemoC1Fact_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(1000);
             CarboLifeProject.C1Factor = Utils.ConvertMeToDouble(tb.Text);
             RefreshInterFace();
 
@@ -353,22 +331,17 @@ namespace CarboLifeUI.UI
 
         }
         */
-        private async void txt_ValueA5Fact_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_ValueA5Fact_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(1000);
             CarboLifeProject.A5AreaFactor = Utils.ConvertMeToDouble(tb.Text);
             RefreshInterFace();
 
         }
 
-        private async void txt_SocialCost_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_SocialCost_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-
-            await Task.Delay(1000);
             CarboLifeProject.SocialCost = Utils.ConvertMeToDouble(tb.Text);
             RefreshInterFace();
 
@@ -381,16 +354,26 @@ namespace CarboLifeUI.UI
             RefreshInterFace();
         }
 
-        private async void txt_DesignLife_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_DesignLife_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
 
-            int designLifeNew = 50;
+            //Zero is not a design life. ConvertMeToDouble cannot tell an empty or unreadable box
+            //from a typed 0, and SetDesignLife(0) makes every B4 replacement count zero, so this
+            //one asks whether the value could be read at all and keeps the current figure if not.
+            double typed;
 
-            await Task.Delay(1000);
-            designLifeNew = Convert.ToInt32(Utils.ConvertMeToDouble(tb.Text));
-            CarboLifeProject.SetDesignLife(designLifeNew);
+            if (Utils.TryConvertToDouble(tb.Text, out typed) == false || typed < 1 || typed > 500)
+            {
+                MessageBox.Show("The design life must be a number of years between 1 and 500." +
+                                Environment.NewLine + "Keeping " + CarboLifeProject.designLife + " years.",
+                                "Design life", MessageBoxButton.OK, MessageBoxImage.Warning);
+
+                RefreshInterFace();
+                return;
+            }
+
+            CarboLifeProject.SetDesignLife(Convert.ToInt32(Math.Round(typed)));
             RefreshInterFace();
         }
 
@@ -414,20 +397,16 @@ namespace CarboLifeUI.UI
 
         }
 
-        private async void txt_A0Value_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_A0Value_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-
-            await Task.Delay(1000);
             CarboLifeProject.A0Global = Utils.ConvertMeToDouble(tb.Text) * 1000;
             RefreshInterFace();
         }
 
-        private async void txt_Uncert_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_Uncert_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-
-            await Task.Delay(1000);
             double fact = Utils.ConvertMeToDouble(tb.Text) / 100;
             CarboLifeProject.UncertFact = fact;
             RefreshInterFace();

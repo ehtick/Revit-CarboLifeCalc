@@ -40,6 +40,8 @@ namespace CarboLifeUI.UI
             formloaded = false;
 
             InitializeComponent();
+            //Enter commits the field under the caret, the same way leaving the box does.
+            CarboUiCommit.WireEnterCommits(this);
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
@@ -142,24 +144,17 @@ namespace CarboLifeUI.UI
 
         }
 
-        private async void Txt_Life_TextChanged(object sender, TextChangedEventArgs e)
+        private void Txt_Life_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(250);
-            if (startLength == tb.Text.Length)
             {
                 UpdateValue();
             }
         }
 
-        private async void Txt_Value2_TextChanged(object sender, TextChangedEventArgs e)
+        private void Txt_Value2_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-            await Task.Delay(250);
-            if (startLength == tb.Text.Length)
             {
                 UpdateValue();
             }
@@ -218,39 +213,27 @@ namespace CarboLifeUI.UI
             this.Close();
         }
 
-        private async void txt_B1Value_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_B1Value_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(250);
-            if (startLength == tb.Text.Length)
             {
                 inUseProperties.B1 = Utils.ConvertMeToDouble(tb.Text);
                 UpdateValue();
             }
         }
 
-        private async void txt_B2Value_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_B2Value_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(250);
-            if (startLength == tb.Text.Length)
             {
                 inUseProperties.B2 = Utils.ConvertMeToDouble(tb.Text);
                 UpdateValue();
             }
         }
 
-        private async void txt_B3Value_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_B3Value_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(250);
-            if (startLength == tb.Text.Length)
             {
                 inUseProperties.B3 = Utils.ConvertMeToDouble(tb.Text);
                 UpdateValue();
@@ -259,39 +242,27 @@ namespace CarboLifeUI.UI
 
 
 
-        private async void txt_B5Value_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_B5Value_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(250);
-            if (startLength == tb.Text.Length)
             {
                 inUseProperties.B5 = Utils.ConvertMeToDouble(tb.Text);
                 UpdateValue();
             }
         }
 
-        private async void txt_B6Value_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_B6Value_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(250);
-            if (startLength == tb.Text.Length)
             {
                 inUseProperties.B6 = Utils.ConvertMeToDouble(tb.Text);
                 UpdateValue();
             }
         }
 
-        private async void txt_B7Value_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_B7Value_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(250);
-            if (startLength == tb.Text.Length)
             {
                 inUseProperties.B7 = Utils.ConvertMeToDouble(tb.Text);
                 UpdateValue();
@@ -327,13 +298,9 @@ namespace CarboLifeUI.UI
             }
         }
 
-        private async void txt_ComponentLifespan_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_ComponentLifespan_TextChanged(object sender, RoutedEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            int startLength = tb.Text.Length;
-
-            await Task.Delay(250);
-            if (startLength == tb.Text.Length)
             {
                 inUseProperties.elementdesignlife = Utils.ConvertMeToDouble(tb.Text);
                 UpdateValue();

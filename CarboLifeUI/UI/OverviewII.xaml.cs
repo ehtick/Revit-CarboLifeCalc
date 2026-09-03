@@ -42,12 +42,16 @@ namespace CarboLifeUI.UI
         {
             AppDomain.CurrentDomain.AssemblyResolve += new ResolveEventHandler(CurrentDomain_AssemblyResolve);
             InitializeComponent();
+            //Enter commits the field under the caret, the same way leaving the box does.
+            CarboUiCommit.WireEnterCommits(this);
         }
 
         public OverviewII(CarboProject carboLifeProject)
         {
             AppDomain.CurrentDomain.AssemblyResolve += new ResolveEventHandler(CurrentDomain_AssemblyResolve);
             InitializeComponent();
+            //Enter commits the field under the caret, the same way leaving the box does.
+            CarboUiCommit.WireEnterCommits(this);
 
             CarboLifeProject = carboLifeProject;
         }
@@ -538,16 +542,12 @@ namespace CarboLifeUI.UI
             }
         }
 
-        private async void txt_Area_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_Area_TextChanged(object sender, RoutedEventArgs e)
         {
             string text = txt_Area.Text;
             try
             {
                 TextBox tb = (TextBox)sender;
-                int startLength = tb.Text.Length;
-
-                await Task.Delay(500);
-                if (startLength == tb.Text.Length)
                 {
                     double convertedText = Utils.ConvertMeToDouble(tb.Text);
                     if (convertedText != 0)
@@ -563,16 +563,12 @@ namespace CarboLifeUI.UI
                 //Resume async error.
             }
         }
-        private async void txt_AreaNew_TextChanged(object sender, TextChangedEventArgs e)
+        private void txt_AreaNew_TextChanged(object sender, RoutedEventArgs e)
         {
             string text = txt_AreaNew.Text;
             try
             {
                 TextBox tb = (TextBox)sender;
-                int startLength = tb.Text.Length;
-
-                await Task.Delay(500);
-                if (startLength == tb.Text.Length)
                 {
                     double convertedText = Utils.ConvertMeToDouble(tb.Text);
                     if (convertedText != 0)

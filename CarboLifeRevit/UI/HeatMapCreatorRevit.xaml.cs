@@ -533,6 +533,64 @@ namespace CarboLifeRevit
         }
 
         /// <summary>
+        /// Commits a typed cutoff when the user presses Enter. See the same pair in
+        /// CarboLifeUI's HeatMapCreator: these boxes were disabled and display only, so an exact
+        /// cutoff could not be entered at all, and the value could not even be selected to copy.
+        /// Committing on Enter and on focus loss keeps a half typed "1." out of the graph.
+        /// </summary>
+        private void txt_Cutoff_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if (e.Key != System.Windows.Input.Key.Enter)
+                return;
+
+            e.Handled = true;
+            CommitTypedCutoffs();
+        }
+
+        private void txt_Cutoff_LostFocus(object sender, RoutedEventArgs e)
+        {
+            CommitTypedCutoffs();
+        }
+
+        /// <summary>
+        /// Reads both boxes and applies them. Anything unreadable puts the boxes back to the
+        /// cutoffs actually in force.
+        /// </summary>
+        private void CommitTypedCutoffs()
+        {
+            if (cutoffRange == null)
+                return;
+
+            double low, high;
+
+            if (TryReadCutoff(txt_CutoffMin, out low) == false || TryReadCutoff(txt_CutoffMax, out high) == false)
+            {
+                UpdateCutoffText();
+                return;
+            }
+
+            if (Math.Abs(low - cutoffMin) < double.Epsilon && Math.Abs(high - cutoffMax) < double.Epsilon)
+                return;
+
+            SetCutoffs(low, high);
+        }
+
+        private static bool TryReadCutoff(System.Windows.Controls.TextBox box, out double value)
+        {
+            value = 0;
+
+            if (box == null)
+                return false;
+
+            string text = box.Text == null ? "" : box.Text.Trim();
+
+            return double.TryParse(text, System.Globalization.NumberStyles.Any,
+                                   System.Globalization.CultureInfo.CurrentCulture, out value)
+                || double.TryParse(text, System.Globalization.NumberStyles.Any,
+                                   System.Globalization.CultureInfo.InvariantCulture, out value);
+        }
+
+        /// <summary>
         /// Moves both cutoffs at once and redraws.
         /// </summary>
         private void SetCutoffs(double low, double high)

@@ -65,7 +65,7 @@ namespace CarboLifeAPI
 
             if (System.IO.File.Exists(Path))
             {
-                MessageBoxResult msgResult = System.Windows.MessageBox.Show("This file already exists, do you want to overwrite this file ?", "", MessageBoxButton.YesNo);
+                MessageBoxResult msgResult = System.Windows.MessageBox.Show("This file already exists, do you want to overwrite this file?", "", MessageBoxButton.YesNo);
 
                 if (msgResult == MessageBoxResult.Yes)
                 {

@@ -114,7 +114,7 @@ namespace CarboLifeRevit
                         }
                     }
 
-                    MessageBox.Show(ok + " Elements succesfully updated" + Environment.NewLine + notOk + " Elements skipped", "Success", MessageBoxButton.OK);
+                    MessageBox.Show(ok + " Elements successfully updated" + Environment.NewLine + notOk + " Elements skipped", "Success", MessageBoxButton.OK);
 
                 }
 

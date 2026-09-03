@@ -97,7 +97,7 @@ namespace CarboLifeAPI.Data
                 {
                     calcResult += "[C1] Demolition carbon cost: " + System.Environment.NewLine;
                    // calcResult += System.Environment.NewLine;
-                    calcResult += c1BaseValue + "kgCO₂e/m2  x " + c1density + "kg/m2 = " + c4incResult + " kgCO₂/kg " + System.Environment.NewLine;
+                    calcResult += c1BaseValue + "kgCO₂e/m2 x " + c1density + "kg/m2 = " + c4incResult + " kgCO₂/kg " + System.Environment.NewLine;
                     calcResult += System.Environment.NewLine;
                 }
 

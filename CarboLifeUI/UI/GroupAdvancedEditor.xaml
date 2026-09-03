@@ -59,11 +59,11 @@
                 <Label Grid.Column="1" Margin="0,0,5,0" Grid.Row="1" Style="{StaticResource baseStyle}" >A conversion of the volume. Use: [ * / + - ] to convert the volume to into total volume.</Label>
 
                 <Label Grid.Column="1" Margin="0,24,500,0" Grid.Row="1" Height="28" VerticalAlignment="Top" Style="{StaticResource baseStyle}">Formula:</Label>
-                <TextBox Name="txt_Formula" Grid.Column="1" Grid.Row="1" Margin="135,24,0,0" Height="25" Width="160" HorizontalAlignment="Left" VerticalAlignment="Top" Style="{StaticResource flatTextBox}" IsReadOnly="False" TextChanged="txt_Formula_TextChanged"></TextBox>
+                <TextBox Name="txt_Formula" Grid.Column="1" Grid.Row="1" Margin="135,24,0,0" Height="25" Width="160" HorizontalAlignment="Left" VerticalAlignment="Top" Style="{StaticResource flatTextBox}" IsReadOnly="False" LostFocus="txt_Formula_TextChanged"></TextBox>
                 <Label Name="lbl_FormulaSample" Grid.Column="1" Margin="313,22,0,0" Grid.Row="1" Height="28" VerticalAlignment="Top" Style="{StaticResource baseStyle}"></Label>
 
                 <Label Grid.Column="1" Margin="0,45,500,0" Grid.Row="1" Height="28" VerticalAlignment="Top" Style="{StaticResource baseStyle}">Description:</Label>
-                <TextBox Name="txt_FormulaDescription"  Grid.Column="1" Margin="135,50,5,0" Grid.Row="1" Style="{StaticResource flatTextBox}" AcceptsReturn="True" TextChanged="txt_FormulaDescription_TextChanged" >...</TextBox>
+                <TextBox Name="txt_FormulaDescription"  Grid.Column="1" Margin="135,50,5,0" Grid.Row="1" Style="{StaticResource flatTextBox}" AcceptsReturn="True" LostFocus="txt_FormulaDescription_TextChanged" >...</TextBox>
 
             </Grid>
         </GroupBox>
@@ -88,7 +88,7 @@
                 <ComboBox Name="cbb_WasteItem" Grid.Column="1" Margin="135,25,0,0" Grid.Row="1" Height="23" VerticalAlignment="Top" HorizontalAlignment="Left" Style="{StaticResource ComboBoxFlatStyle}" Width="480" DropDownClosed="cbb_WasteItem_DropDownClosed"></ComboBox>
 
                 <Label Grid.Column="1" Margin="0,45,500,0" Grid.Row="1" Height="28" VerticalAlignment="Top" Style="{StaticResource baseStyle}">Waste Factor:</Label>
-                <TextBox Name="txt_WasteFactor" Grid.Column="1" Grid.Row="1" Margin="135,50,0,0" Height="25" Width="90" HorizontalAlignment="Left" VerticalAlignment="Top" Style="{StaticResource flatTextBox}" IsReadOnly="False" TextChanged="txt_WasteFactor_TextChanged"></TextBox>
+                <TextBox Name="txt_WasteFactor" Grid.Column="1" Grid.Row="1" Margin="135,50,0,0" Height="25" Width="90" HorizontalAlignment="Left" VerticalAlignment="Top" Style="{StaticResource flatTextBox}" IsReadOnly="False" LostFocus="txt_WasteFactor_TextChanged"></TextBox>
                 <Label Grid.Column="1" Margin="230,50,10,0" Grid.Row="1" Height="28" VerticalAlignment="Top" HorizontalAlignment="Left" Style="{StaticResource baseStyle}">%</Label>
 
             </Grid>
@@ -111,14 +111,14 @@
 
 
                 <Label Grid.Column="1" Margin="0,23,500,0" Grid.Row="1" Height="28" VerticalAlignment="Top" Style="{StaticResource baseStyle}">Value:</Label>
-                <TextBox Name="txt_AdditionalValue" Grid.Column="1" Grid.Row="1" Margin="135,23,0,0" Height="25" Width="173" HorizontalAlignment="Left" VerticalAlignment="Top" Style="{StaticResource flatTextBox}" IsReadOnly="False" TextChanged="txt_AdditionalValue_TextChanged"></TextBox>
+                <TextBox Name="txt_AdditionalValue" Grid.Column="1" Grid.Row="1" Margin="135,23,0,0" Height="25" Width="173" HorizontalAlignment="Left" VerticalAlignment="Top" Style="{StaticResource flatTextBox}" IsReadOnly="False" LostFocus="txt_AdditionalValue_TextChanged"></TextBox>
                 <Label Grid.Column="1" Margin="313,23,231,0" Grid.Row="1" Height="28" VerticalAlignment="Top" Style="{StaticResource baseStyle}">kgCO₂/kg</Label>
 
                 <Button Name="btn_EditAdditional" Grid.Column="1" Margin="389,23,158,0" Grid.Row="1" Height="25" VerticalAlignment="Top" Style="{StaticResource ButtonStyle}" Click="btn_EditAdditional_Click" Visibility="Visible">Calculate...</Button>
 
 
                 <Label Grid.Column="1" Margin="0,45,500,0" Grid.Row="1" Height="28" VerticalAlignment="Top" Style="{StaticResource baseStyle}">Description:</Label>
-                <TextBox Name="txt_AdditionalDescription"  Grid.Column="1" Margin="135,50,5,0" Grid.Row="1" Style="{StaticResource flatTextBox}" AcceptsReturn="True" TextChanged="txt_AdditionalDescription_TextChanged">...</TextBox>
+                <TextBox Name="txt_AdditionalDescription"  Grid.Column="1" Margin="135,50,5,0" Grid.Row="1" Style="{StaticResource flatTextBox}" AcceptsReturn="True" LostFocus="txt_AdditionalDescription_TextChanged">...</TextBox>
 
             </Grid>
         </GroupBox>
@@ -143,16 +143,16 @@
 
 
                 <Label Grid.Column="1" Margin="0,53,475,0" Grid.Row="1" Height="28" VerticalAlignment="Top" Style="{StaticResource baseStyle}">Component Lifespan:</Label>
-                <TextBox Name="txt_ComponentLifespan" Grid.Column="1" Grid.Row="1" Margin="150,52,0,0" Height="24" Width="75" HorizontalAlignment="Left" VerticalAlignment="Top" Style="{StaticResource flatTextBox}" IsReadOnly="False" TextChanged="txt_ComponentLifespan_TextChanged"></TextBox>
+                <TextBox Name="txt_ComponentLifespan" Grid.Column="1" Grid.Row="1" Margin="150,52,0,0" Height="24" Width="75" HorizontalAlignment="Left" VerticalAlignment="Top" Style="{StaticResource flatTextBox}" IsReadOnly="False" LostFocus="txt_ComponentLifespan_TextChanged"></TextBox>
                 <Label Grid.Column="1" Margin="230,53,0,0" Grid.Row="1" Height="28" VerticalAlignment="Top" HorizontalAlignment="Left" Style="{StaticResource baseStyle}">year</Label>
 
 
                 <Label Grid.Column="1" Margin="0,80,500,0" Grid.Row="1" Height="28" VerticalAlignment="Top" Style="{StaticResource baseStyle}">Asset Ref. Period:</Label>
-                <TextBox Name="txt_AssetReferencePeriod" Grid.Column="1" Grid.Row="1" Margin="150,79,0,0" Height="25" Width="75" HorizontalAlignment="Left" VerticalAlignment="Top" Style="{StaticResource flatTextBox}" IsReadOnly="False" TextChanged="txt_AssetReferencePeriod_TextChanged"></TextBox>
+                <TextBox Name="txt_AssetReferencePeriod" Grid.Column="1" Grid.Row="1" Margin="150,79,0,0" Height="25" Width="75" HorizontalAlignment="Left" VerticalAlignment="Top" Style="{StaticResource flatTextBox}" IsReadOnly="False" LostFocus="txt_AssetReferencePeriod_TextChanged"></TextBox>
                 <Label Grid.Column="1" Margin="230,80,0,0" Grid.Row="1" Height="28" VerticalAlignment="Top" HorizontalAlignment="Left" Style="{StaticResource baseStyle}">year</Label>
 
                 <Label Grid.Column="1" Margin="0,107,500,0" Grid.Row="1" Height="28" VerticalAlignment="Top" Style="{StaticResource baseStyle}">Factor:</Label>
-                <TextBox Name="txt_B4Factor" Grid.Column="1" Grid.Row="1" Margin="150,107,0,0" Height="25" Width="75" HorizontalAlignment="Left" VerticalAlignment="Top" Style="{StaticResource flatTextBox}" IsReadOnly="True" Background="LightGray" TextChanged="txt_B4Factor_TextChanged"></TextBox>
+                <TextBox Name="txt_B4Factor" Grid.Column="1" Grid.Row="1" Margin="150,107,0,0" Height="25" Width="75" HorizontalAlignment="Left" VerticalAlignment="Top" Style="{StaticResource flatTextBox}" IsReadOnly="True" Background="LightGray" LostFocus="txt_B4Factor_TextChanged"></TextBox>
                 <Label Grid.Column="1" Margin="230,107,0,0" Grid.Row="1" Height="28" VerticalAlignment="Top" HorizontalAlignment="Left" Style="{StaticResource baseStyle}">x Replaced</Label>
             </Grid>
         </GroupBox>
