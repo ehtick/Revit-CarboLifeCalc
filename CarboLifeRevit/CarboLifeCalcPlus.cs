@@ -1,6 +1,7 @@
 ﻿using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
 using CarboLifeAPI.Data;
+using CarboLifeRevitCompat;
 using CarboLifeUI.UI;
 using System;
 using System.Collections.Generic;
@@ -44,7 +45,10 @@ namespace CarboLifeRevit
             foreach (Level lvl in levels)
             {
                 CarboLevel newlvl = new CarboLevel();
-                newlvl.Id = lvl.Id.IntegerValue;
+                //Narrowed deliberately: CarboLevel.Id is an int and a level id has never been large
+                //enough to overflow one. ElementId.IntegerValue itself no longer exists in Revit
+                //2026, so the value has to come through the compat helper.
+                newlvl.Id = (int)lvl.Id.LongValue();
                 newlvl.Name = lvl.Name;
                 newlvl.Level = (lvl.Elevation * 304.8);
 

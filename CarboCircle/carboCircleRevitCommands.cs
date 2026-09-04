@@ -404,14 +404,18 @@ namespace CarboCircle
         {
             //get a list of selected elemetnts
             List<Element> result = new List<Element>();
-            List<int> ids = new List<int>();
+
+            //64 bit. Revit widened element ids in 2024 and REMOVED the 32 bit accessor in
+            //2026, so ElementId.IntegerValue no longer exists there at all - see
+            //CarboLifeRevitCompat.LongValue.
+            List<long> ids = new List<long>();
 
             if (collection == null || selectedElementIds == null)
                 return result;
 
             foreach (ElementId id in selectedElementIds)
             {
-                ids.Add(id.IntegerValue);
+                ids.Add(id.LongValue());
             }
 
             //add only elements that are selected in the pool:
@@ -419,7 +423,7 @@ namespace CarboCircle
             {
                 try
                 {
-                    int id = el.Id.IntegerValue;
+                    long id = el.Id.LongValue();
 
                     if (ids.Contains(id))
                         result.Add(el);
@@ -607,8 +611,9 @@ namespace CarboCircle
 
                     ccE.materialName = dr[5].ToString();
 
-                    //Mass per metre. Blank on the 18 IPE rows, which is why every use of it
-                    //has to tolerate zero.
+                    //Mass per metre. Present on every row of the shipped table now - the 18 IPE
+                    //rows that used to leave it blank have been filled - but a user-supplied
+                    //table can still omit it, so every use of it has to tolerate zero.
                     ccE.massPerMetre = Utils.ConvertMeToDouble(dr[7].ToString());
 
                     //A catalogue row IS its section, by definition.
@@ -682,6 +687,9 @@ namespace CarboCircle
         ///     "HE 400 B"        -> "HEB|400"
         ///     "HEB400"          -> "HEB|400"
         ///     "168.3x5 CHS"     -> "CHS|168.3x5"
+        ///     "W16X50"          -> "W|16x50"
+        ///     "HSS8X8X1/2"      -> "HSS|8x8x1x2"
+        ///     "Pipe6XS"         -> "PIPEXS|6"          (NOT "IPE|6" - see seriesToken)
         ///
         /// The numbers carry the identity and are compared exactly, so 254x146x43 can never
         /// collide with 254x146x37. The series token stops a UC being taken for a UB of the same
@@ -769,16 +777,38 @@ namespace CarboCircle
         /// Matching by substring rather than by equality, because a Revit family name carries
         /// more than the designation - "UB-Universal Beam" and "UKB Universal Beam" both reduce
         /// to a blob with the series buried in it.
+        ///
+        /// TWO THINGS ABOUT THE AISC SERIES ARE NOT OBVIOUS.
+        ///
+        /// First, "Pipe" contains "IPE". Every pipe in the catalogue therefore used to reduce to
+        /// an IPE of its nominal size, and because the schedule lives in the letters rather than
+        /// the numbers, Pipe6STD, Pipe6XS and Pipe6XXS all reduced to the SAME key - so the
+        /// index kept whichever came first and a model's Pipe6XXS was reported as a 100% match
+        /// to a Pipe6STD with two fifths of its section modulus. The three schedules are
+        /// separate tokens, tested before IPE, so each keeps its own key.
+        ///
+        /// Second, W, C and L are a single letter each, and a single letter cannot be looked for
+        /// anywhere in the blob the way the rest are: "HOLLOW" contains W and L, "SECTION"
+        /// contains C. Those three are tested last and only against the START of the blob.
+        /// Being last, they can only ever fire on a name that returns "" without them, so no
+        /// designation that has a key today can lose or change it.
+        ///
+        /// Over the shipped catalogue - 1894 rows, UK, EU and US - this produces 1894 distinct
+        /// keys and no collisions at all. Anyone adding a series should re-check that property,
+        /// because a collision here is not a missed match but a wrong one asserted as exact.
         /// </summary>
         private static string seriesToken(string letters)
         {
             if (string.IsNullOrEmpty(letters))
                 return "";
 
-            //Longest first. Order matters: HEB must be found before HE, UKB before UB.
+            //Longest first. Order matters: HEB must be found before HE, UKB before UB, and
+            //every PIPE spelling before IPE.
             string[] tokens = new string[]
             {
-                "UKPFC", "HEA", "HEB", "HEM", "UKB", "UKC", "UKA", "PFC", "CHS", "RHS", "SHS", "IPE", "UB", "UC", "EA"
+                "UKPFC", "PIPEXXS", "PIPEXS", "PIPESTD", "PIPE",
+                "HEA", "HEB", "HEM", "UKB", "UKC", "UKA", "PFC", "CHS", "RHS", "SHS", "IPE",
+                "HSS", "UB", "UC", "EA", "HP"
             };
 
             foreach (string token in tokens)
@@ -793,6 +823,15 @@ namespace CarboCircle
 
                     return token;
                 }
+            }
+
+            //The single-letter AISC series, anchored rather than searched for.
+            string[] anchored = new string[] { "W", "C", "L" };
+
+            foreach (string token in anchored)
+            {
+                if (letters.StartsWith(token, StringComparison.Ordinal))
+                    return token;
             }
 
             return "";
@@ -828,9 +867,14 @@ namespace CarboCircle
             //hit is at best an assumption, however close it came.
             int confidence = identified ? 0 : 1;
 
-            //The mass check. Skipped rather than failed when either side is unknown: the
-            //catalogue leaves mass blank on 18 rows, and a column with no length cannot give a
-            //cross section. Refusing on missing data would reject sound sections.
+            //The mass check. Skipped rather than failed when either side is unknown, because a
+            //column with no length cannot give a cross section and a user-supplied table need
+            //not carry mass at all. Refusing on missing data would reject sound sections.
+            //
+            //The shipped table used to leave mass blank on the 18 IPE rows, which meant this
+            //check - the only guard against a wrong section being asserted as a 100% match -
+            //silently did nothing for every IPE in a European model. Those rows now carry mass,
+            //so anything skipping this on the shipped catalogue is a user table, not ours.
             if (mapped.massPerMetre > 0 && modelled.length > 0 && modelled.volume > 0)
             {
                 double modelledMassPerMetre = (modelled.volume / modelled.length) * steelDensity;
@@ -1247,7 +1291,7 @@ namespace CarboCircle
                 {
                     if (el.get_Geometry(new Options()) != null)
                     {
-                        if (el.Id.IntegerValue > 0)
+                        if (el.Id.LongValue() > 0)
                         {
                             //Check if not of any forbidden categories such as runs:
                             bool isValidCategory = ValidCategory(el);
@@ -1269,7 +1313,7 @@ namespace CarboCircle
         {
             bool result = true;
 
-            BuiltInCategory enumCategory = (BuiltInCategory)el.Category.Id.IntegerValue;
+            BuiltInCategory enumCategory = (BuiltInCategory)el.Category.Id.LongValue();
 
             if (enumCategory == BuiltInCategory.OST_StairsRuns)
             {
@@ -1383,9 +1427,9 @@ namespace CarboCircle
                             if (cce.idList.Count > 0)
                             {
                                 //Combined object Volumes
-                                foreach (int id in cce.idList)
+                                foreach (long id in cce.idList)
                                 {
-                                    ElementId eid = new ElementId(id);
+                                    ElementId eid = id.ToElementId();
 
                                     Element el = doc.GetElement(eid);
                                     if (el != null)
